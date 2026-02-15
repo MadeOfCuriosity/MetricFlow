@@ -1,9 +1,10 @@
 interface SkeletonProps {
   className?: string
+  style?: React.CSSProperties
 }
 
-export function Skeleton({ className = '' }: SkeletonProps) {
-  return <div className={`skeleton rounded ${className}`} />
+export function Skeleton({ className = '', style }: SkeletonProps) {
+  return <div className={`skeleton rounded ${className}`} style={style} />
 }
 
 export function KPICardSkeleton() {

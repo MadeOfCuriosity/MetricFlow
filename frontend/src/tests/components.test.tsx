@@ -18,7 +18,7 @@ describe('ErrorBoundary', () => {
     // Suppress console.error for this test
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
 
-    function ThrowingComponent() {
+    function ThrowingComponent(): React.ReactNode {
       throw new Error('Test error')
     }
 
@@ -37,7 +37,7 @@ describe('ErrorBoundary', () => {
   it('renders custom fallback when provided', () => {
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
 
-    function ThrowingComponent() {
+    function ThrowingComponent(): React.ReactNode {
       throw new Error('Test error')
     }
 

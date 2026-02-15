@@ -27,7 +27,7 @@ export function KPICard({
 }: KPICardProps) {
   const navigate = useNavigate()
   // Calculate trend
-  const trend = value !== null && previousValue !== null && previousValue !== 0
+  const trend = value !== null && previousValue !== null && previousValue !== undefined && previousValue !== 0
     ? ((value - previousValue) / Math.abs(previousValue)) * 100
     : null
 

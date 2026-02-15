@@ -1,6 +1,5 @@
 import {
   ExclamationTriangleIcon,
-  ArrowTrendingDownIcon,
   ArrowTrendingUpIcon,
   LightBulbIcon,
   InformationCircleIcon,
