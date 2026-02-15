@@ -9,7 +9,7 @@ import {
   BellIcon,
   SwatchIcon,
   KeyIcon,
-  UsersIcon,
+  ShieldCheckIcon,
 } from '@heroicons/react/24/outline'
 import { useAuth } from '../context/AuthContext'
 
@@ -101,13 +101,13 @@ export function Header({ onMenuClick }: HeaderProps) {
                     <Menu.Item>
                       {({ active }) => (
                         <button
-                          onClick={() => navigate('/users')}
+                          onClick={() => navigate('/admin')}
                           className={`${
                             active ? 'bg-dark-700' : ''
                           } flex items-center gap-3 w-full px-4 py-2 text-sm text-dark-200`}
                         >
-                          <UsersIcon className="h-5 w-5" />
-                          Users
+                          <ShieldCheckIcon className="h-5 w-5" />
+                          Admin Panel
                         </button>
                       )}
                     </Menu.Item>

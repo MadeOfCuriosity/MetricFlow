@@ -18,7 +18,7 @@ interface DataPoint {
 interface TrendChartProps {
   data: DataPoint[]
   kpiName: string
-  height?: number
+  height?: number | string
   showGrid?: boolean
 }
 

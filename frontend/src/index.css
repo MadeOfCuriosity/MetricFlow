@@ -108,3 +108,63 @@ body {
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
 }
+
+/* ===== React Grid Layout ===== */
+
+.react-grid-layout {
+  position: relative;
+  transition: height 200ms ease;
+}
+
+.react-grid-item {
+  transition: all 200ms ease;
+  transition-property: left, top, width, height;
+}
+
+.react-grid-item.cssTransforms {
+  transition-property: transform, width, height;
+}
+
+.react-grid-item.resizing {
+  opacity: 0.9;
+  z-index: 3;
+}
+
+.react-grid-item.react-draggable-dragging {
+  transition: none;
+  z-index: 3;
+  will-change: transform;
+  @apply shadow-lg ring-2 ring-primary-500/30;
+}
+
+.react-grid-placeholder {
+  @apply rounded-xl;
+  background: rgb(var(--color-dark-700) / 0.4);
+  border: 2px dashed rgb(var(--color-dark-500));
+  opacity: 0.5;
+}
+
+.react-resizable-handle {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  bottom: 0;
+  right: 0;
+  cursor: se-resize;
+  @apply opacity-0 transition-opacity;
+}
+
+.react-grid-item:hover .react-resizable-handle {
+  @apply opacity-100;
+}
+
+.react-resizable-handle::after {
+  content: '';
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid rgb(var(--color-dark-400));
+  border-bottom: 2px solid rgb(var(--color-dark-400));
+}

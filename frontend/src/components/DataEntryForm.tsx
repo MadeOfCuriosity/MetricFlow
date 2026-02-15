@@ -42,6 +42,7 @@ export function DataEntryForm({ rooms, onSubmit, isSubmitting }: DataEntryFormPr
   })
 
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [emptySubmitWarning, setEmptySubmitWarning] = useState(false)
 
   const toggleRoom = (roomId: string | null) => {
     setExpandedRooms((prev) => {
@@ -57,6 +58,7 @@ export function DataEntryForm({ rooms, onSubmit, isSubmitting }: DataEntryFormPr
 
   const handleValueChange = (fieldId: string, value: string) => {
     setValues((prev) => ({ ...prev, [fieldId]: value }))
+    setEmptySubmitWarning(false)
     if (errors[fieldId]) {
       setErrors((prev) => {
         const next = { ...prev }
@@ -83,7 +85,14 @@ export function DataEntryForm({ rooms, onSubmit, isSubmitting }: DataEntryFormPr
     })
 
     setErrors(newErrors)
-    return Object.keys(newErrors).length === 0 && hasAnyValue
+
+    if (!hasAnyValue) {
+      setEmptySubmitWarning(true)
+      return false
+    }
+
+    setEmptySubmitWarning(false)
+    return Object.keys(newErrors).length === 0
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -211,6 +220,26 @@ export function DataEntryForm({ rooms, onSubmit, isSubmitting }: DataEntryFormPr
           </div>
         )
       })}
+
+      {/* Empty submit warning */}
+      {emptySubmitWarning && (
+        <div className="flex items-center gap-2 p-3 bg-warning-500/10 border border-warning-500/20 rounded-lg">
+          <ExclamationCircleIcon className="w-5 h-5 text-warning-400 flex-shrink-0" />
+          <p className="text-sm text-warning-400">
+            Please enter at least one value before saving.
+          </p>
+        </div>
+      )}
+
+      {/* Validation error summary */}
+      {Object.keys(errors).length > 0 && (
+        <div className="flex items-center gap-2 p-3 bg-danger-500/10 border border-danger-500/20 rounded-lg">
+          <ExclamationCircleIcon className="w-5 h-5 text-danger-400 flex-shrink-0" />
+          <p className="text-sm text-danger-400">
+            {Object.keys(errors).length} field{Object.keys(errors).length > 1 ? 's have' : ' has'} invalid values. Please fix the errors above.
+          </p>
+        </div>
+      )}
 
       {/* Submit button */}
       <div className="flex items-center justify-between pt-4 border-t border-dark-700">

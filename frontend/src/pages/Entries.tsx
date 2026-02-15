@@ -84,12 +84,23 @@ export function Entries() {
       console.error('Failed to submit entries:', error)
       setSubmissionStatus('error')
       const detail = error.response?.data?.detail
+      const statusCode = error.response?.status
+
       if (Array.isArray(detail)) {
-        setErrorMessage(detail.map((e: any) => e.msg).join(', '))
+        // Pydantic validation errors - show each one clearly
+        const fieldErrors = detail.map((e: any) => {
+          const loc = e.loc ? e.loc.slice(-1)[0] : ''
+          return loc ? `${loc}: ${e.msg}` : e.msg
+        })
+        setErrorMessage(`Validation errors:\n${fieldErrors.join('\n')}`)
       } else if (typeof detail === 'string') {
         setErrorMessage(detail)
+      } else if (statusCode === 403) {
+        setErrorMessage('You don\'t have permission to enter data for some of these fields.')
+      } else if (statusCode === 404) {
+        setErrorMessage('Some data fields were not found. The page may be out of date - try refreshing.')
       } else {
-        setErrorMessage('Failed to save entries. Please try again.')
+        setErrorMessage(`Failed to save entries (${statusCode || 'network error'}). Please try again.`)
       }
     } finally {
       setIsSubmitting(false)
@@ -153,11 +164,11 @@ export function Entries() {
       )}
 
       {submissionStatus === 'error' && errorMessage && (
-        <div className="flex items-center gap-3 p-4 bg-danger-500/10 border border-danger-500/20 rounded-xl">
-          <ExclamationTriangleIcon className="w-6 h-6 text-danger-400 flex-shrink-0" />
+        <div className="flex items-start gap-3 p-4 bg-danger-500/10 border border-danger-500/20 rounded-xl">
+          <ExclamationTriangleIcon className="w-6 h-6 text-danger-400 flex-shrink-0 mt-0.5" />
           <div>
             <p className="text-sm font-medium text-danger-400">Error saving entries</p>
-            <p className="text-xs text-danger-400/70 mt-0.5">{errorMessage}</p>
+            <p className="text-xs text-danger-400/70 mt-0.5 whitespace-pre-wrap">{errorMessage}</p>
           </div>
         </div>
       )}

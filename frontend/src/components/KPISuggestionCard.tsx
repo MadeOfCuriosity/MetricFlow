@@ -1,16 +1,50 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import {
   CheckIcon,
   ChartBarIcon,
   ArrowTrendingUpIcon,
   ArrowTrendingDownIcon,
   ClockIcon,
+  ExclamationTriangleIcon,
 } from '@heroicons/react/24/outline'
 import { DataFieldChipSelector } from './DataFieldChipSelector'
 import { dataFieldsApi } from '../services/dataFields'
 import type { DataField } from '../types/dataField'
 
 type TimePeriod = 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'other'
+
+/**
+ * Basic client-side formula validation to catch obvious issues
+ * before sending to the backend.
+ */
+function validateFormula(formula: string, inputFields: string[]): string | null {
+  if (!formula || !formula.trim()) {
+    return 'Formula is empty'
+  }
+
+  // Check balanced parentheses
+  let depth = 0
+  for (const char of formula) {
+    if (char === '(') depth++
+    if (char === ')') depth--
+    if (depth < 0) return 'Unbalanced parentheses in formula'
+  }
+  if (depth !== 0) return 'Unbalanced parentheses in formula'
+
+  // Check for empty parentheses
+  if (/\(\s*\)/.test(formula)) {
+    return 'Formula contains empty parentheses'
+  }
+
+  // Check that all input_fields appear in the formula
+  for (const field of inputFields) {
+    if (!formula.includes(field)) {
+      return `Variable "${field}" listed but not found in formula`
+    }
+  }
+
+  return null
+}
 
 interface KPISuggestion {
   name: string
@@ -76,6 +110,11 @@ export function KPISuggestionCard({
     })
   }, [suggestion.input_fields])
 
+  const formulaError = useMemo(
+    () => validateFormula(suggestion.formula, suggestion.input_fields),
+    [suggestion.formula, suggestion.input_fields]
+  )
+
   const handleMappingChange = (variable: string, dataFieldId: string | null) => {
     setMappings((prev) => ({ ...prev, [variable]: dataFieldId }))
   }
@@ -139,9 +178,15 @@ export function KPISuggestionCard({
       )}
 
       {/* Formula */}
-      <div className="bg-dark-900 rounded-lg p-3">
+      <div className={`bg-dark-900 rounded-lg p-3 ${formulaError ? 'border border-warning-500/30' : ''}`}>
         <p className="text-xs text-dark-400 mb-1">Formula</p>
         <p className="text-sm font-mono text-primary-400">{suggestion.formula}</p>
+        {formulaError && (
+          <div className="flex items-center gap-1.5 mt-2">
+            <ExclamationTriangleIcon className="w-3.5 h-3.5 text-warning-400 flex-shrink-0" />
+            <p className="text-xs text-warning-400">{formulaError}</p>
+          </div>
+        )}
       </div>
 
       {/* Data Field Chip Selector */}
@@ -162,13 +207,22 @@ export function KPISuggestionCard({
       {/* Add button */}
       <button
         onClick={handleAdd}
-        disabled={isAdding}
-        className="w-full flex items-center justify-center gap-2 px-4 py-2 border border-primary-500 bg-transparent text-foreground rounded-lg hover:bg-primary-500/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        disabled={isAdding || !!formulaError}
+        className={`w-full flex items-center justify-center gap-2 px-4 py-2 border bg-transparent rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+          formulaError
+            ? 'border-warning-500/50 text-warning-400'
+            : 'border-primary-500 text-foreground hover:bg-primary-500/10'
+        }`}
       >
         {isAdding ? (
           <>
             <div className="w-4 h-4 border-2 border-foreground border-t-transparent rounded-full animate-spin" />
             Adding KPI...
+          </>
+        ) : formulaError ? (
+          <>
+            <ExclamationTriangleIcon className="w-4 h-4" />
+            Formula issue detected
           </>
         ) : (
           <>

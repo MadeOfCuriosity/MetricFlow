@@ -12,3 +12,12 @@ export { UserManagement } from './UserManagement'
 export { Data } from './Data'
 export { Integrations } from './Integrations'
 export { GoogleOrgSetup } from './GoogleOrgSetup'
+export {
+  AdminLayout,
+  AdminDashboard,
+  AdminUsers,
+  AdminRooms,
+  AdminOrganization,
+  AdminIntegrations,
+  AdminActivity,
+} from './admin'

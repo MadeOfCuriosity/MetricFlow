@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeftIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline'
+import { useNavigate, useParams, Link } from 'react-router-dom'
+import { ArrowLeftIcon, ExclamationTriangleIcon, ArrowTopRightOnSquareIcon } from '@heroicons/react/24/outline'
 import { ChatInterface } from '../components/ChatInterface'
 import { useToast } from '../context/ToastContext'
 import api from '../services/api'
@@ -42,7 +42,9 @@ export function AIBuilder() {
   const [isLoading, setIsLoading] = useState(false)
   const [isAddingKPI, setIsAddingKPI] = useState(false)
   const [rateLimitError, setRateLimitError] = useState<string | null>(null)
+  const [rateLimitInfo, setRateLimitInfo] = useState<{ remaining: number; limit: number } | null>(null)
   const [roomName, setRoomName] = useState<string>('')
+  const [lastCreatedKpi, setLastCreatedKpi] = useState<string | null>(null)
 
   useEffect(() => {
     if (roomId) {
@@ -53,6 +55,19 @@ export function AIBuilder() {
       })
     }
   }, [roomId])
+
+  // Proactively check rate limit on mount
+  useEffect(() => {
+    api.get('/api/ai/rate-limit').then((res) => {
+      const { remaining_calls, limit_per_day, allowed } = res.data
+      setRateLimitInfo({ remaining: remaining_calls, limit: limit_per_day })
+      if (!allowed) {
+        setRateLimitError(`Daily limit reached (${limit_per_day}/${limit_per_day} used). Resets at midnight UTC.`)
+      }
+    }).catch(() => {
+      // Silently fail - rate limit will be enforced server-side
+    })
+  }, [])
 
   const sendMessage = async (content: string) => {
     // Add user message to UI
@@ -80,7 +95,12 @@ export function AIBuilder() {
         conversation_history: newHistory,
       })
 
-      const { ai_response: aiResponse, suggested_kpi } = response.data
+      const { ai_response: aiResponse, suggested_kpi, rate_limit_remaining } = response.data
+
+      // Update rate limit info from response
+      if (rateLimitInfo && typeof rate_limit_remaining === 'number') {
+        setRateLimitInfo({ ...rateLimitInfo, remaining: rate_limit_remaining })
+      }
 
       // Add assistant message
       const assistantMessage: Message = {
@@ -109,6 +129,9 @@ export function AIBuilder() {
         } else {
           setRateLimitError('Rate limit exceeded. Please try again later.')
         }
+        if (rateLimitInfo) {
+          setRateLimitInfo({ ...rateLimitInfo, remaining: 0 })
+        }
         const errorMessage: Message = {
           id: (Date.now() + 1).toString(),
           role: 'assistant',
@@ -135,6 +158,7 @@ export function AIBuilder() {
 
   const handleAddKPI = async (suggestion: KPISuggestion, dataFieldMappings: Record<string, string>) => {
     setIsAddingKPI(true)
+    setLastCreatedKpi(null)
     try {
       await api.post('/api/kpis', {
         name: suggestion.name,
@@ -147,6 +171,7 @@ export function AIBuilder() {
       })
 
       success('KPI Created', `"${suggestion.name}" has been created and assigned to ${roomName}`)
+      setLastCreatedKpi(suggestion.name)
 
       // Add confirmation message
       const confirmMessage: Message = {
@@ -172,19 +197,26 @@ export function AIBuilder() {
   return (
     <div className="h-[calc(100vh-8rem)] flex flex-col">
       {/* Header */}
-      <div className="flex items-center gap-4 mb-4">
-        <button
-          onClick={() => navigate(`/rooms/${roomId}`)}
-          className="p-2 text-dark-300 hover:text-foreground hover:bg-dark-800 rounded-lg transition-colors"
-        >
-          <ArrowLeftIcon className="w-5 h-5" />
-        </button>
-        <div>
-          <h1 className="text-xl font-bold text-foreground">AI KPI Builder</h1>
-          <p className="text-sm text-dark-300">
-            Create KPIs for {roomName || 'this room'}
-          </p>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => navigate(`/rooms/${roomId}`)}
+            className="p-2 text-dark-300 hover:text-foreground hover:bg-dark-800 rounded-lg transition-colors"
+          >
+            <ArrowLeftIcon className="w-5 h-5" />
+          </button>
+          <div>
+            <h1 className="text-xl font-bold text-foreground">AI KPI Builder</h1>
+            <p className="text-sm text-dark-300">
+              Create KPIs for {roomName || 'this room'}
+            </p>
+          </div>
         </div>
+        {rateLimitInfo && (
+          <p className="text-xs text-dark-400">
+            {rateLimitInfo.remaining}/{rateLimitInfo.limit} AI calls remaining today
+          </p>
+        )}
       </div>
 
       {/* Rate limit warning */}
@@ -192,6 +224,31 @@ export function AIBuilder() {
         <div className="mb-4 flex items-center gap-3 p-4 bg-warning-500/10 border border-warning-500/20 rounded-xl">
           <ExclamationTriangleIcon className="w-5 h-5 text-warning-400 flex-shrink-0" />
           <p className="text-sm text-warning-400">{rateLimitError}</p>
+        </div>
+      )}
+
+      {/* KPI created action banner */}
+      {lastCreatedKpi && (
+        <div className="mb-4 flex items-center justify-between p-3 bg-success-500/10 border border-success-500/20 rounded-xl">
+          <p className="text-sm text-success-400">
+            "{lastCreatedKpi}" created successfully
+          </p>
+          <div className="flex items-center gap-3">
+            <Link
+              to={`/rooms/${roomId}`}
+              className="flex items-center gap-1.5 text-xs text-primary-400 hover:text-primary-300 transition-colors"
+            >
+              <ArrowTopRightOnSquareIcon className="w-3.5 h-3.5" />
+              View Room
+            </Link>
+            <Link
+              to="/entries"
+              className="flex items-center gap-1.5 text-xs text-primary-400 hover:text-primary-300 transition-colors"
+            >
+              <ArrowTopRightOnSquareIcon className="w-3.5 h-3.5" />
+              Enter Data
+            </Link>
+          </div>
         </div>
       )}
 

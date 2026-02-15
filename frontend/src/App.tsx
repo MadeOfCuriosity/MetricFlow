@@ -17,8 +17,14 @@ import {
   Insights,
   Settings,
   RoomDashboard,
-  UserManagement,
   Data,
+  AdminLayout,
+  AdminDashboard,
+  AdminUsers,
+  AdminRooms,
+  AdminOrganization,
+  AdminIntegrations,
+  AdminActivity,
 } from './pages'
 
 function App() {
@@ -55,7 +61,15 @@ function App() {
             <Route path="ai-builder" element={<Navigate to="/dashboard" replace />} />
             <Route path="rooms/:roomId/ai-builder" element={<AIBuilder />} />
             <Route path="rooms/:roomId" element={<RoomDashboard />} />
-            <Route path="users" element={<UserManagement />} />
+            <Route path="admin" element={<AdminLayout />}>
+              <Route index element={<AdminDashboard />} />
+              <Route path="users" element={<AdminUsers />} />
+              <Route path="rooms" element={<AdminRooms />} />
+              <Route path="organization" element={<AdminOrganization />} />
+              <Route path="integrations" element={<AdminIntegrations />} />
+              <Route path="activity" element={<AdminActivity />} />
+            </Route>
+            <Route path="users" element={<Navigate to="/admin/users" replace />} />
             <Route path="integrations" element={<Navigate to="/settings?tab=integrations" replace />} />
             <Route path="settings" element={<Settings />} />
           </Route>

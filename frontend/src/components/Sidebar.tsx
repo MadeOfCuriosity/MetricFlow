@@ -12,7 +12,7 @@ import {
   ChevronRightIcon,
   ChevronDownIcon,
   ChevronLeftIcon,
-  UsersIcon,
+  ShieldCheckIcon,
   CircleStackIcon,
 } from '@heroicons/react/24/outline'
 import { useRoom } from '../context/RoomContext'
@@ -30,7 +30,7 @@ const navigation = [
 ]
 
 const secondaryNavigation = [
-  { name: 'Users', href: '/users', icon: UsersIcon, adminOnly: true },
+  { name: 'Admin', href: '/admin', icon: ShieldCheckIcon, adminOnly: true },
   { name: 'Settings', href: '/settings', icon: Cog6ToothIcon, adminOnly: false },
 ]
 
