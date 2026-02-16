@@ -6,6 +6,8 @@ import { ToastProvider } from './context/ToastContext'
 import { ThemeProvider } from './context/ThemeContext'
 import { Layout, ProtectedRoute, ErrorBoundary } from './components'
 import {
+  Landing,
+  Privacy,
   Login,
   Register,
   GoogleOrgSetup,
@@ -38,9 +40,11 @@ function App() {
             <Router>
             <Routes>
           {/* Public routes */}
+          <Route path="/landing" element={<Landing />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/google-setup" element={<GoogleOrgSetup />} />
+          <Route path="/privacy" element={<Privacy />} />
 
           {/* Protected routes with layout */}
           <Route

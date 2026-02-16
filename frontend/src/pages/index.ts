@@ -1,3 +1,5 @@
+export { default as Landing } from './Landing'
+export { default as Privacy } from './Privacy'
 export { Login } from './Login'
 export { Register } from './Register'
 export { Dashboard } from './Dashboard'
