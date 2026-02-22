@@ -6,6 +6,7 @@ import type {
   UpdateDataFieldData,
   CreateFieldEntriesRequest,
   CreateFieldEntriesResponse,
+  CSVImportResponse,
   TodayFieldFormResponse,
 } from '../types/dataField'
 
@@ -35,8 +36,19 @@ export const dataFieldsApi = {
   submitFieldEntries: (data: CreateFieldEntriesRequest) =>
     api.post<CreateFieldEntriesResponse>('/api/entries/fields', data).then(r => r.data),
 
-  getTodayFieldForm: (date?: string) => {
-    const params = date ? `?date=${date}` : ''
-    return api.get<TodayFieldFormResponse>(`/api/entries/fields/today${params}`).then(r => r.data)
+  getTodayFieldForm: (date?: string, interval?: string) => {
+    const params = new URLSearchParams()
+    if (date) params.set('date', date)
+    if (interval) params.set('interval', interval)
+    const qs = params.toString()
+    return api.get<TodayFieldFormResponse>(`/api/entries/fields/today${qs ? `?${qs}` : ''}`).then(r => r.data)
+  },
+
+  importCSV: (file: File) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    return api.post<CSVImportResponse>('/api/entries/fields/import-csv', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }).then(r => r.data)
   },
 }

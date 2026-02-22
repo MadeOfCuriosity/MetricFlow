@@ -12,10 +12,11 @@ import { KPICard, TrendChart, DateRangeSelector, getPresetLabel } from '../compo
 import type { DateRange, DateRangePreset } from '../components'
 import { roomsApi } from '../services/rooms'
 import api from '../services/api'
-import { RoomDashboardResponse, KPI } from '../types/room'
+import { RoomDashboardResponse, KPI, AggregatedKPI } from '../types/room'
 import { useRoom } from '../context/RoomContext'
 import { useAuth } from '../context/AuthContext'
 import { CreateRoomModal } from '../components/CreateRoomModal'
+import { AggregatedKPICard } from '../components/AggregatedKPICard'
 
 interface DataEntry {
   id: string
@@ -40,6 +41,7 @@ export function RoomDashboard() {
   const [subRoomKpisWithEntries, setSubRoomKpisWithEntries] = useState<KPIWithEntries[]>([])
   const [sharedKpisWithEntries, setSharedKpisWithEntries] = useState<KPIWithEntries[]>([])
   const [selectedKPI, setSelectedKPI] = useState<string | null>(null)
+  const [selectedAggKPI, setSelectedAggKPI] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
@@ -133,10 +135,15 @@ export function RoomDashboard() {
         )
         setSharedKpisWithEntries(sharedKpisData)
 
-        // Select first KPI by default
-        const allKpis = [...roomKpisData, ...subRoomKpisData, ...sharedKpisData]
-        if (allKpis.length > 0) {
-          setSelectedKPI(allKpis[0].id)
+        // Select first KPI by default (prefer aggregated if available)
+        const aggKpis = data.aggregated_kpis || []
+        const allFetchedKpis = [...roomKpisData, ...subRoomKpisData, ...sharedKpisData]
+        if (aggKpis.length > 0) {
+          setSelectedAggKPI(aggKpis[0].kpi.id)
+          setSelectedKPI(null)
+        } else if (allFetchedKpis.length > 0) {
+          setSelectedKPI(allFetchedKpis[0].id)
+          setSelectedAggKPI(null)
         }
       } catch (err) {
         console.error('Failed to fetch room dashboard:', err)
@@ -191,15 +198,33 @@ export function RoomDashboard() {
   }
 
   const allKpis = [...roomKpisWithEntries, ...subRoomKpisWithEntries, ...sharedKpisWithEntries]
+  const aggregatedKpis: AggregatedKPI[] = dashboardData?.aggregated_kpis || []
+
+  // Determine chart data source: either a regular KPI or an aggregated one
   const selectedKPIData = allKpis.find((k) => k.id === selectedKPI)
-  const filteredEntries = selectedKPIData ? filterEntriesByRange(selectedKPIData.entries) : []
-  const chartData = filteredEntries
-    .slice()
-    .reverse()
-    .map((e) => ({
-      date: e.date,
-      value: e.calculated_value,
-    }))
+  const selectedAggData = aggregatedKpis.find((a) => a.kpi.id === selectedAggKPI)
+
+  let chartData: { date: string; value: number }[] = []
+  let chartTitle = 'Select a KPI'
+  let chartCurrentValue: number | null = null
+
+  if (selectedAggKPI && selectedAggData) {
+    // Aggregated KPI selected
+    const aggEntries = selectedAggData.recent_entries.filter((e) => {
+      if (dateRange.startDate && e.date < dateRange.startDate) return false
+      if (dateRange.endDate && e.date > dateRange.endDate) return false
+      return true
+    })
+    chartData = aggEntries.slice().reverse().map((e) => ({ date: e.date, value: e.aggregated_value }))
+    chartTitle = `${selectedAggData.kpi.name} (${selectedAggData.aggregation_method.toUpperCase()})`
+    chartCurrentValue = selectedAggData.current_aggregated_value
+  } else if (selectedKPI && selectedKPIData) {
+    // Regular KPI selected
+    const filteredEntries = filterEntriesByRange(selectedKPIData.entries)
+    chartData = filteredEntries.slice().reverse().map((e) => ({ date: e.date, value: e.calculated_value }))
+    chartTitle = selectedKPIData.name
+    chartCurrentValue = selectedKPIData.currentValue
+  }
 
   if (isLoading) {
     return (
@@ -336,7 +361,7 @@ export function RoomDashboard() {
               <ChartBarIcon className="w-5 h-5 text-warning-400" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-foreground">{allKpis.length}</p>
+              <p className="text-2xl font-bold text-foreground">{allKpis.length + aggregatedKpis.length}</p>
               <p className="text-xs text-dark-400">Total KPIs</p>
             </div>
           </div>
@@ -367,11 +392,33 @@ export function RoomDashboard() {
                     .slice(0, 7)
                     .reverse()
                     .map((e) => ({ value: e.calculated_value }))}
-                  onClick={() => setSelectedKPI(kpi.id)}
+                  onClick={() => { setSelectedKPI(kpi.id); setSelectedAggKPI(null) }}
                   isSelected={selectedKPI === kpi.id}
                 />
               )
             })}
+          </div>
+        </div>
+      )}
+
+      {/* Aggregated KPIs (summed/averaged from sub-rooms) */}
+      {aggregatedKpis.length > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-foreground">Aggregated KPIs</h2>
+            <span className="text-xs text-dark-400 bg-dark-800 px-2 py-1 rounded">
+              Combined from sub-rooms
+            </span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {aggregatedKpis.map((aggKpi) => (
+              <AggregatedKPICard
+                key={`agg-${aggKpi.kpi.id}`}
+                aggregatedKpi={aggKpi}
+                onClick={() => { setSelectedAggKPI(aggKpi.kpi.id); setSelectedKPI(null) }}
+                isSelected={selectedAggKPI === aggKpi.kpi.id}
+              />
+            ))}
           </div>
         </div>
       )}
@@ -400,7 +447,7 @@ export function RoomDashboard() {
                     .slice(0, 7)
                     .reverse()
                     .map((e) => ({ value: e.calculated_value }))}
-                  onClick={() => setSelectedKPI(kpi.id)}
+                  onClick={() => { setSelectedKPI(kpi.id); setSelectedAggKPI(null) }}
                   isSelected={selectedKPI === kpi.id}
                 />
               )
@@ -433,7 +480,7 @@ export function RoomDashboard() {
                     .slice(0, 7)
                     .reverse()
                     .map((e) => ({ value: e.calculated_value }))}
-                  onClick={() => setSelectedKPI(kpi.id)}
+                  onClick={() => { setSelectedKPI(kpi.id); setSelectedAggKPI(null) }}
                   isSelected={selectedKPI === kpi.id}
                 />
               )
@@ -443,21 +490,21 @@ export function RoomDashboard() {
       )}
 
       {/* Trend chart */}
-      {allKpis.length > 0 && (
+      {(allKpis.length > 0 || aggregatedKpis.length > 0) && (
         <div className="bg-dark-900 border border-dark-700 rounded-xl p-6">
           <div className="flex items-center justify-between mb-6">
             <div>
               <h2 className="text-lg font-semibold text-foreground">
-                {selectedKPIData?.name || 'Select a KPI'}
+                {chartTitle}
               </h2>
               <p className="text-sm text-dark-400">{getPresetLabel(activePreset)}</p>
             </div>
-            {selectedKPIData && (
+            {chartCurrentValue !== null && (
               <div className="text-right">
                 <p className="text-2xl font-bold text-foreground">
-                  {selectedKPIData.currentValue?.toLocaleString(undefined, {
+                  {chartCurrentValue.toLocaleString(undefined, {
                     maximumFractionDigits: 2,
-                  }) || '—'}
+                  })}
                 </p>
                 <p className="text-sm text-dark-400">Current value</p>
               </div>
@@ -465,7 +512,7 @@ export function RoomDashboard() {
           </div>
 
           {chartData.length > 0 ? (
-            <TrendChart data={chartData} kpiName={selectedKPIData?.name || ''} height={280} />
+            <TrendChart data={chartData} kpiName={chartTitle} height={280} />
           ) : (
             <div className="flex items-center justify-center h-[280px] bg-dark-800/30 rounded-lg">
               <div className="text-center">
@@ -485,7 +532,7 @@ export function RoomDashboard() {
       )}
 
       {/* Empty state */}
-      {allKpis.length === 0 && (
+      {allKpis.length === 0 && aggregatedKpis.length === 0 && (
         <div className="bg-dark-900 border border-dark-700 rounded-xl p-12 text-center">
           <ChartBarIcon className="w-16 h-16 text-dark-500 mx-auto mb-4" />
           <h2 className="text-xl font-semibold text-foreground mb-2">No KPIs in this room</h2>

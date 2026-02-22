@@ -6,9 +6,11 @@ import {
   CircleStackIcon,
   MagnifyingGlassIcon,
   FunnelIcon,
+  ArrowUpTrayIcon,
 } from '@heroicons/react/24/outline'
 import { DataFieldFormModal } from '../components/DataFieldFormModal'
 import { DeleteConfirmModal } from '../components/DeleteConfirmModal'
+import { CSVImportModal } from '../components/CSVImportModal'
 import { useToast } from '../context/ToastContext'
 import { useRoom } from '../context/RoomContext'
 import { dataFieldsApi } from '../services/dataFields'
@@ -44,6 +46,7 @@ export function Data() {
   const [editField, setEditField] = useState<DataField | null>(null)
   const [fieldToDelete, setFieldToDelete] = useState<DataField | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false)
 
   const flatRooms = useMemo(() => flattenTree(roomTree), [roomTree])
 
@@ -108,13 +111,22 @@ export function Data() {
             Manage reusable data fields across your organization
           </p>
         </div>
-        <button
-          onClick={() => setIsCreateModalOpen(true)}
-          className="inline-flex items-center gap-2 px-4 py-2 border border-primary-500 bg-transparent text-foreground rounded-lg hover:bg-primary-500/10 transition-colors"
-        >
-          <PlusIcon className="h-5 w-5" />
-          Create Data Field
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setIsImportModalOpen(true)}
+            className="inline-flex items-center gap-2 px-4 py-2 border border-dark-600 text-dark-200 hover:text-foreground hover:border-dark-500 rounded-lg transition-colors"
+          >
+            <ArrowUpTrayIcon className="h-5 w-5" />
+            Import CSV
+          </button>
+          <button
+            onClick={() => setIsCreateModalOpen(true)}
+            className="inline-flex items-center gap-2 px-4 py-2 border border-primary-500 bg-transparent text-foreground rounded-lg hover:bg-primary-500/10 transition-colors"
+          >
+            <PlusIcon className="h-5 w-5" />
+            Create Data Field
+          </button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -189,6 +201,7 @@ export function Data() {
                   <th className="px-4 py-3 text-left text-xs font-semibold text-dark-300 uppercase tracking-wider">Variable</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-dark-300 uppercase tracking-wider">Room</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-dark-300 uppercase tracking-wider">Unit</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-dark-300 uppercase tracking-wider">Interval</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-dark-300 uppercase tracking-wider">KPIs</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-dark-300 uppercase tracking-wider">Latest Value</th>
                   <th className="px-4 py-3 text-right text-xs font-semibold text-dark-300 uppercase tracking-wider">Actions</th>
@@ -219,6 +232,16 @@ export function Data() {
                     </td>
                     <td className="px-4 py-3">
                       <span className="text-sm text-dark-300">{field.unit || '—'}</span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                        field.entry_interval === 'daily' ? 'bg-primary-500/10 text-primary-400' :
+                        field.entry_interval === 'weekly' ? 'bg-success-500/10 text-success-400' :
+                        field.entry_interval === 'monthly' ? 'bg-warning-500/10 text-warning-400' :
+                        'bg-dark-600 text-dark-300'
+                      }`}>
+                        {field.entry_interval ? field.entry_interval.charAt(0).toUpperCase() + field.entry_interval.slice(1) : 'Daily'}
+                      </span>
                     </td>
                     <td className="px-4 py-3">
                       <span className="text-sm text-foreground">{field.kpi_count}</span>
@@ -291,6 +314,13 @@ export function Data() {
           isDeleting={isDeleting}
         />
       )}
+
+      {/* CSV Import Modal */}
+      <CSVImportModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onImported={fetchDataFields}
+      />
     </div>
   )
 }

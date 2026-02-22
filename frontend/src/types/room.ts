@@ -67,10 +67,32 @@ export interface KPI {
   created_at: string
 }
 
+export interface AggregatedKPIEntry {
+  date: string
+  aggregated_value: number
+  sub_room_count: number
+}
+
+export interface SubRoomBreakdown {
+  room_id: string
+  room_name: string
+  value: number
+}
+
+export interface AggregatedKPI {
+  kpi: KPI
+  aggregation_method: string
+  current_aggregated_value: number | null
+  previous_aggregated_value: number | null
+  recent_entries: AggregatedKPIEntry[]
+  breakdown: SubRoomBreakdown[]
+}
+
 export interface RoomDashboardResponse {
   room: Room
   breadcrumbs: RoomBreadcrumb[]
   room_kpis: KPI[]
   sub_room_kpis: KPI[]
+  aggregated_kpis: AggregatedKPI[]
   shared_kpis: KPI[]
 }

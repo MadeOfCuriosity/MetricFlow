@@ -1,3 +1,5 @@
+export type EntryInterval = 'daily' | 'weekly' | 'monthly' | 'custom'
+
 export interface DataField {
   id: string
   org_id: string
@@ -8,6 +10,7 @@ export interface DataField {
   variable_name: string
   description: string | null
   unit: string | null
+  entry_interval: EntryInterval
   created_by: string | null
   created_at: string
   kpi_count: number
@@ -33,6 +36,7 @@ export interface CreateDataFieldData {
   room_id?: string
   description?: string
   unit?: string
+  entry_interval?: EntryInterval
 }
 
 export interface UpdateDataFieldData {
@@ -40,6 +44,7 @@ export interface UpdateDataFieldData {
   description?: string
   unit?: string
   room_id?: string
+  entry_interval?: EntryInterval
 }
 
 // Per-field entry types
@@ -78,6 +83,7 @@ export interface FieldFormItem {
   data_field_name: string
   variable_name: string
   unit: string | null
+  entry_interval: EntryInterval
   has_entry_today: boolean
   today_value: number | null
 }
@@ -90,7 +96,17 @@ export interface RoomFieldGroup {
 
 export interface TodayFieldFormResponse {
   date: string
+  interval: EntryInterval | null
   rooms: RoomFieldGroup[]
   completed_count: number
   total_count: number
+}
+
+// CSV Import
+export interface CSVImportResponse {
+  rows_processed: number
+  entries_created: number
+  kpis_recalculated: number
+  errors: { row: number; error: string }[]
+  unmatched_columns: string[]
 }

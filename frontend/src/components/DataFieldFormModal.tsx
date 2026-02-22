@@ -1,8 +1,26 @@
-import { useState, useEffect, Fragment } from 'react'
+import { useState, useEffect, useMemo, Fragment } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import { XMarkIcon } from '@heroicons/react/24/outline'
 import { useRoom } from '../context/RoomContext'
-import type { DataField, CreateDataFieldData } from '../types/dataField'
+import type { RoomTreeNode } from '../types/room'
+import type { DataField, CreateDataFieldData, EntryInterval } from '../types/dataField'
+
+interface FlatRoomOption {
+  id: string
+  name: string
+  depth: number
+}
+
+function flattenTree(nodes: RoomTreeNode[], depth = 0): FlatRoomOption[] {
+  const result: FlatRoomOption[] = []
+  for (const node of nodes) {
+    result.push({ id: node.id, name: node.name, depth })
+    if (node.children.length > 0) {
+      result.push(...flattenTree(node.children, depth + 1))
+    }
+  }
+  return result
+}
 
 interface DataFieldFormModalProps {
   isOpen: boolean
@@ -20,15 +38,16 @@ function generateVariableName(name: string): string {
 }
 
 export function DataFieldFormModal({ isOpen, onClose, onCreated, editField }: DataFieldFormModalProps) {
-  const { rooms } = useRoom()
+  const { roomTree } = useRoom()
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [unit, setUnit] = useState('')
   const [selectedRoomId, setSelectedRoomId] = useState('')
+  const [entryInterval, setEntryInterval] = useState<EntryInterval>('daily')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const topLevelRooms = rooms.filter(room => room.parent_room_id === null)
+  const flatRooms = useMemo(() => flattenTree(roomTree), [roomTree])
 
   useEffect(() => {
     if (editField) {
@@ -36,11 +55,13 @@ export function DataFieldFormModal({ isOpen, onClose, onCreated, editField }: Da
       setDescription(editField.description || '')
       setUnit(editField.unit || '')
       setSelectedRoomId(editField.room_id || '')
+      setEntryInterval(editField.entry_interval || 'daily')
     } else {
       setName('')
       setDescription('')
       setUnit('')
       setSelectedRoomId('')
+      setEntryInterval('daily')
     }
   }, [editField, isOpen])
 
@@ -60,6 +81,7 @@ export function DataFieldFormModal({ isOpen, onClose, onCreated, editField }: Da
           description: description.trim() || undefined,
           unit: unit.trim() || undefined,
           room_id: selectedRoomId || undefined,
+          entry_interval: entryInterval,
         })
         onCreated(updated)
       } else {
@@ -68,6 +90,7 @@ export function DataFieldFormModal({ isOpen, onClose, onCreated, editField }: Da
           description: description.trim() || undefined,
           unit: unit.trim() || undefined,
           room_id: selectedRoomId || undefined,
+          entry_interval: entryInterval,
         }
         const created = await dataFieldsApi.create(data)
         onCreated(created)
@@ -87,6 +110,7 @@ export function DataFieldFormModal({ isOpen, onClose, onCreated, editField }: Da
     setDescription('')
     setUnit('')
     setSelectedRoomId('')
+    setEntryInterval('daily')
     setError(null)
     onClose()
   }
@@ -170,9 +194,9 @@ export function DataFieldFormModal({ isOpen, onClose, onCreated, editField }: Da
                       className="w-full px-3 py-2 bg-dark-700 border border-dark-600 rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     >
                       <option value="">No room (organization-wide)</option>
-                      {topLevelRooms.map((room) => (
+                      {flatRooms.map((room) => (
                         <option key={room.id} value={room.id}>
-                          {room.name}
+                          {'—\u00A0'.repeat(room.depth)}{room.name}
                         </option>
                       ))}
                     </select>
@@ -191,6 +215,26 @@ export function DataFieldFormModal({ isOpen, onClose, onCreated, editField }: Da
                       className="w-full px-3 py-2 bg-dark-700 border border-dark-600 rounded-lg text-foreground placeholder-dark-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                       maxLength={50}
                     />
+                  </div>
+
+                  <div>
+                    <label htmlFor="df-interval" className="block text-sm font-medium text-dark-200 mb-1">
+                      Entry Interval
+                    </label>
+                    <select
+                      id="df-interval"
+                      value={entryInterval}
+                      onChange={(e) => setEntryInterval(e.target.value as EntryInterval)}
+                      className="w-full px-3 py-2 bg-dark-700 border border-dark-600 rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    >
+                      <option value="daily">Daily</option>
+                      <option value="weekly">Weekly</option>
+                      <option value="monthly">Monthly</option>
+                      <option value="custom">Custom</option>
+                    </select>
+                    <p className="mt-1 text-xs text-dark-400">
+                      How often this data should be entered
+                    </p>
                   </div>
 
                   <div>
