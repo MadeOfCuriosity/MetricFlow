@@ -8,6 +8,7 @@ import type {
   CreateFieldEntriesResponse,
   CSVImportResponse,
   TodayFieldFormResponse,
+  SheetViewResponse,
 } from '../types/dataField'
 
 export const dataFieldsApi = {
@@ -42,6 +43,12 @@ export const dataFieldsApi = {
     if (interval) params.set('interval', interval)
     const qs = params.toString()
     return api.get<TodayFieldFormResponse>(`/api/entries/fields/today${qs ? `?${qs}` : ''}`).then(r => r.data)
+  },
+
+  getSheetData: (month: string, roomId?: string) => {
+    const params = new URLSearchParams({ month })
+    if (roomId) params.set('room_id', roomId)
+    return api.get<SheetViewResponse>(`/api/entries/fields/sheet?${params}`).then(r => r.data)
   },
 
   importCSV: (file: File) => {

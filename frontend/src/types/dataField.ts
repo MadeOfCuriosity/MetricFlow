@@ -102,6 +102,31 @@ export interface TodayFieldFormResponse {
   total_count: number
 }
 
+// Sheet View
+export interface SheetFieldRow {
+  data_field_id: string
+  name: string
+  variable_name: string
+  unit: string | null
+  entry_interval: EntryInterval
+  values: Record<string, number | null>
+  mtd: number
+}
+
+export interface SheetRoomGroup {
+  room_id: string | null
+  room_name: string
+  fields: SheetFieldRow[]
+}
+
+export interface SheetViewResponse {
+  month: string
+  dates: string[]
+  room_groups: SheetRoomGroup[]
+  total_filled: number
+  total_cells: number
+}
+
 // CSV Import
 export interface CSVImportResponse {
   rows_processed: number

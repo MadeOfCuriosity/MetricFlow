@@ -22,13 +22,17 @@ import {
   CheckCircleIcon,
   ExclamationTriangleIcon,
   ArrowUpTrayIcon,
+  ListBulletIcon,
+  TableCellsIcon,
 } from '@heroicons/react/24/outline'
 import { DataEntryForm } from '../components'
+import { SpreadsheetView } from '../components/SpreadsheetView'
 import { CSVImportModal } from '../components/CSVImportModal'
 import { dataFieldsApi } from '../services/dataFields'
 import type { TodayFieldFormResponse, FieldEntryInput, EntryInterval } from '../types/dataField'
 
 type SubmissionStatus = 'idle' | 'success' | 'error'
+type ViewMode = 'form' | 'sheet'
 
 const INTERVAL_TABS: { key: EntryInterval; label: string }[] = [
   { key: 'daily', label: 'Daily' },
@@ -78,6 +82,7 @@ function getSubtitleText(interval: EntryInterval): string {
 }
 
 export function Entries() {
+  const [viewMode, setViewMode] = useState<ViewMode>('form')
   const [activeTab, setActiveTab] = useState<EntryInterval>('daily')
   const [selectedDate, setSelectedDate] = useState<Date>(new Date())
   const [formData, setFormData] = useState<TodayFieldFormResponse | null>(null)
@@ -109,8 +114,10 @@ export function Entries() {
   }, [])
 
   useEffect(() => {
-    fetchFormData(selectedDate, activeTab)
-  }, [selectedDate, activeTab, fetchFormData])
+    if (viewMode === 'form') {
+      fetchFormData(selectedDate, activeTab)
+    }
+  }, [selectedDate, activeTab, fetchFormData, viewMode])
 
   const isAtCurrentPeriod = (() => {
     const now = new Date()
@@ -206,185 +213,231 @@ export function Entries() {
     : 0
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className={`${viewMode === 'sheet' ? '' : 'max-w-4xl'} mx-auto space-y-6`}>
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Data Entry</h1>
           <p className="text-dark-300 mt-1">
-            {getSubtitleText(activeTab)}
+            {viewMode === 'sheet'
+              ? 'Enter daily data across the month in a spreadsheet view'
+              : getSubtitleText(activeTab)}
           </p>
         </div>
 
-        {/* Date picker & import */}
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => setIsImportModalOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-2 text-sm border border-dark-600 text-dark-200 hover:text-foreground hover:border-dark-500 rounded-lg transition-colors"
-          >
-            <ArrowUpTrayIcon className="w-4 h-4" />
-            Import CSV
-          </button>
-          <button
-            onClick={() => handleDateChange('prev')}
-            className="p-2 text-dark-300 hover:text-foreground hover:bg-dark-800 rounded-lg transition-colors"
-          >
-            <ChevronLeftIcon className="w-5 h-5" />
-          </button>
-
-          <div className="flex items-center gap-2 px-4 py-2 bg-dark-800 rounded-lg border border-dark-600">
-            <CalendarDaysIcon className="w-5 h-5 text-dark-300" />
-            <span className="text-foreground font-medium">
-              {formatPeriodLabel(selectedDate, activeTab)}
-            </span>
-          </div>
-
-          <button
-            onClick={() => handleDateChange('next')}
-            disabled={isAtCurrentPeriod}
-            className="p-2 text-dark-300 hover:text-foreground hover:bg-dark-800 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-          >
-            <ChevronRightIcon className="w-5 h-5" />
-          </button>
-        </div>
-      </div>
-
-      {/* Interval tabs */}
-      <div className="flex border-b border-dark-700">
-        {INTERVAL_TABS.map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => handleTabChange(tab.key)}
-            className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === tab.key
-                ? 'border-primary-500 text-primary-400'
-                : 'border-transparent text-dark-300 hover:text-foreground hover:border-dark-500'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Status messages */}
-      {submissionStatus === 'success' && successMessage && (
-        <div className="flex items-center gap-3 p-4 bg-success-500/10 border border-success-500/20 rounded-xl">
-          <CheckCircleIcon className="w-6 h-6 text-success-400 flex-shrink-0" />
-          <div>
-            <p className="text-sm font-medium text-success-400">{successMessage}</p>
-            <p className="text-xs text-success-400/70 mt-0.5">
-              Data recorded for {formatPeriodLabel(selectedDate, activeTab)}.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {submissionStatus === 'error' && errorMessage && (
-        <div className="flex items-start gap-3 p-4 bg-danger-500/10 border border-danger-500/20 rounded-xl">
-          <ExclamationTriangleIcon className="w-6 h-6 text-danger-400 flex-shrink-0 mt-0.5" />
-          <div>
-            <p className="text-sm font-medium text-danger-400">Error saving entries</p>
-            <p className="text-xs text-danger-400/70 mt-0.5 whitespace-pre-wrap">{errorMessage}</p>
-          </div>
-        </div>
-      )}
-
-      {/* Progress summary */}
-      {formData && formData.total_count > 0 && (
-        <div className="bg-dark-900 border border-dark-700 rounded-xl p-4">
-          <div className="flex items-center justify-between mb-3">
-            <div>
-              <p className="text-sm font-medium text-foreground">
-                {formatPeriodLabel(selectedDate, activeTab)} Progress
-              </p>
-              <p className="text-xs text-dark-400">
-                {formData.completed_count} of {formData.total_count} fields completed
-              </p>
-            </div>
-            <p className="text-lg font-bold text-foreground">{completionPercentage}%</p>
-          </div>
-          <div className="w-full bg-dark-800 rounded-full h-2">
-            <div
-              className={`h-2 rounded-full transition-all duration-500 ${
-                completionPercentage === 100
-                  ? 'bg-success-500'
-                  : completionPercentage > 50
-                  ? 'bg-primary-500'
-                  : 'bg-warning-500'
+          {/* View mode toggle */}
+          <div className="flex items-center bg-dark-800 rounded-lg border border-dark-600 p-0.5">
+            <button
+              onClick={() => setViewMode('form')}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md transition-all ${
+                viewMode === 'form'
+                  ? 'bg-dark-600 text-foreground shadow-sm'
+                  : 'text-dark-400 hover:text-dark-200'
               }`}
-              style={{ width: `${completionPercentage}%` }}
-            />
+              title="Form view"
+            >
+              <ListBulletIcon className="w-4 h-4" />
+              <span className="hidden sm:inline">Form</span>
+            </button>
+            <button
+              onClick={() => setViewMode('sheet')}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md transition-all ${
+                viewMode === 'sheet'
+                  ? 'bg-dark-600 text-foreground shadow-sm'
+                  : 'text-dark-400 hover:text-dark-200'
+              }`}
+              title="Sheet view"
+            >
+              <TableCellsIcon className="w-4 h-4" />
+              <span className="hidden sm:inline">Sheet</span>
+            </button>
           </div>
-        </div>
-      )}
 
-      {/* Loading state */}
-      {isLoading && (
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-500"></div>
-        </div>
-      )}
+          {/* Import CSV (form view only) */}
+          {viewMode === 'form' && (
+            <button
+              onClick={() => setIsImportModalOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-2 text-sm border border-dark-600 text-dark-200 hover:text-foreground hover:border-dark-500 rounded-lg transition-colors"
+            >
+              <ArrowUpTrayIcon className="w-4 h-4" />
+              Import CSV
+            </button>
+          )}
 
-      {/* No fields state */}
-      {!isLoading && formData && formData.total_count === 0 && (
-        <div className="bg-dark-900 border border-dark-700 rounded-xl p-12 text-center">
-          <CalendarDaysIcon className="w-12 h-12 text-dark-500 mx-auto mb-4" />
-          <h2 className="text-lg font-semibold text-foreground mb-2">No {activeTab} data fields</h2>
-          <p className="text-dark-300 mb-4">
-            There are no data fields with {activeTab} entry interval. Create data fields and set their interval to "{activeTab}" to see them here.
-          </p>
-          <a
-            href="/data"
-            className="inline-flex items-center gap-2 px-4 py-2 border border-primary-500 bg-transparent text-foreground rounded-lg hover:bg-primary-500/10 transition-colors"
-          >
-            Manage Data Fields
-          </a>
-        </div>
-      )}
+          {/* Date picker (form view only) */}
+          {viewMode === 'form' && (
+            <>
+              <button
+                onClick={() => handleDateChange('prev')}
+                className="p-2 text-dark-300 hover:text-foreground hover:bg-dark-800 rounded-lg transition-colors"
+              >
+                <ChevronLeftIcon className="w-5 h-5" />
+              </button>
 
-      {/* Error state */}
-      {!isLoading && errorMessage && !formData && (
-        <div className="bg-dark-900 border border-dark-700 rounded-xl p-12 text-center">
-          <ExclamationTriangleIcon className="w-12 h-12 text-danger-500 mx-auto mb-4" />
-          <h2 className="text-lg font-semibold text-foreground mb-2">Failed to load data</h2>
-          <p className="text-dark-300 mb-4">{errorMessage}</p>
-          <button
-            onClick={() => fetchFormData(selectedDate, activeTab)}
-            className="inline-flex items-center gap-2 px-4 py-2 border border-primary-500 bg-transparent text-foreground rounded-lg hover:bg-primary-500/10 transition-colors"
-          >
-            Try again
-          </button>
-        </div>
-      )}
+              <div className="flex items-center gap-2 px-4 py-2 bg-dark-800 rounded-lg border border-dark-600">
+                <CalendarDaysIcon className="w-5 h-5 text-dark-300" />
+                <span className="text-foreground font-medium">
+                  {formatPeriodLabel(selectedDate, activeTab)}
+                </span>
+              </div>
 
-      {/* Data entry form */}
-      {!isLoading && formData && formData.total_count > 0 && (
-        <div className="bg-dark-900 border border-dark-700 rounded-xl p-6">
-          <DataEntryForm
-            rooms={formData.rooms}
-            onSubmit={handleSubmit}
-            isSubmitting={isSubmitting}
-          />
+              <button
+                onClick={() => handleDateChange('next')}
+                disabled={isAtCurrentPeriod}
+                className="p-2 text-dark-300 hover:text-foreground hover:bg-dark-800 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                <ChevronRightIcon className="w-5 h-5" />
+              </button>
+            </>
+          )}
         </div>
-      )}
+      </div>
 
-      {/* Tips section */}
-      {!isLoading && formData && formData.total_count > 0 && (
-        <div className="bg-dark-900/50 border border-dark-700 rounded-xl p-4">
-          <h3 className="text-sm font-medium text-dark-300 mb-2">Tips</h3>
-          <ul className="text-xs text-dark-400 space-y-1.5">
-            <li>
-              <span className="inline-flex items-center justify-center w-4 h-4 mr-1">
-                <CheckCircleIcon className="w-4 h-4 text-success-400" />
-              </span> indicates fields with values already entered
-            </li>
-            <li>Fields are grouped by room for easy navigation</li>
-            <li>Each field only needs to be entered once - all KPIs using it will auto-calculate</li>
-            {activeTab === 'daily' && <li>You can navigate to past dates to enter historical data</li>}
-            {activeTab === 'weekly' && <li>Weekly values are stored for each Monday-Sunday period</li>}
-            {activeTab === 'monthly' && <li>Monthly values are stored for each calendar month</li>}
-          </ul>
-        </div>
+      {/* Sheet view */}
+      {viewMode === 'sheet' && <SpreadsheetView />}
+
+      {/* Form view */}
+      {viewMode === 'form' && (
+        <>
+          {/* Interval tabs */}
+          <div className="flex border-b border-dark-700">
+            {INTERVAL_TABS.map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => handleTabChange(tab.key)}
+                className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+                  activeTab === tab.key
+                    ? 'border-primary-500 text-primary-400'
+                    : 'border-transparent text-dark-300 hover:text-foreground hover:border-dark-500'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Status messages */}
+          {submissionStatus === 'success' && successMessage && (
+            <div className="flex items-center gap-3 p-4 bg-success-500/10 border border-success-500/20 rounded-xl">
+              <CheckCircleIcon className="w-6 h-6 text-success-400 flex-shrink-0" />
+              <div>
+                <p className="text-sm font-medium text-success-400">{successMessage}</p>
+                <p className="text-xs text-success-400/70 mt-0.5">
+                  Data recorded for {formatPeriodLabel(selectedDate, activeTab)}.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {submissionStatus === 'error' && errorMessage && (
+            <div className="flex items-start gap-3 p-4 bg-danger-500/10 border border-danger-500/20 rounded-xl">
+              <ExclamationTriangleIcon className="w-6 h-6 text-danger-400 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-danger-400">Error saving entries</p>
+                <p className="text-xs text-danger-400/70 mt-0.5 whitespace-pre-wrap">{errorMessage}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Progress summary */}
+          {formData && formData.total_count > 0 && (
+            <div className="bg-dark-900 border border-dark-700 rounded-xl p-4">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <p className="text-sm font-medium text-foreground">
+                    {formatPeriodLabel(selectedDate, activeTab)} Progress
+                  </p>
+                  <p className="text-xs text-dark-400">
+                    {formData.completed_count} of {formData.total_count} fields completed
+                  </p>
+                </div>
+                <p className="text-lg font-bold text-foreground">{completionPercentage}%</p>
+              </div>
+              <div className="w-full bg-dark-800 rounded-full h-2">
+                <div
+                  className={`h-2 rounded-full transition-all duration-500 ${
+                    completionPercentage === 100
+                      ? 'bg-success-500'
+                      : completionPercentage > 50
+                      ? 'bg-primary-500'
+                      : 'bg-warning-500'
+                  }`}
+                  style={{ width: `${completionPercentage}%` }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Loading state */}
+          {isLoading && (
+            <div className="flex items-center justify-center h-64">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-500"></div>
+            </div>
+          )}
+
+          {/* No fields state */}
+          {!isLoading && formData && formData.total_count === 0 && (
+            <div className="bg-dark-900 border border-dark-700 rounded-xl p-12 text-center">
+              <CalendarDaysIcon className="w-12 h-12 text-dark-500 mx-auto mb-4" />
+              <h2 className="text-lg font-semibold text-foreground mb-2">No {activeTab} data fields</h2>
+              <p className="text-dark-300 mb-4">
+                There are no data fields with {activeTab} entry interval. Create data fields and set their interval to "{activeTab}" to see them here.
+              </p>
+              <a
+                href="/data"
+                className="inline-flex items-center gap-2 px-4 py-2 border border-primary-500 bg-transparent text-foreground rounded-lg hover:bg-primary-500/10 transition-colors"
+              >
+                Manage Data Fields
+              </a>
+            </div>
+          )}
+
+          {/* Error state */}
+          {!isLoading && errorMessage && !formData && (
+            <div className="bg-dark-900 border border-dark-700 rounded-xl p-12 text-center">
+              <ExclamationTriangleIcon className="w-12 h-12 text-danger-500 mx-auto mb-4" />
+              <h2 className="text-lg font-semibold text-foreground mb-2">Failed to load data</h2>
+              <p className="text-dark-300 mb-4">{errorMessage}</p>
+              <button
+                onClick={() => fetchFormData(selectedDate, activeTab)}
+                className="inline-flex items-center gap-2 px-4 py-2 border border-primary-500 bg-transparent text-foreground rounded-lg hover:bg-primary-500/10 transition-colors"
+              >
+                Try again
+              </button>
+            </div>
+          )}
+
+          {/* Data entry form */}
+          {!isLoading && formData && formData.total_count > 0 && (
+            <div className="bg-dark-900 border border-dark-700 rounded-xl p-6">
+              <DataEntryForm
+                rooms={formData.rooms}
+                onSubmit={handleSubmit}
+                isSubmitting={isSubmitting}
+              />
+            </div>
+          )}
+
+          {/* Tips section */}
+          {!isLoading && formData && formData.total_count > 0 && (
+            <div className="bg-dark-900/50 border border-dark-700 rounded-xl p-4">
+              <h3 className="text-sm font-medium text-dark-300 mb-2">Tips</h3>
+              <ul className="text-xs text-dark-400 space-y-1.5">
+                <li>
+                  <span className="inline-flex items-center justify-center w-4 h-4 mr-1">
+                    <CheckCircleIcon className="w-4 h-4 text-success-400" />
+                  </span> indicates fields with values already entered
+                </li>
+                <li>Fields are grouped by room for easy navigation</li>
+                <li>Each field only needs to be entered once - all KPIs using it will auto-calculate</li>
+                {activeTab === 'daily' && <li>You can navigate to past dates to enter historical data</li>}
+                {activeTab === 'weekly' && <li>Weekly values are stored for each Monday-Sunday period</li>}
+                {activeTab === 'monthly' && <li>Monthly values are stored for each calendar month</li>}
+              </ul>
+            </div>
+          )}
+        </>
       )}
 
       {/* CSV Import Modal */}
