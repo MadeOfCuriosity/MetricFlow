@@ -3,6 +3,7 @@ import { Dialog, Transition } from '@headlessui/react'
 import {
   XMarkIcon,
   ArrowUpTrayIcon,
+  ArrowDownTrayIcon,
   DocumentTextIcon,
   CheckCircleIcon,
   ExclamationTriangleIcon,
@@ -21,6 +22,7 @@ interface CSVPreview {
   headers: string[]
   rows: string[][]
   totalRows: number
+  hasRoomColumn: boolean
 }
 
 export function CSVImportModal({ isOpen, onClose, onImported }: CSVImportModalProps) {
@@ -30,6 +32,7 @@ export function CSVImportModal({ isOpen, onClose, onImported }: CSVImportModalPr
   const [result, setResult] = useState<CSVImportResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isDragOver, setIsDragOver] = useState(false)
+  const [isDownloadingTemplate, setIsDownloadingTemplate] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const resetState = () => {
@@ -64,7 +67,7 @@ export function CSVImportModal({ isOpen, onClose, onImported }: CSVImportModalPr
           return
         }
 
-        const headers = (results.data[0] as string[]).map((h) => h.trim())
+        const headers = (results.data[0] as string[]).map((h) => h.replace(/^\uFEFF/, '').trim())
         const firstCol = headers[0]?.toLowerCase()
 
         if (!firstCol || !['field', 'field_name', 'name', 'data_field'].includes(firstCol)) {
@@ -73,13 +76,16 @@ export function CSVImportModal({ isOpen, onClose, onImported }: CSVImportModalPr
           return
         }
 
+        // Detect optional room column
+        const hasRoomColumn = headers.length > 1 && ['room', 'room_name'].includes(headers[1]?.toLowerCase())
+
         // Count total rows by re-parsing (fast, just counting)
         Papa.parse(selectedFile, {
           skipEmptyLines: true,
           complete: (fullResults) => {
             const totalRows = fullResults.data.length - 1 // minus header
             const rows = (results.data as string[][]).slice(1)
-            setPreview({ headers, rows, totalRows })
+            setPreview({ headers, rows, totalRows, hasRoomColumn })
           },
         })
       },
@@ -128,6 +134,17 @@ export function CSVImportModal({ isOpen, onClose, onImported }: CSVImportModalPr
       setError(error.response?.data?.detail || 'Import failed. Please check your CSV format.')
     } finally {
       setIsUploading(false)
+    }
+  }
+
+  const handleDownloadTemplate = async () => {
+    setIsDownloadingTemplate(true)
+    try {
+      await dataFieldsApi.downloadTemplate()
+    } catch {
+      setError('Failed to download template.')
+    } finally {
+      setIsDownloadingTemplate(false)
     }
   }
 
@@ -202,11 +219,22 @@ export function CSVImportModal({ isOpen, onClose, onImported }: CSVImportModalPr
                       </div>
                     </div>
 
+                    {result.fields_created && result.fields_created.length > 0 && (
+                      <div className="p-3 bg-primary-500/10 border border-primary-500/20 rounded-lg text-sm">
+                        <p className="font-medium text-primary-400 mb-1">
+                          {result.fields_created.length} new field{result.fields_created.length !== 1 ? 's' : ''} created
+                        </p>
+                        <p className="text-primary-400/80">
+                          {result.fields_created.join(', ')} — assign them to rooms from the Data Fields page.
+                        </p>
+                      </div>
+                    )}
+
                     {result.unmatched_columns.length > 0 && (
                       <div className="p-3 bg-warning-500/10 border border-warning-500/20 rounded-lg text-sm">
-                        <p className="font-medium text-warning-400 mb-1">Unmatched items</p>
+                        <p className="font-medium text-warning-400 mb-1">Unmatched date columns</p>
                         <p className="text-warning-400/80">
-                          These fields or dates didn't match:{' '}
+                          These date headers didn't match:{' '}
                           {result.unmatched_columns.map((col, i) => (
                             <span key={col}>
                               <code className="bg-warning-500/10 px-1 rounded">{col}</code>
@@ -268,7 +296,7 @@ export function CSVImportModal({ isOpen, onClose, onImported }: CSVImportModalPr
                         Drop your CSV file here or click to browse
                       </p>
                       <p className="text-xs text-dark-400 mt-1">
-                        CSV format: first column "field" (data field names), remaining columns are dates (YYYY-MM-DD)
+                        CSV format: first column "field", optional "room" column, remaining columns are dates (YYYY-MM-DD)
                       </p>
                       <input
                         ref={fileInputRef}
@@ -279,9 +307,24 @@ export function CSVImportModal({ isOpen, onClose, onImported }: CSVImportModalPr
                       />
                     </div>
 
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleDownloadTemplate()
+                      }}
+                      disabled={isDownloadingTemplate}
+                      className="inline-flex items-center gap-2 px-3 py-2 text-xs font-medium text-dark-200 hover:text-foreground border border-dark-600 hover:border-dark-500 rounded-lg transition-colors disabled:opacity-50"
+                    >
+                      <ArrowDownTrayIcon className="w-4 h-4" />
+                      {isDownloadingTemplate ? 'Downloading...' : 'Download CSV Template'}
+                    </button>
+
                     <div className="bg-dark-900/50 border border-dark-700 rounded-lg p-3">
                       <p className="text-xs font-medium text-dark-300 mb-1.5">Expected format</p>
-                      <div className="overflow-x-auto">
+
+                      <p className="text-[10px] text-dark-500 mb-1 uppercase tracking-wide">Basic</p>
+                      <div className="overflow-x-auto mb-3">
                         <table className="text-xs text-dark-400 font-mono">
                           <thead>
                             <tr>
@@ -298,17 +341,40 @@ export function CSVImportModal({ isOpen, onClose, onImported }: CSVImportModalPr
                               <td className="pr-4">18500</td>
                               <td>20000</td>
                             </tr>
+                          </tbody>
+                        </table>
+                      </div>
+
+                      <p className="text-[10px] text-dark-500 mb-1 uppercase tracking-wide">Multi-room</p>
+                      <div className="overflow-x-auto">
+                        <table className="text-xs text-dark-400 font-mono">
+                          <thead>
                             <tr>
-                              <td className="pr-4">deals_closed</td>
-                              <td className="pr-4">5</td>
-                              <td className="pr-4">7</td>
-                              <td>3</td>
+                              <td className="pr-4 text-primary-400">field</td>
+                              <td className="pr-4 text-success-400">room</td>
+                              <td className="pr-4 text-primary-400">2026-01-15</td>
+                              <td className="text-primary-400">2026-01-16</td>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr>
+                              <td className="pr-4">revenue</td>
+                              <td className="pr-4">Marketing School</td>
+                              <td className="pr-4">15000</td>
+                              <td>18500</td>
+                            </tr>
+                            <tr>
+                              <td className="pr-4">revenue</td>
+                              <td className="pr-4">Design School</td>
+                              <td className="pr-4">28000</td>
+                              <td>121000</td>
                             </tr>
                           </tbody>
                         </table>
                       </div>
+
                       <p className="text-xs text-dark-500 mt-1.5">
-                        Row names should match data field variable names or display names. Dates as YYYY-MM-DD.
+                        Row names should match data field names. Add an optional "room" column to import across multiple rooms. Dates as YYYY-MM-DD.
                       </p>
                     </div>
                   </div>
@@ -323,8 +389,9 @@ export function CSVImportModal({ isOpen, onClose, onImported }: CSVImportModalPr
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-foreground truncate">{file?.name}</p>
                         <p className="text-xs text-dark-400">
-                          {preview.totalRows} data field{preview.totalRows !== 1 ? 's' : ''},{' '}
-                          {preview.headers.length - 1} date{preview.headers.length - 1 !== 1 ? 's' : ''}
+                          {preview.totalRows} data row{preview.totalRows !== 1 ? 's' : ''},{' '}
+                          {preview.headers.length - (preview.hasRoomColumn ? 2 : 1)} date{preview.headers.length - (preview.hasRoomColumn ? 2 : 1) !== 1 ? 's' : ''}
+                          {preview.hasRoomColumn && <span className="text-success-400 ml-1">(with room column)</span>}
                         </p>
                       </div>
                       <button
@@ -338,7 +405,7 @@ export function CSVImportModal({ isOpen, onClose, onImported }: CSVImportModalPr
                     {/* Preview table */}
                     <div>
                       <p className="text-xs font-medium text-dark-300 mb-2">
-                        Preview (first {Math.min(5, preview.rows.length)} of {preview.totalRows} fields)
+                        Preview (first {Math.min(5, preview.rows.length)} of {preview.totalRows} rows)
                       </p>
                       <div className="overflow-x-auto border border-dark-700 rounded-lg">
                         <table className="w-full text-xs">
@@ -350,7 +417,9 @@ export function CSVImportModal({ isOpen, onClose, onImported }: CSVImportModalPr
                                   className={`px-3 py-2 text-left font-medium ${
                                     i === 0
                                       ? 'text-primary-400'
-                                      : 'text-dark-200'
+                                      : preview.hasRoomColumn && i === 1
+                                        ? 'text-success-400'
+                                        : 'text-dark-200'
                                   }`}
                                 >
                                   {header}
@@ -386,7 +455,7 @@ export function CSVImportModal({ isOpen, onClose, onImported }: CSVImportModalPr
                         disabled={isUploading}
                         className="px-4 py-2 text-sm font-medium text-foreground border border-primary-500 bg-transparent hover:bg-primary-500/10 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                       >
-                        {isUploading ? 'Importing...' : `Import ${preview.totalRows} field${preview.totalRows !== 1 ? 's' : ''}`}
+                        {isUploading ? 'Importing...' : `Import ${preview.totalRows} row${preview.totalRows !== 1 ? 's' : ''}`}
                       </button>
                     </div>
                   </div>

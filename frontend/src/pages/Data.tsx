@@ -96,8 +96,8 @@ export function Data() {
       field.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       field.variable_name.toLowerCase().includes(searchQuery.toLowerCase())
     const matchesRoom = selectedRoom === 'all' ||
-      (selectedRoom === 'unassigned' && !field.room_id) ||
-      field.room_id === selectedRoom
+      (selectedRoom === 'unassigned' && field.room_ids.length === 0) ||
+      field.room_ids.includes(selectedRoom)
     return matchesSearch && matchesRoom
   })
 
@@ -199,7 +199,7 @@ export function Data() {
                 <tr className="border-b border-dark-700">
                   <th className="px-4 py-3 text-left text-xs font-semibold text-dark-300 uppercase tracking-wider">Name</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-dark-300 uppercase tracking-wider">Variable</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-dark-300 uppercase tracking-wider">Room</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-dark-300 uppercase tracking-wider">Rooms</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-dark-300 uppercase tracking-wider">Unit</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-dark-300 uppercase tracking-wider">Interval</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-dark-300 uppercase tracking-wider">KPIs</th>
@@ -224,8 +224,8 @@ export function Data() {
                       </code>
                     </td>
                     <td className="px-4 py-3">
-                      {field.room_path ? (
-                        <span className="text-sm text-foreground">{field.room_path}</span>
+                      {field.room_paths && field.room_paths.length > 0 ? (
+                        <span className="text-sm text-foreground">{field.room_paths.join(', ')}</span>
                       ) : (
                         <span className="text-sm text-dark-400 italic">Unassigned</span>
                       )}

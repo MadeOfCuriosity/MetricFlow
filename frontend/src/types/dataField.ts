@@ -3,9 +3,9 @@ export type EntryInterval = 'daily' | 'weekly' | 'monthly' | 'custom'
 export interface DataField {
   id: string
   org_id: string
-  room_id: string | null
-  room_name: string | null
-  room_path: string | null
+  room_ids: string[]
+  room_names: string[]
+  room_paths: string[]
   name: string
   variable_name: string
   description: string | null
@@ -27,13 +27,13 @@ export interface DataFieldBrief {
   id: string
   name: string
   variable_name: string
-  room_id: string | null
-  room_name: string | null
+  room_ids: string[]
+  room_names: string[]
 }
 
 export interface CreateDataFieldData {
   name: string
-  room_id?: string
+  room_ids?: string[]
   description?: string
   unit?: string
   entry_interval?: EntryInterval
@@ -43,7 +43,7 @@ export interface UpdateDataFieldData {
   name?: string
   description?: string
   unit?: string
-  room_id?: string
+  room_ids?: string[]
   entry_interval?: EntryInterval
 }
 
@@ -62,7 +62,7 @@ export interface FieldEntryResponse {
   id: string
   data_field_id: string
   data_field_name: string | null
-  room_name: string | null
+  room_names: string[]
   date: string
   value: number
   entered_by: string | null
@@ -131,6 +131,7 @@ export interface SheetViewResponse {
 export interface CSVImportResponse {
   rows_processed: number
   entries_created: number
+  fields_created: string[]
   kpis_recalculated: number
   errors: { row: number; error: string }[]
   unmatched_columns: string[]

@@ -58,4 +58,21 @@ export const dataFieldsApi = {
       headers: { 'Content-Type': 'multipart/form-data' },
     }).then(r => r.data)
   },
+
+  downloadTemplate: async (month?: string) => {
+    const params = month ? `?month=${month}` : ''
+    const response = await api.get(`/api/entries/fields/csv-template${params}`, {
+      responseType: 'blob',
+    })
+    const url = window.URL.createObjectURL(new Blob([response.data]))
+    const link = document.createElement('a')
+    link.href = url
+    const disposition = response.headers['content-disposition']
+    const filename = disposition?.match(/filename="(.+)"/)?.[1] || 'template.csv'
+    link.setAttribute('download', filename)
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    window.URL.revokeObjectURL(url)
+  },
 }

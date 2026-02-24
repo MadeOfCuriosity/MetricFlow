@@ -51,7 +51,7 @@ export function DataFieldChipSelector({
     return (
       f.name.toLowerCase().includes(q) ||
       f.variable_name.toLowerCase().includes(q) ||
-      (f.room_name && f.room_name.toLowerCase().includes(q))
+      (f.room_names && f.room_names.some(rn => rn.toLowerCase().includes(q)))
     )
   })
 
@@ -85,8 +85,8 @@ export function DataFieldChipSelector({
                 {matched ? (
                   <span>
                     {matched.name}
-                    {matched.room_name && (
-                      <span className="text-success-400/60 ml-1">[{matched.room_name}]</span>
+                    {matched.room_names && matched.room_names.length > 0 && (
+                      <span className="text-success-400/60 ml-1">[{matched.room_names.join(', ')}]</span>
                     )}
                   </span>
                 ) : (
@@ -157,8 +157,8 @@ export function DataFieldChipSelector({
                           )}
                           <div className="min-w-0">
                             <span className="text-foreground font-medium">{field.name}</span>
-                            {field.room_name && (
-                              <span className="text-dark-400 ml-1">[{field.room_name}]</span>
+                            {field.room_names && field.room_names.length > 0 && (
+                              <span className="text-dark-400 ml-1">[{field.room_names.join(', ')}]</span>
                             )}
                             <p className="text-dark-500 truncate">{field.variable_name}</p>
                           </div>

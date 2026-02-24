@@ -42,7 +42,7 @@ export function DataFieldFormModal({ isOpen, onClose, onCreated, editField }: Da
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [unit, setUnit] = useState('')
-  const [selectedRoomId, setSelectedRoomId] = useState('')
+  const [selectedRoomIds, setSelectedRoomIds] = useState<string[]>([])
   const [entryInterval, setEntryInterval] = useState<EntryInterval>('daily')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -54,13 +54,13 @@ export function DataFieldFormModal({ isOpen, onClose, onCreated, editField }: Da
       setName(editField.name)
       setDescription(editField.description || '')
       setUnit(editField.unit || '')
-      setSelectedRoomId(editField.room_id || '')
+      setSelectedRoomIds(editField.room_ids || [])
       setEntryInterval(editField.entry_interval || 'daily')
     } else {
       setName('')
       setDescription('')
       setUnit('')
-      setSelectedRoomId('')
+      setSelectedRoomIds([])
       setEntryInterval('daily')
     }
   }, [editField, isOpen])
@@ -80,7 +80,7 @@ export function DataFieldFormModal({ isOpen, onClose, onCreated, editField }: Da
           name: name.trim(),
           description: description.trim() || undefined,
           unit: unit.trim() || undefined,
-          room_id: selectedRoomId || undefined,
+          room_ids: selectedRoomIds,
           entry_interval: entryInterval,
         })
         onCreated(updated)
@@ -89,7 +89,7 @@ export function DataFieldFormModal({ isOpen, onClose, onCreated, editField }: Da
           name: name.trim(),
           description: description.trim() || undefined,
           unit: unit.trim() || undefined,
-          room_id: selectedRoomId || undefined,
+          room_ids: selectedRoomIds.length > 0 ? selectedRoomIds : undefined,
           entry_interval: entryInterval,
         }
         const created = await dataFieldsApi.create(data)
@@ -109,7 +109,7 @@ export function DataFieldFormModal({ isOpen, onClose, onCreated, editField }: Da
     setName('')
     setDescription('')
     setUnit('')
-    setSelectedRoomId('')
+    setSelectedRoomIds([])
     setEntryInterval('daily')
     setError(null)
     onClose()
@@ -184,22 +184,40 @@ export function DataFieldFormModal({ isOpen, onClose, onCreated, editField }: Da
                   </div>
 
                   <div>
-                    <label htmlFor="df-room" className="block text-sm font-medium text-dark-200 mb-1">
-                      Room
+                    <label className="block text-sm font-medium text-dark-200 mb-1">
+                      Rooms
                     </label>
-                    <select
-                      id="df-room"
-                      value={selectedRoomId}
-                      onChange={(e) => setSelectedRoomId(e.target.value)}
-                      className="w-full px-3 py-2 bg-dark-700 border border-dark-600 rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                    >
-                      <option value="">No room (organization-wide)</option>
-                      {flatRooms.map((room) => (
-                        <option key={room.id} value={room.id}>
-                          {'—\u00A0'.repeat(room.depth)}{room.name}
-                        </option>
-                      ))}
-                    </select>
+                    {flatRooms.length === 0 ? (
+                      <p className="text-xs text-dark-400 py-2">No rooms created yet. Field will be organization-wide.</p>
+                    ) : (
+                      <div className="max-h-40 overflow-y-auto bg-dark-700 border border-dark-600 rounded-lg p-2 space-y-1">
+                        {flatRooms.map((room) => (
+                          <label
+                            key={room.id}
+                            className="flex items-center gap-2 px-2 py-1 rounded hover:bg-dark-600/50 cursor-pointer"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selectedRoomIds.includes(room.id)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedRoomIds([...selectedRoomIds, room.id])
+                                } else {
+                                  setSelectedRoomIds(selectedRoomIds.filter((id) => id !== room.id))
+                                }
+                              }}
+                              className="rounded border-dark-500 bg-dark-600 text-primary-500 focus:ring-primary-500"
+                            />
+                            <span className="text-sm text-foreground">
+                              {'—\u00A0'.repeat(room.depth)}{room.name}
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                    <p className="mt-1 text-xs text-dark-400">
+                      {selectedRoomIds.length === 0 ? 'Organization-wide (no rooms selected)' : `${selectedRoomIds.length} room${selectedRoomIds.length !== 1 ? 's' : ''} selected`}
+                    </p>
                   </div>
 
                   <div>
