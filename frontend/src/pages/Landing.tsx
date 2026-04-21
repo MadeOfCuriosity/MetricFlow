@@ -161,8 +161,8 @@ function Navbar() {
         <div className="flex items-center justify-between h-16 lg:h-20">
           {/* Logo */}
           <a href="#hero" className="flex items-center gap-2.5 group">
-            <img src="/visualise.png" alt="Visualize" className="w-9 h-9 object-contain" />
-            <span className="text-xl font-bold text-white tracking-tight">
+            <img src="/visualize%20logo.png" alt="Visualize" className="w-12 h-12 lg:w-14 lg:h-14 object-contain" />
+            <span className="text-xl font-bold text-foreground tracking-tight">
               Visualize
             </span>
           </a>
@@ -185,7 +185,7 @@ function Navbar() {
             </Link>
             <Link
               to="/register"
-              className="px-6 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-primary-500 to-primary-600 rounded-xl hover:from-primary-400 hover:to-primary-500 transition-all shadow-lg hover:shadow-primary-500/30 hover:scale-[1.03] active:scale-[0.98]"
+              className="px-6 py-2.5 text-sm font-semibold text-white bg-[linear-gradient(to_right,#8A50FF_0%,#5439DF_100%)] rounded-xl hover:opacity-90 transition-all shadow-lg hover:scale-[1.03] active:scale-[0.98]"
             >
               Start Free Trial
             </Link>
@@ -216,7 +216,7 @@ function Navbar() {
               <a href="#pricing" onClick={() => setMobileOpen(false)} className="px-4 py-2.5 text-sm font-medium text-dark-200 hover:text-foreground hover:bg-dark-700/50 rounded-xl transition-colors">Pricing</a>
               <hr className="border-dark-700/50" />
               <Link to="/login" className="px-4 py-2.5 text-sm font-medium text-dark-200 hover:text-foreground rounded-xl transition-colors text-center">Sign In</Link>
-              <Link to="/register" className="px-4 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-primary-500 to-primary-600 rounded-xl text-center">Start Free Trial</Link>
+              <Link to="/register" className="px-4 py-2.5 text-sm font-semibold text-white bg-[linear-gradient(to_right,#8A50FF_0%,#5439DF_100%)] rounded-xl text-center">Start Free Trial</Link>
             </div>
           </div>
         )}
@@ -229,24 +229,23 @@ function Navbar() {
 function Hero() {
   return (
     <section id="hero" className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20">
-      {/* Background grid + gradient */}
+      {/* Background grid */}
       <div className="absolute inset-0 hero-grid" />
-      <div className="absolute inset-0 bg-gradient-to-b from-primary-500/5 via-transparent to-transparent" />
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary-500/8 rounded-full blur-[120px] animate-pulse-glow" />
-      <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-dark-950 to-transparent" />
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-foreground/5 rounded-full blur-[120px] animate-pulse-glow" />
+      <div className="absolute bottom-0 left-0 right-0 h-32 bg-dark-950" />
 
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         {/* Badge */}
-        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass text-sm font-medium text-primary-400 mb-8 animate-fade-in-up">
-          <span className="w-2 h-2 rounded-full bg-success-500 animate-pulse" />
-          Now with AI-powered KPI Builder
+        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[linear-gradient(to_right,rgba(138,80,255,0.15)_0%,rgba(84,57,223,0.15)_100%)] border border-[#8A50FF]/30 text-sm font-medium text-dark-200 mb-8 animate-fade-in-up backdrop-blur-sm">
+          <span className="w-2 h-2 rounded-full bg-[linear-gradient(to_right,#8A50FF_0%,#5439DF_100%)] shadow-[0_0_10px_2px_rgba(138,80,255,0.7)] animate-pulse" />
+          Build on clarity, not assumptions. It compounds.
         </div>
 
         {/* Headline */}
         <h1 className="text-5xl sm:text-6xl lg:text-8xl font-extrabold tracking-tight leading-[0.95] mb-6 animate-fade-in-up delay-100">
           <span className="text-foreground">The KPIs You're</span>
           <br />
-          <span className="text-gradient bg-gradient-to-r from-primary-400 via-primary-500 to-success-400 animate-gradient-x">
+          <span className="text-foreground">
             Not Tracking
           </span>
           <br />
@@ -263,7 +262,7 @@ function Hero() {
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12 animate-fade-in-up delay-300">
           <Link
             to="/register"
-            className="group flex items-center gap-2 px-8 py-4 text-base font-bold text-white bg-gradient-to-r from-primary-500 to-primary-600 rounded-2xl hover:from-primary-400 hover:to-primary-500 transition-all shadow-xl hover:shadow-primary-500/30 hover:scale-[1.03] active:scale-[0.98]"
+            className="group flex items-center gap-2 px-8 py-4 text-base font-bold text-white bg-[linear-gradient(to_right,#8A50FF_0%,#5439DF_100%)] rounded-2xl hover:opacity-90 transition-all shadow-xl hover:scale-[1.03] active:scale-[0.98]"
           >
             Start Tracking for Free
             <span className="group-hover:translate-x-1 transition-transform">{Icons.arrowRight}</span>
@@ -272,7 +271,7 @@ function Hero() {
             href="#how-it-works"
             className="flex items-center gap-2 px-8 py-4 text-base font-semibold text-dark-200 glass rounded-2xl hover:text-foreground hover:bg-dark-700/60 transition-all"
           >
-            <span className="text-primary-400">{Icons.play}</span>
+            <span className="text-foreground">{Icons.play}</span>
             See How It Works
           </a>
         </div>
@@ -296,19 +295,19 @@ function Hero() {
         {/* Dashboard Preview */}
         <div className="mt-16 animate-fade-in-up delay-500">
           <div className="relative max-w-5xl mx-auto">
-            <div className="absolute -inset-4 bg-gradient-to-r from-primary-500/20 via-success-500/10 to-primary-500/20 rounded-3xl blur-xl animate-pulse-glow" />
+            <div className="absolute -inset-4 bg-foreground/5 rounded-3xl blur-xl animate-pulse-glow" />
             <div className="relative glass rounded-2xl p-1.5 shadow-2xl">
               <div className="bg-dark-900 rounded-xl overflow-hidden">
                 {/* Fake browser bar */}
                 <div className="flex items-center gap-2 px-4 py-3 bg-dark-850 border-b border-dark-700/50">
                   <div className="flex gap-1.5">
-                    <div className="w-3 h-3 rounded-full bg-danger-500/60" />
-                    <div className="w-3 h-3 rounded-full bg-warning-500/60" />
-                    <div className="w-3 h-3 rounded-full bg-success-500/60" />
+                    <div className="w-3 h-3 rounded-full bg-dark-600" />
+                    <div className="w-3 h-3 rounded-full bg-dark-600" />
+                    <div className="w-3 h-3 rounded-full bg-dark-600" />
                   </div>
                   <div className="flex-1 flex justify-center">
                     <div className="px-4 py-1 rounded-lg bg-dark-800 text-xs text-dark-400 font-mono">
-                      app.visualize.io/dashboard
+                      app.metricflow.io/dashboard
                     </div>
                   </div>
                 </div>
@@ -320,21 +319,21 @@ function Hero() {
                       <div className="h-3 w-24 bg-dark-800 rounded mt-2" />
                     </div>
                     <div className="flex gap-2">
-                      <div className="h-8 w-20 bg-primary-500/20 rounded-lg" />
+                      <div className="h-8 w-20 bg-dark-700 rounded-lg" />
                       <div className="h-8 w-20 bg-dark-700 rounded-lg" />
                     </div>
                   </div>
-                  <div className="grid grid-cols-4 gap-4">
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                     {[
-                      { label: 'Revenue', value: '$128.4K', change: '+12.5%', color: 'text-success-400' },
-                      { label: 'Deals Closed', value: '47', change: '+8.2%', color: 'text-success-400' },
-                      { label: 'Churn Rate', value: '2.1%', change: '-0.4%', color: 'text-success-400' },
-                      { label: 'NPS Score', value: '72', change: '+5', color: 'text-success-400' },
+                      { label: 'Revenue', value: '$128.4K', change: '+12.5%' },
+                      { label: 'Deals Closed', value: '47', change: '+8.2%' },
+                      { label: 'Churn Rate', value: '2.1%', change: '-0.4%' },
+                      { label: 'NPS Score', value: '72', change: '+5' },
                     ].map((kpi) => (
                       <div key={kpi.label} className="bg-dark-800/80 rounded-xl p-4 border border-dark-700/50">
                         <div className="text-xs text-dark-400 mb-1">{kpi.label}</div>
                         <div className="text-xl font-bold text-foreground">{kpi.value}</div>
-                        <div className={`text-xs font-medium ${kpi.color} mt-1`}>{kpi.change}</div>
+                        <div className="text-xs font-medium text-dark-300 mt-1">{kpi.change}</div>
                       </div>
                     ))}
                   </div>
@@ -343,7 +342,7 @@ function Hero() {
                     {[35, 42, 38, 55, 48, 62, 58, 70, 65, 78, 72, 85, 80, 92, 88, 95].map((h, i) => (
                       <div
                         key={i}
-                        className="flex-1 bg-gradient-to-t from-primary-500/80 to-primary-400/40 rounded-t-sm"
+                        className="flex-1 bg-foreground/40 rounded-t-sm"
                         style={{ height: `${h}%` }}
                       />
                     ))}
@@ -364,21 +363,37 @@ function StatsBar() {
   return (
     <section ref={ref} className="landing-section relative py-20 border-y border-dark-700/30">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 text-center">
+        <div className="text-center mb-12">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-success-500/10 text-success-400 text-sm font-medium mb-4">
+            {Icons.bolt}
+            What You Gain
+          </div>
+          <h2 className="text-3xl sm:text-4xl font-extrabold text-foreground mb-3">
+            The Visualize Effect
+          </h2>
+          <p className="text-dark-400 max-w-xl mx-auto">
+            What teams typically report after fully adopting Visualize KPI workflows.
+          </p>
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 text-center">
           {[
-            { value: 10000, suffix: '+', label: 'KPIs Tracked' },
-            { value: 500, suffix: '+', label: 'Organizations' },
-            { value: 98, suffix: '%', label: 'Uptime SLA' },
-            { value: 50, suffix: 'x', label: 'Faster Than Spreadsheets' },
+            { value: 5, suffix: 'x', label: 'Faster Decisions', sub: 'from data to action' },
+            { value: 10, suffix: 'hrs', label: 'Saved Per Week', sub: 'on manual reporting' },
+            { value: 80, suffix: '%', label: 'Less Meeting Time', sub: 'no more number hunts' },
+            { value: 15, suffix: 'min', label: 'To First Insight', sub: 'from sign-up to value' },
           ].map((stat) => (
-            <div key={stat.label}>
-              <div className="text-4xl lg:text-5xl font-extrabold text-foreground mb-2">
+            <div key={stat.label} className="glass rounded-2xl p-6 hover:bg-dark-700/40 transition-all">
+              <div className="text-4xl lg:text-5xl font-extrabold text-gradient bg-[linear-gradient(to_right,#8A50FF_0%,#5439DF_100%)] mb-2">
                 <Counter target={stat.value} suffix={stat.suffix} />
               </div>
-              <div className="text-sm text-dark-400 font-medium">{stat.label}</div>
+              <div className="text-sm text-foreground font-semibold mb-1">{stat.label}</div>
+              <div className="text-xs text-dark-400">{stat.sub}</div>
             </div>
           ))}
         </div>
+        <p className="text-center text-xs text-dark-500 mt-6 italic">
+          Directional outcomes based on typical team adoption — your results depend on team size, data quality, and usage.
+        </p>
       </div>
     </section>
   )
@@ -402,17 +417,14 @@ function PainPoints() {
         <div className="grid md:grid-cols-3 gap-6">
           {[
             {
-              emoji: '📊',
               title: '"We track everything in spreadsheets"',
               desc: 'Fragmented data across 15 different Google Sheets. No one knows which version is current. Your Monday meetings start with 30 minutes of number-hunting.',
             },
             {
-              emoji: '🤷',
               title: '"I think we\'re doing okay?"',
               desc: 'You can\'t name your top 3 KPIs off the top of your head. When the board asks about unit economics, you need "a few days" to pull the numbers.',
             },
             {
-              emoji: '🔥',
               title: '"We found out too late"',
               desc: 'Churn spiked 3 weeks ago. CAC doubled last month. You only noticed when revenue dropped. By then, the damage was already done.',
             },
@@ -421,8 +433,7 @@ function PainPoints() {
               key={pain.title}
               className="glass rounded-2xl p-8 hover:bg-dark-700/40 transition-all duration-300 group hover:scale-[1.02] hover:shadow-xl"
             >
-              <div className="text-4xl mb-4">{pain.emoji}</div>
-              <h3 className="text-lg font-bold text-foreground mb-3 group-hover:text-danger-400 transition-colors">
+              <h3 className="text-lg font-bold text-foreground mb-3 group-hover:text-foreground transition-colors">
                 {pain.title}
               </h3>
               <p className="text-dark-300 text-sm leading-relaxed">{pain.desc}</p>
@@ -432,7 +443,7 @@ function PainPoints() {
 
         <div className="text-center mt-12">
           <p className="text-xl font-semibold text-foreground">
-            There's a better way. <span className="text-gradient bg-gradient-to-r from-primary-400 to-success-400">And it takes 5 minutes to set up.</span>
+            There's a better way. <span className="text-foreground">And it takes 5 minutes to set up.</span>
           </p>
         </div>
       </div>
@@ -449,67 +460,59 @@ function Features() {
       icon: Icons.sparkles,
       title: 'AI KPI Builder',
       desc: 'Just describe what you want to track in plain English. Our AI creates the perfect KPI formula, fields, and tracking setup — instantly.',
-      color: 'from-purple-500 to-primary-500',
       tag: 'Most Popular',
     },
     {
       icon: Icons.calculator,
       title: 'Custom Formula Engine',
       desc: 'Build any KPI with mathematical formulas. Revenue per employee? Customer acquisition cost? Gross margin by product line? If you can define it, Visualize calculates it.',
-      color: 'from-primary-500 to-primary-600',
     },
     {
       icon: Icons.chartBar,
       title: 'Real-Time Dashboards',
       desc: 'See every metric update the moment data comes in. Trend lines, anomaly detection, and historical comparisons — all in one view.',
-      color: 'from-success-500 to-success-600',
     },
     {
       icon: Icons.bolt,
       title: 'AI-Powered Insights',
       desc: 'Stop staring at charts hoping patterns jump out. Our AI surfaces trends, flags anomalies, and recommends actions before problems escalate.',
-      color: 'from-warning-500 to-warning-600',
     },
     {
       icon: Icons.link,
       title: 'One-Click Integrations',
       desc: 'Connect Google Sheets, Zoho CRM, LeadSquared, and more. Auto-sync data on your schedule — hourly, daily, or real-time.',
-      color: 'from-cyan-500 to-primary-500',
     },
     {
       icon: Icons.userGroup,
       title: 'Team Rooms & Permissions',
       desc: 'Organize KPIs by department, team, or project. Hierarchical rooms with role-based access ensure everyone sees exactly what they need.',
-      color: 'from-pink-500 to-danger-500',
     },
     {
       icon: Icons.shield,
       title: 'Enterprise-Grade Security',
       desc: 'Multi-tenant data isolation, encrypted credentials, JWT authentication with token rotation, and rate limiting. Your data stays yours.',
-      color: 'from-dark-300 to-dark-500',
     },
     {
       icon: Icons.chat,
       title: 'Daily Data Collection',
       desc: 'Simple forms for daily metric entry. Auto-calculates KPIs on submit. No formulas to maintain, no cells to update. Just enter and go.',
-      color: 'from-emerald-500 to-success-500',
     },
   ]
 
   return (
     <section id="features" ref={ref} className="landing-section relative py-24">
-      <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary-500/5 rounded-full blur-[100px]" />
+      <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-foreground/3 rounded-full blur-[100px]" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
         <div className="text-center mb-16">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary-500/10 text-primary-400 text-sm font-medium mb-4">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-dark-700/50 text-dark-300 text-sm font-medium mb-4">
             {Icons.bolt}
             Powerful Features
           </div>
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-foreground mb-4">
             Everything You Need to
             <br />
-            <span className="text-gradient bg-gradient-to-r from-primary-400 to-success-400">Own Your Numbers</span>
+            <span className="text-foreground">Own Your Numbers</span>
           </h2>
           <p className="text-lg text-dark-300 max-w-2xl mx-auto">
             From AI-powered KPI creation to automated data pipelines — Visualize gives you
@@ -526,11 +529,11 @@ function Features() {
               }`}
             >
               {f.tag && (
-                <div className="inline-flex items-center px-2.5 py-1 rounded-full bg-success-500/15 text-success-400 text-xs font-semibold mb-3">
+                <div className="inline-flex items-center px-2.5 py-1 rounded-full bg-dark-700 text-dark-200 text-xs font-semibold mb-3">
                   {f.tag}
                 </div>
               )}
-              <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${f.color} flex items-center justify-center text-white mb-4 group-hover:scale-110 transition-transform`}>
+              <div className="w-11 h-11 rounded-xl bg-foreground flex items-center justify-center text-dark-950 mb-4 group-hover:scale-110 transition-transform">
                 {f.icon}
               </div>
               <h3 className="text-lg font-bold text-foreground mb-2">{f.title}</h3>
@@ -557,20 +560,18 @@ function AIShowcase() {
 
   return (
     <section ref={ref} className="landing-section relative py-24 overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary-500/3 to-transparent" />
-
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           {/* Left - Text */}
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-purple-500/10 text-purple-400 text-sm font-medium mb-4">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-dark-700/50 text-dark-300 text-sm font-medium mb-4">
               {Icons.sparkles}
               AI-Powered
             </div>
             <h2 className="text-3xl sm:text-4xl font-extrabold text-foreground mb-4">
               Just Tell It What You Want to Track.
               <br />
-              <span className="text-gradient bg-gradient-to-r from-purple-400 to-primary-400">AI Handles the Rest.</span>
+              <span className="text-foreground">AI Handles the Rest.</span>
             </h2>
             <p className="text-lg text-dark-300 mb-8 leading-relaxed">
               No more googling KPI formulas. No more guessing what fields you need.
@@ -585,8 +586,8 @@ function AIShowcase() {
                 'Learns your industry context for better recommendations',
               ].map((item) => (
                 <div key={item} className="flex items-start gap-3">
-                  <div className="w-5 h-5 rounded-full bg-success-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <span className="text-success-400">{Icons.check}</span>
+                  <div className="w-5 h-5 rounded-full bg-dark-700 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-foreground">{Icons.check}</span>
                   </div>
                   <span className="text-dark-200 text-sm">{item}</span>
                 </div>
@@ -596,17 +597,17 @@ function AIShowcase() {
 
           {/* Right - Chat Mockup */}
           <div className="relative">
-            <div className="absolute -inset-4 bg-gradient-to-r from-purple-500/10 to-primary-500/10 rounded-3xl blur-xl" />
+            <div className="absolute -inset-4 bg-foreground/3 rounded-3xl blur-xl" />
             <div className="relative glass rounded-2xl overflow-hidden shadow-2xl">
               {/* Chat header */}
               <div className="px-5 py-4 border-b border-dark-700/50 flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-primary-500 flex items-center justify-center">
-                  <span className="text-white">{Icons.sparkles}</span>
+                <div className="w-8 h-8 rounded-lg bg-foreground flex items-center justify-center">
+                  <span className="text-dark-950">{Icons.sparkles}</span>
                 </div>
                 <div>
                   <div className="text-sm font-semibold text-foreground">KPI Builder AI</div>
-                  <div className="text-xs text-success-400 flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-success-400" />
+                  <div className="text-xs text-dark-300 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-foreground" />
                     Online
                   </div>
                 </div>
@@ -618,7 +619,7 @@ function AIShowcase() {
                   if (msg.role === 'user') {
                     return (
                       <div key={i} className="flex justify-end">
-                        <div className="bg-primary-500/20 text-foreground text-sm rounded-2xl rounded-br-md px-4 py-3 max-w-[85%]">
+                        <div className="bg-dark-700 text-foreground text-sm rounded-2xl rounded-br-md px-4 py-3 max-w-[85%]">
                           {msg.text}
                         </div>
                       </div>
@@ -628,9 +629,9 @@ function AIShowcase() {
                     return (
                       <div key={i} className="flex justify-start">
                         <div className="bg-dark-800 border border-dark-600/50 rounded-2xl rounded-bl-md p-4 max-w-[85%]">
-                          <div className="text-xs text-primary-400 font-semibold mb-2">Suggested KPI</div>
+                          <div className="text-xs text-foreground font-semibold mb-2">Suggested KPI</div>
                           <div className="text-sm font-bold text-foreground mb-1">{msg.kpi!.name}</div>
-                          <code className="block text-xs text-success-400 bg-dark-900 rounded-lg px-3 py-2 mb-3 font-mono">
+                          <code className="block text-xs text-dark-200 bg-dark-900 rounded-lg px-3 py-2 mb-3 font-mono">
                             {msg.kpi!.formula}
                           </code>
                           <div className="flex flex-wrap gap-1.5">
@@ -640,7 +641,7 @@ function AIShowcase() {
                               </span>
                             ))}
                           </div>
-                          <button className="mt-3 w-full py-2 bg-primary-500 text-white text-xs font-semibold rounded-lg">
+                          <button className="mt-3 w-full py-2 bg-[linear-gradient(to_right,#8A50FF_0%,#5439DF_100%)] text-white text-xs font-semibold rounded-lg">
                             + Add This KPI
                           </button>
                         </div>
@@ -661,8 +662,8 @@ function AIShowcase() {
               <div className="px-5 py-4 border-t border-dark-700/50">
                 <div className="flex items-center gap-2 bg-dark-800 rounded-xl px-4 py-2.5">
                   <span className="text-dark-400 text-sm flex-1">Describe a metric you want to track...</span>
-                  <div className="w-8 h-8 rounded-lg bg-primary-500 flex items-center justify-center">
-                    <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                  <div className="w-8 h-8 rounded-lg bg-foreground flex items-center justify-center">
+                    <svg className="w-4 h-4 text-dark-950" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" />
                     </svg>
                   </div>
@@ -687,7 +688,6 @@ function UseCases() {
       title: 'Know Your Unit Economics Cold',
       desc: 'Track MRR, ARR, churn rate, LTV:CAC ratio, burn rate, and runway — updated daily. When investors ask tough questions, you answer in seconds, not days.',
       kpis: ['Monthly Recurring Revenue', 'Customer Churn Rate', 'LTV:CAC Ratio', 'Net Revenue Retention'],
-      color: 'primary',
     },
     {
       icon: Icons.userGroup,
@@ -695,7 +695,6 @@ function UseCases() {
       title: 'Turn Reps Into Revenue Machines',
       desc: 'Pipeline velocity, win rate, average deal size, quota attainment — visible to every rep, every day. Top performers emerge. Underperformers get spotted before it\'s too late.',
       kpis: ['Pipeline Velocity', 'Win Rate %', 'Revenue Per Rep', 'Quota Attainment'],
-      color: 'success',
     },
     {
       icon: Icons.globe,
@@ -703,7 +702,6 @@ function UseCases() {
       title: 'Prove ROI or Kill the Campaign',
       desc: 'CAC by channel, ROAS, conversion rates, lead velocity — all in one view. Stop pouring budget into channels that don\'t convert. Redirect spend in real-time.',
       kpis: ['Cost Per Acquisition', 'ROAS by Channel', 'Lead-to-Close Rate', 'Marketing Qualified Leads'],
-      color: 'warning',
     },
     {
       icon: Icons.clock,
@@ -711,7 +709,6 @@ function UseCases() {
       title: 'Zero Blind Spots in Your Operations',
       desc: 'SLA compliance, production yield, defect rates, fulfillment time — tracked and alerted automatically. Problems surface before customers feel them.',
       kpis: ['SLA Compliance %', 'Production Yield', 'Order Fulfillment Time', 'Defect Rate'],
-      color: 'danger',
     },
     {
       icon: Icons.calculator,
@@ -719,7 +716,6 @@ function UseCases() {
       title: 'CFO-Ready Numbers, Every Morning',
       desc: 'Gross margin, operating expenses, runway, cash flow — calculated automatically from your data sources. Month-end close becomes a non-event.',
       kpis: ['Gross Margin %', 'Operating Expense Ratio', 'Cash Runway (Months)', 'Revenue Growth Rate'],
-      color: 'primary',
     },
     {
       icon: Icons.building,
@@ -727,36 +723,21 @@ function UseCases() {
       title: 'Client Dashboards That Win Renewals',
       desc: 'Give each client their own Room with tailored KPIs. Show measurable impact every month. Clients who see value don\'t churn — they upsell.',
       kpis: ['Client Revenue Growth', 'Campaign Performance', 'Utilization Rate', 'Client Satisfaction Score'],
-      color: 'success',
     },
   ]
-
-  const colorMap: Record<string, string> = {
-    primary: 'bg-primary-500/10 text-primary-400 border-primary-500/20',
-    success: 'bg-success-500/10 text-success-400 border-success-500/20',
-    warning: 'bg-warning-500/10 text-warning-400 border-warning-500/20',
-    danger: 'bg-danger-500/10 text-danger-400 border-danger-500/20',
-  }
-
-  const iconBgMap: Record<string, string> = {
-    primary: 'from-primary-500 to-primary-600',
-    success: 'from-success-500 to-success-600',
-    warning: 'from-warning-500 to-warning-600',
-    danger: 'from-danger-500 to-danger-600',
-  }
 
   return (
     <section id="use-cases" ref={ref} className="landing-section relative py-24">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-success-500/10 text-success-400 text-sm font-medium mb-4">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-dark-700/50 text-dark-300 text-sm font-medium mb-4">
             {Icons.building}
             Use Cases
           </div>
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-foreground mb-4">
             Built for Teams That
             <br />
-            <span className="text-gradient bg-gradient-to-r from-success-400 to-primary-400">Refuse to Fly Blind</span>
+            <span className="text-foreground">Refuse to Fly Blind</span>
           </h2>
           <p className="text-lg text-dark-300 max-w-2xl mx-auto">
             From seed-stage startups to 500-person operations — if you have numbers that matter, Visualize tracks them.
@@ -770,10 +751,10 @@ function UseCases() {
               className="group glass rounded-2xl p-7 hover:bg-dark-700/40 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl flex flex-col"
             >
               <div className="flex items-center gap-3 mb-4">
-                <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${iconBgMap[c.color]} flex items-center justify-center text-white group-hover:scale-110 transition-transform`}>
+                <div className="w-10 h-10 rounded-xl bg-foreground flex items-center justify-center text-dark-950 group-hover:scale-110 transition-transform">
                   {c.icon}
                 </div>
-                <span className={`px-2.5 py-1 rounded-lg text-xs font-semibold border ${colorMap[c.color]}`}>
+                <span className="px-2.5 py-1 rounded-lg text-xs font-semibold border bg-dark-700/50 text-dark-200 border-dark-600/50">
                   {c.industry}
                 </span>
               </div>
@@ -827,18 +808,18 @@ function HowItWorks() {
 
   return (
     <section id="how-it-works" ref={ref} className="landing-section relative py-24">
-      <div className="absolute top-0 left-0 w-[600px] h-[600px] bg-success-500/5 rounded-full blur-[100px]" />
+      <div className="absolute top-0 left-0 w-[600px] h-[600px] bg-foreground/3 rounded-full blur-[100px]" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
         <div className="text-center mb-16">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary-500/10 text-primary-400 text-sm font-medium mb-4">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-dark-700/50 text-dark-300 text-sm font-medium mb-4">
             {Icons.bolt}
             How It Works
           </div>
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-foreground mb-4">
             From Zero to Data-Driven
             <br />
-            <span className="text-gradient bg-gradient-to-r from-primary-400 to-success-400">in Under 5 Minutes</span>
+            <span className="text-foreground">in Under 5 Minutes</span>
           </h2>
         </div>
 
@@ -852,8 +833,8 @@ function HowItWorks() {
             >
               <div className="flex flex-col lg:flex-row lg:items-start gap-6">
                 <div className="flex-shrink-0">
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary-500/20 to-primary-500/5 border border-primary-500/20 flex items-center justify-center">
-                    <span className="text-2xl font-extrabold text-primary-400">{s.step}</span>
+                  <div className="w-16 h-16 rounded-2xl bg-dark-700 border border-dark-600 flex items-center justify-center">
+                    <span className="text-2xl font-extrabold text-foreground">{s.step}</span>
                   </div>
                 </div>
                 <div className="flex-1">
@@ -875,12 +856,12 @@ function Integrations() {
   const ref = useReveal()
 
   const integrations = [
-    { name: 'Google Sheets', desc: 'Auto-sync spreadsheet data', icon: '📊' },
-    { name: 'Zoho CRM', desc: 'Pull CRM metrics directly', icon: '💼' },
-    { name: 'Zoho Books', desc: 'Financial data pipeline', icon: '📒' },
-    { name: 'LeadSquared', desc: 'Lead & sales analytics', icon: '📈' },
-    { name: 'Zoho Sheet', desc: 'Spreadsheet integration', icon: '📋' },
-    { name: 'More Coming', desc: 'Slack, HubSpot, Stripe...', icon: '🔌' },
+    { name: 'Google Sheets', desc: 'Auto-sync spreadsheet data' },
+    { name: 'Zoho CRM', desc: 'Pull CRM metrics directly' },
+    { name: 'Zoho Books', desc: 'Financial data pipeline' },
+    { name: 'LeadSquared', desc: 'Lead & sales analytics' },
+    { name: 'Zoho Sheet', desc: 'Spreadsheet integration' },
+    { name: 'More Coming', desc: 'Slack, HubSpot, Stripe...' },
   ]
 
   return (
@@ -888,7 +869,7 @@ function Integrations() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
           <h2 className="text-3xl sm:text-4xl font-extrabold text-foreground mb-4">
-            Your Data. <span className="text-gradient bg-gradient-to-r from-cyan-400 to-primary-400">Connected.</span>
+            Your Data. <span className="text-foreground">Connected.</span>
           </h2>
           <p className="text-lg text-dark-300 max-w-xl mx-auto">
             One-click OAuth integrations. No CSV uploads. No copy-paste. Your tools talk to Visualize automatically.
@@ -901,7 +882,6 @@ function Integrations() {
               key={intg.name}
               className="glass rounded-2xl p-5 text-center hover:bg-dark-700/40 transition-all duration-300 hover:scale-[1.05] group"
             >
-              <div className="text-3xl mb-3 group-hover:scale-110 transition-transform">{intg.icon}</div>
               <div className="text-sm font-semibold text-foreground mb-1">{intg.name}</div>
               <div className="text-xs text-dark-400">{intg.desc}</div>
             </div>
@@ -938,9 +918,9 @@ function Pricing() {
     {
       name: 'Team',
       desc: 'For growing teams that need real-time KPI tracking and collaboration.',
-      price: { monthly: 79, annual: 63 },
+      price: { monthly: 3999, annual: 3199 },
       cta: 'Start 14-Day Trial',
-      ctaStyle: 'bg-gradient-to-r from-primary-500 to-primary-600 text-white hover:from-primary-400 hover:to-primary-500 shadow-lg hover:shadow-primary-500/30',
+      ctaStyle: 'bg-[linear-gradient(to_right,#8A50FF_0%,#5439DF_100%)] text-white hover:opacity-90 shadow-lg',
       popular: true,
       features: [
         { text: '20 KPIs', included: true },
@@ -956,7 +936,7 @@ function Pricing() {
     {
       name: 'Business',
       desc: 'For scaling companies that demand complete visibility across every department.',
-      price: { monthly: 129, annual: 103 },
+      price: { monthly: 7999, annual: 6399 },
       cta: 'Start 14-Day Trial',
       ctaStyle: 'glass hover:bg-dark-700/60 text-foreground',
       features: [
@@ -991,17 +971,17 @@ function Pricing() {
 
   return (
     <section id="pricing" ref={ref} className="landing-section relative py-24">
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary-500/5 rounded-full blur-[120px]" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-foreground/3 rounded-full blur-[120px]" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
         <div className="text-center mb-12">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-warning-500/10 text-warning-400 text-sm font-medium mb-4">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-dark-700/50 text-dark-300 text-sm font-medium mb-4">
             Early Adopter Pricing — Lock It In Before It Goes Up
           </div>
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-foreground mb-4">
             Simple Pricing.
             <br />
-            <span className="text-gradient bg-gradient-to-r from-primary-400 to-success-400">Serious Value.</span>
+            <span className="text-foreground">Serious Value.</span>
           </h2>
           <p className="text-lg text-dark-300 max-w-xl mx-auto mb-8">
             Start free. Upgrade when you're addicted to knowing your numbers.
@@ -1012,7 +992,7 @@ function Pricing() {
             <button
               onClick={() => setAnnual(false)}
               className={`px-5 py-2 rounded-full text-sm font-semibold transition-all ${
-                !annual ? 'bg-primary-500 text-white shadow' : 'text-dark-400 hover:text-dark-200'
+                !annual ? 'bg-foreground text-dark-950 shadow' : 'text-dark-400 hover:text-dark-200'
               }`}
             >
               Monthly
@@ -1020,11 +1000,11 @@ function Pricing() {
             <button
               onClick={() => setAnnual(true)}
               className={`px-5 py-2 rounded-full text-sm font-semibold transition-all flex items-center gap-2 ${
-                annual ? 'bg-primary-500 text-white shadow' : 'text-dark-400 hover:text-dark-200'
+                annual ? 'bg-foreground text-dark-950 shadow' : 'text-dark-400 hover:text-dark-200'
               }`}
             >
               Annual
-              <span className="px-1.5 py-0.5 bg-success-500/20 text-success-400 text-xs font-bold rounded-md">
+              <span className="px-1.5 py-0.5 bg-dark-700 text-dark-200 text-xs font-bold rounded-md">
                 -20%
               </span>
             </button>
@@ -1039,21 +1019,21 @@ function Pricing() {
             >
               <div className={`glass rounded-2xl p-7 h-full flex flex-col ${plan.popular ? 'bg-dark-800/90' : ''}`}>
                 {plan.popular && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 bg-gradient-to-r from-primary-500 to-success-500 text-white text-xs font-bold rounded-full shadow-lg">
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 bg-foreground text-dark-950 text-xs font-bold rounded-full shadow-lg">
                     MOST POPULAR
                   </div>
                 )}
 
                 <div className="mb-6">
                   <h3 className="text-lg font-bold text-foreground mb-1">{plan.name}</h3>
-                  <p className="text-sm text-dark-400 leading-relaxed">{plan.desc}</p>
+                  <p className={`text-sm leading-relaxed ${plan.popular ? 'text-dark-200' : 'text-dark-400'}`}>{plan.desc}</p>
                 </div>
 
                 <div className="mb-6">
                   {plan.price.monthly === 0 ? (
                     <div className="flex items-baseline gap-1">
-                      <span className="text-4xl font-extrabold text-foreground">$0</span>
-                      <span className="text-dark-400 text-sm">/forever</span>
+                      <span className="text-4xl font-extrabold text-foreground">₹0</span>
+                      <span className={`text-sm ${plan.popular ? 'text-dark-200' : 'text-dark-400'}`}>/forever</span>
                     </div>
                   ) : plan.price.monthly === -1 ? (
                     <div className="flex items-baseline gap-1">
@@ -1062,14 +1042,14 @@ function Pricing() {
                   ) : (
                     <div className="flex items-baseline gap-1">
                       <span className="text-4xl font-extrabold text-foreground">
-                        ${annual ? plan.price.annual : plan.price.monthly}
+                        ₹{(annual ? plan.price.annual : plan.price.monthly).toLocaleString('en-IN')}
                       </span>
-                      <span className="text-dark-400 text-sm">/month</span>
+                      <span className={`text-sm ${plan.popular ? 'text-dark-200' : 'text-dark-400'}`}>/month</span>
                     </div>
                   )}
                   {plan.price.monthly > 0 && annual && (
-                    <div className="text-xs text-success-400 mt-1">
-                      Save ${(plan.price.monthly - plan.price.annual) * 12}/year
+                    <div className="text-xs text-foreground mt-1">
+                      Save ₹{((plan.price.monthly - plan.price.annual) * 12).toLocaleString('en-IN')}/year
                     </div>
                   )}
                 </div>
@@ -1084,7 +1064,7 @@ function Pricing() {
                 <div className="space-y-3 flex-1">
                   {plan.features.map((f) => (
                     <div key={f.text} className="flex items-center gap-2.5">
-                      <span className={f.included ? 'text-success-400' : 'text-dark-600'}>
+                      <span className={f.included ? 'text-foreground' : 'text-dark-600'}>
                         {f.included ? Icons.check : Icons.x}
                       </span>
                       <span className={`text-sm ${f.included ? 'text-dark-200' : 'text-dark-500'}`}>
@@ -1106,61 +1086,643 @@ function Pricing() {
   )
 }
 
-// ─── Testimonial / Social Proof ───────────────────────────────────────────────
-function SocialProof() {
+// ─── Case Studies (Illustrative Scenarios) ────────────────────────────────────
+function CaseStudies() {
   const ref = useReveal()
+  const [active, setActive] = useState(0)
 
-  const testimonials = [
+  const studies = [
     {
-      quote: "We were tracking KPIs across 12 different spreadsheets. Visualize consolidated everything in an afternoon. Our Monday meetings went from 45 minutes to 10.",
-      name: 'Sarah Chen',
-      role: 'VP of Operations',
-      company: 'ScaleUp Technologies',
+      persona: 'SaaS Founder',
+      headline: 'Catch churn 6 weeks before it hits revenue',
+      company: 'Example: 25-person B2B SaaS, $2M ARR',
+      color: 'primary',
+      before: {
+        title: 'Before Visualize',
+        points: [
+          'KPIs scattered across 8 Google Sheets',
+          'Sunday nights spent prepping Monday ops meeting',
+          'Board deck prep took 3 full days each month',
+          'Churn spike discovered 6 weeks late — lost $48K ARR',
+        ],
+      },
+      after: {
+        title: 'After Visualize',
+        points: [
+          'All 14 KPIs live on one synced dashboard',
+          'AI flagged rising churn signal in week 2',
+          'Saved 3 at-risk accounts through early intervention',
+          'Board deck auto-generates from live dashboard',
+        ],
+      },
+      metrics: [
+        { label: 'Earlier detection', value: '6 weeks' },
+        { label: 'Time saved', value: '40 hrs/mo' },
+        { label: 'ARR saved', value: '$48K+' },
+      ],
     },
     {
-      quote: "The AI builder is insane. I described our sales metrics in plain English and it created a complete dashboard with formulas I didn't even know I needed.",
-      name: 'Marcus Rivera',
-      role: 'Head of Sales',
-      company: 'CloudBase CRM',
+      persona: 'Agency Owner',
+      headline: 'Turn client reporting from overhead into your retention engine',
+      company: 'Example: 12-person marketing agency, 18 retainer clients',
+      color: 'success',
+      before: {
+        title: 'Before Visualize',
+        points: [
+          '2 days/month creating PowerPoint client reports',
+          'Clients pushed back on renewals — "we can\'t see the impact"',
+          'Churned 2 accounts last quarter worth $72K/year',
+          'No consistent way to demonstrate campaign ROI',
+        ],
+      },
+      after: {
+        title: 'After Visualize',
+        points: [
+          'Each client gets their own Room with live dashboard',
+          'Clients log in themselves to see progress 24/7',
+          'Renewed 100% of Q3 retainers',
+          'Upsold 3 clients to premium tier after seeing ROI',
+        ],
+      },
+      metrics: [
+        { label: 'Retention', value: '100%' },
+        { label: 'Upsells', value: '+3 clients' },
+        { label: 'Time saved', value: '16 hrs/mo' },
+      ],
     },
     {
-      quote: "We caught a churn spike 2 weeks before it would have hit revenue. The AI flagged it automatically. That single insight saved us $200K in ARR.",
-      name: 'Priya Patel',
-      role: 'CEO',
-      company: 'DataPulse Analytics',
+      persona: 'Sales Leader',
+      headline: 'Spot underperformance in week 3, not at quarter-end',
+      company: 'Example: 30-rep inside sales team, $15M pipeline',
+      color: 'warning',
+      before: {
+        title: 'Before Visualize',
+        points: [
+          'Discovered 2 reps were 40% below quota only at quarter-end',
+          'Pipeline reviews took 2 hours every week',
+          'No visibility into which channels drove best-fit deals',
+          'Coaching kicked in too late to course-correct',
+        ],
+      },
+      after: {
+        title: 'After Visualize',
+        points: [
+          'Live quota dashboards surfaced gaps in week 3',
+          'AI spotted inbound converting 3x better than cold outbound',
+          'Reallocated team focus — beat quarterly quota by 18%',
+          'Pipeline reviews cut from 2 hours to 20 minutes',
+        ],
+      },
+      metrics: [
+        { label: 'Over quota', value: '+18%' },
+        { label: 'Review time', value: '−83%' },
+        { label: 'Lead insight', value: '3x' },
+      ],
     },
   ]
+
+  const colorMap: Record<string, { pill: string; gradient: string; border: string }> = {
+    primary: { pill: 'bg-primary-500/15 text-primary-400 border-primary-500/20', gradient: 'from-primary-400 to-primary-500', border: 'border-primary-500/30' },
+    success: { pill: 'bg-success-500/15 text-success-400 border-success-500/20', gradient: 'from-success-400 to-success-500', border: 'border-success-500/30' },
+    warning: { pill: 'bg-warning-500/15 text-warning-400 border-warning-500/20', gradient: 'from-warning-400 to-warning-500', border: 'border-warning-500/30' },
+  }
+
+  const s = studies[active]
+  const c = colorMap[s.color]
 
   return (
     <section ref={ref} className="landing-section relative py-24 border-y border-dark-700/30">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
-          <h2 className="text-3xl sm:text-4xl font-extrabold text-foreground mb-4">
-            Teams That Switched <span className="text-gradient bg-gradient-to-r from-warning-400 to-danger-400">Never Went Back</span>
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary-500/10 text-primary-400 text-sm font-medium mb-4">
+            {Icons.sparkles}
+            See What's Possible
+          </div>
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-foreground mb-4">
+            What a Transformation
+            <br />
+            <span className="text-gradient bg-[linear-gradient(to_right,#8A50FF_0%,#5439DF_100%)]">Actually Looks Like</span>
           </h2>
+          <p className="text-lg text-dark-300 max-w-2xl mx-auto">
+            Three illustrative scenarios showing the typical before-and-after when teams fully adopt Visualize.
+          </p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-6">
-          {testimonials.map((t) => (
-            <div key={t.name} className="glass rounded-2xl p-7 hover:bg-dark-700/40 transition-all duration-300">
-              {/* Stars */}
-              <div className="flex gap-1 mb-4">
-                {[...Array(5)].map((_, i) => (
-                  <svg key={i} className="w-4 h-4 text-warning-400" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                  </svg>
-                ))}
+        {/* Persona tabs */}
+        <div className="flex flex-wrap justify-center gap-3 mb-10">
+          {studies.map((st, i) => (
+            <button
+              key={st.persona}
+              onClick={() => setActive(i)}
+              className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+                i === active
+                  ? `glass border ${colorMap[st.color].border} text-foreground shadow-lg`
+                  : 'glass text-dark-300 hover:text-foreground hover:bg-dark-700/40'
+              }`}
+            >
+              {st.persona}
+            </button>
+          ))}
+        </div>
+
+        {/* Active case study */}
+        <div className="glass rounded-3xl p-8 lg:p-10 transition-all duration-500">
+          <div className="mb-8">
+            <span className={`inline-block px-3 py-1 rounded-lg text-xs font-semibold border ${c.pill} mb-4`}>
+              {s.company}
+            </span>
+            <h3 className="text-2xl lg:text-3xl font-extrabold text-foreground mb-2">
+              {s.headline}
+            </h3>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-6 mb-8">
+            <div className="bg-danger-500/5 border border-danger-500/20 rounded-2xl p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <span className="text-danger-400">{Icons.x}</span>
+                <span className="text-sm font-bold text-danger-400 uppercase tracking-wide">{s.before.title}</span>
               </div>
-              <p className="text-dark-200 text-sm leading-relaxed mb-6 italic">"{t.quote}"</p>
+              <ul className="space-y-3">
+                {s.before.points.map((p) => (
+                  <li key={p} className="flex items-start gap-2 text-sm text-dark-300 leading-relaxed">
+                    <span className="text-danger-400 mt-0.5 flex-shrink-0">•</span>
+                    {p}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className={`bg-success-500/5 border border-success-500/20 rounded-2xl p-6`}>
+              <div className="flex items-center gap-2 mb-4">
+                <span className="text-success-400">{Icons.check}</span>
+                <span className="text-sm font-bold text-success-400 uppercase tracking-wide">{s.after.title}</span>
+              </div>
+              <ul className="space-y-3">
+                {s.after.points.map((p) => (
+                  <li key={p} className="flex items-start gap-2 text-sm text-dark-200 leading-relaxed">
+                    <span className="text-success-400 mt-0.5 flex-shrink-0">✓</span>
+                    {p}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
+          {/* Outcome metrics */}
+          <div className="grid grid-cols-3 gap-4 pt-6 border-t border-dark-700/40">
+            {s.metrics.map((m) => (
+              <div key={m.label} className="text-center">
+                <div className={`text-2xl lg:text-3xl font-extrabold text-gradient bg-gradient-to-r ${c.gradient} mb-1`}>
+                  {m.value}
+                </div>
+                <div className="text-xs text-dark-400 font-medium">{m.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <p className="text-center text-xs text-dark-500 mt-6 italic">
+          Scenarios are illustrative composites based on common customer journeys. Your outcomes will depend on team size, data quality, and adoption.
+        </p>
+      </div>
+    </section>
+  )
+}
+
+// ─── ROI Calculator (Interactive) ─────────────────────────────────────────────
+function ROICalculator() {
+  const ref = useReveal()
+  const [teamSize, setTeamSize] = useState(8)
+  const [hoursWeekly, setHoursWeekly] = useState(5)
+  const [hourlyRate, setHourlyRate] = useState(65)
+
+  const currentWeeklyHours = teamSize * hoursWeekly
+  const hoursSavedWeekly = Math.round(currentWeeklyHours * 0.8)
+  const annualSavings = Math.round(hoursSavedWeekly * 52 * hourlyRate)
+  const annualHoursSaved = hoursSavedWeekly * 52
+
+  const formatDollar = (n: number) =>
+    n >= 1000 ? `$${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}K` : `$${n}`
+
+  return (
+    <section ref={ref} className="landing-section relative py-24 overflow-hidden">
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] bg-success-500/5 rounded-full blur-[120px]" />
+
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+        <div className="text-center mb-12">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-success-500/10 text-success-400 text-sm font-medium mb-4">
+            {Icons.calculator}
+            ROI Calculator
+          </div>
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-foreground mb-4">
+            See Your Savings
+            <br />
+            <span className="text-gradient bg-[linear-gradient(to_right,#8A50FF_0%,#5439DF_100%)]">In Real Time</span>
+          </h2>
+          <p className="text-lg text-dark-300 max-w-2xl mx-auto">
+            Drag the sliders. Watch what your team gets back.
+          </p>
+        </div>
+
+        <div className="glass rounded-3xl p-8 lg:p-10">
+          <div className="grid lg:grid-cols-2 gap-10">
+            {/* Inputs */}
+            <div className="space-y-8">
               <div>
-                <div className="text-sm font-semibold text-foreground">{t.name}</div>
-                <div className="text-xs text-dark-400">{t.role}, {t.company}</div>
+                <div className="flex justify-between items-baseline mb-3">
+                  <label className="text-sm font-semibold text-foreground">Team Size</label>
+                  <span className="text-2xl font-bold text-primary-400">{teamSize} <span className="text-sm text-dark-400 font-medium">people</span></span>
+                </div>
+                <input
+                  type="range"
+                  min={1}
+                  max={50}
+                  value={teamSize}
+                  onChange={(e) => setTeamSize(Number(e.target.value))}
+                  className="w-full h-2 bg-dark-800 rounded-full appearance-none cursor-pointer accent-primary-500"
+                />
+                <div className="flex justify-between text-xs text-dark-500 mt-2">
+                  <span>1</span>
+                  <span>50</span>
+                </div>
+              </div>
+
+              <div>
+                <div className="flex justify-between items-baseline mb-3">
+                  <label className="text-sm font-semibold text-foreground">Hours per Person Weekly on KPIs & Reporting</label>
+                  <span className="text-2xl font-bold text-primary-400">{hoursWeekly} <span className="text-sm text-dark-400 font-medium">hrs</span></span>
+                </div>
+                <input
+                  type="range"
+                  min={1}
+                  max={20}
+                  value={hoursWeekly}
+                  onChange={(e) => setHoursWeekly(Number(e.target.value))}
+                  className="w-full h-2 bg-dark-800 rounded-full appearance-none cursor-pointer accent-primary-500"
+                />
+                <div className="flex justify-between text-xs text-dark-500 mt-2">
+                  <span>1 hr</span>
+                  <span>20 hrs</span>
+                </div>
+              </div>
+
+              <div>
+                <div className="flex justify-between items-baseline mb-3">
+                  <label className="text-sm font-semibold text-foreground">Avg Hourly Cost</label>
+                  <span className="text-2xl font-bold text-primary-400">${hourlyRate}<span className="text-sm text-dark-400 font-medium">/hr</span></span>
+                </div>
+                <input
+                  type="range"
+                  min={25}
+                  max={200}
+                  step={5}
+                  value={hourlyRate}
+                  onChange={(e) => setHourlyRate(Number(e.target.value))}
+                  className="w-full h-2 bg-dark-800 rounded-full appearance-none cursor-pointer accent-primary-500"
+                />
+                <div className="flex justify-between text-xs text-dark-500 mt-2">
+                  <span>$25</span>
+                  <span>$200</span>
+                </div>
+              </div>
+
+              <div className="text-xs text-dark-500 italic leading-relaxed">
+                Estimate assumes Visualize reclaims ~80% of time spent on manual KPI collection, formatting, and reporting — based on typical team outcomes.
               </div>
             </div>
-          ))}
+
+            {/* Results */}
+            <div className="relative">
+              <div className="absolute -inset-4 bg-[linear-gradient(to_right,rgba(138,80,255,0.12),rgba(84,57,223,0.12))] rounded-3xl blur-xl" />
+              <div className="relative bg-dark-900/60 border border-dark-700/50 rounded-2xl p-8 h-full flex flex-col justify-center">
+                <div className="text-xs font-semibold text-dark-400 uppercase tracking-wider mb-6">Your Team Gains</div>
+
+                <div className="space-y-6">
+                  <div>
+                    <div className="text-sm text-dark-400 mb-1">Annual Time Saved</div>
+                    <div className="text-4xl lg:text-5xl font-extrabold text-gradient bg-[linear-gradient(to_right,#8A50FF_0%,#5439DF_100%)]">
+                      {annualHoursSaved.toLocaleString()} <span className="text-2xl">hours</span>
+                    </div>
+                    <div className="text-xs text-dark-500 mt-1">{hoursSavedWeekly} hrs reclaimed every week</div>
+                  </div>
+
+                  <div className="h-px bg-dark-700/50" />
+
+                  <div>
+                    <div className="text-sm text-dark-400 mb-1">Annual Cost Savings</div>
+                    <div className="text-4xl lg:text-5xl font-extrabold text-gradient bg-[linear-gradient(to_right,#8A50FF_0%,#5439DF_100%)]">
+                      {formatDollar(annualSavings)}
+                    </div>
+                    <div className="text-xs text-dark-500 mt-1">in recovered productivity</div>
+                  </div>
+
+                  <div className="bg-primary-500/10 border border-primary-500/20 rounded-xl p-4 mt-4">
+                    <div className="text-xs text-primary-400 font-semibold mb-1">PAYBACK PERIOD</div>
+                    <div className="text-lg font-bold text-foreground">
+                      Less than 1 week on the Team plan
+                    </div>
+                  </div>
+                </div>
+
+                <Link
+                  to="/register"
+                  className="mt-6 group flex items-center justify-center gap-2 px-6 py-3.5 text-sm font-bold text-white bg-[linear-gradient(to_right,#8A50FF_0%,#5439DF_100%)] rounded-xl hover:opacity-90 transition-all shadow-lg"
+                >
+                  Claim These Savings
+                  <span className="group-hover:translate-x-1 transition-transform">{Icons.arrowRight}</span>
+                </Link>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </section>
+  )
+}
+
+// ─── Comparison Table ─────────────────────────────────────────────────────────
+function ComparisonTable() {
+  const ref = useReveal()
+
+  const rows = [
+    { feature: 'Setup time', spreadsheets: 'Hours to days', bi: 'Weeks to months', visualize: 'Under 5 minutes' },
+    { feature: 'AI KPI creation', spreadsheets: false, bi: false, visualize: true },
+    { feature: 'Formula auto-calculation', spreadsheets: 'Manual', bi: true, visualize: true },
+    { feature: 'Real-time sync', spreadsheets: false, bi: true, visualize: true },
+    { feature: 'Anomaly detection', spreadsheets: false, bi: 'Add-on', visualize: true },
+    { feature: 'Team rooms & permissions', spreadsheets: 'Limited', bi: true, visualize: true },
+    { feature: 'Client-ready dashboards', spreadsheets: false, bi: true, visualize: true },
+    { feature: 'Requires analyst', spreadsheets: 'Often', bi: 'Yes', visualize: 'No' },
+    { feature: 'Starting cost', spreadsheets: 'Free', bi: '$500+/mo', visualize: 'Free' },
+  ]
+
+  const renderCell = (val: string | boolean, emphasis = false) => {
+    if (val === true) {
+      return (
+        <div className="flex justify-center">
+          <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full ${emphasis ? 'bg-success-500/30 text-success-400' : 'bg-success-500/15 text-success-400'}`}>
+            {Icons.check}
+          </span>
+        </div>
+      )
+    }
+    if (val === false) {
+      return (
+        <div className="flex justify-center">
+          <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-danger-500/10 text-danger-500/70">
+            {Icons.x}
+          </span>
+        </div>
+      )
+    }
+    return (
+      <div className={`text-center text-sm ${emphasis ? 'text-foreground font-semibold' : 'text-dark-300'}`}>
+        {val}
+      </div>
+    )
+  }
+
+  return (
+    <section ref={ref} className="landing-section relative py-24">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center mb-12">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-warning-500/10 text-warning-400 text-sm font-medium mb-4">
+            {Icons.chartBar}
+            Side-by-Side
+          </div>
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-foreground mb-4">
+            How Visualize Stacks Up
+          </h2>
+          <p className="text-lg text-dark-300 max-w-2xl mx-auto">
+            Versus where most teams live today — and versus heavy enterprise BI tools.
+          </p>
+        </div>
+
+        <div className="glass rounded-3xl overflow-hidden">
+          <div className="grid grid-cols-4 border-b border-dark-700/50">
+            <div className="p-5 text-sm font-semibold text-dark-400 uppercase tracking-wider">Feature</div>
+            <div className="p-5 text-center">
+              <div className="text-sm font-bold text-dark-300">Spreadsheets</div>
+              <div className="text-xs text-dark-500 mt-0.5">Google Sheets / Excel</div>
+            </div>
+            <div className="p-5 text-center">
+              <div className="text-sm font-bold text-dark-300">Enterprise BI</div>
+              <div className="text-xs text-dark-500 mt-0.5">Tableau / Power BI</div>
+            </div>
+            <div className="p-5 text-center bg-[linear-gradient(to_bottom,rgba(84,57,223,0.15),transparent)]">
+              <div className="text-sm font-bold text-primary-400">Visualize</div>
+              <div className="text-xs text-success-400 mt-0.5 font-semibold">Recommended</div>
+            </div>
+          </div>
+
+          {rows.map((row, i) => (
+            <div
+              key={row.feature}
+              className={`grid grid-cols-4 items-center ${i !== rows.length - 1 ? 'border-b border-dark-700/30' : ''}`}
+            >
+              <div className="p-5 text-sm font-medium text-foreground">{row.feature}</div>
+              <div className="p-5">{renderCell(row.spreadsheets)}</div>
+              <div className="p-5">{renderCell(row.bi)}</div>
+              <div className="p-5 bg-primary-500/5">{renderCell(row.visualize, true)}</div>
+            </div>
+          ))}
+        </div>
+
+        <div className="text-center mt-10">
+          <Link
+            to="/register"
+            className="group inline-flex items-center gap-2 px-8 py-4 text-base font-bold text-white bg-[linear-gradient(to_right,#8A50FF_0%,#5439DF_100%)] rounded-2xl hover:opacity-90 transition-all shadow-xl hover:scale-[1.03] active:scale-[0.98]"
+          >
+            Try Visualize Free
+            <span className="group-hover:translate-x-1 transition-transform">{Icons.arrowRight}</span>
+          </Link>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+// ─── Fit Checker ──────────────────────────────────────────────────────────────
+function FitChecker() {
+  const [open, setOpen] = useState(false)
+  const [step, setStep] = useState(0)
+  const [answers, setAnswers] = useState<number[]>([])
+
+  const questions = [
+    {
+      q: "What's your team size?",
+      options: [
+        { label: 'Solo / Just me', score: 2 },
+        { label: '2–10 people', score: 3 },
+        { label: '11–50 people', score: 3 },
+        { label: '50+ people', score: 2 },
+      ],
+    },
+    {
+      q: 'How do you track KPIs today?',
+      options: [
+        { label: 'Spreadsheets', score: 3 },
+        { label: 'Multiple disconnected tools', score: 3 },
+        { label: 'A BI platform (Tableau, Looker…)', score: 1 },
+        { label: "We don't really track them", score: 3 },
+      ],
+    },
+    {
+      q: "What's your biggest need right now?",
+      options: [
+        { label: 'Real-time dashboards', score: 3 },
+        { label: 'AI-powered insights', score: 3 },
+        { label: 'One place for all data sources', score: 3 },
+        { label: 'Escape spreadsheet chaos', score: 3 },
+      ],
+    },
+  ]
+
+  const handleAnswer = (score: number) => {
+    const newAnswers = [...answers, score]
+    setAnswers(newAnswers)
+    setStep(step + 1)
+  }
+
+  const reset = () => {
+    setStep(0)
+    setAnswers([])
+  }
+
+  const close = () => {
+    setOpen(false)
+    setTimeout(reset, 300)
+  }
+
+  const totalScore = answers.reduce((a, b) => a + b, 0)
+  const maxScore = questions.length * 3
+  const percentage = maxScore > 0 ? Math.round((totalScore / maxScore) * 100) : 0
+
+  const result =
+    percentage >= 90
+      ? { title: 'Perfect Fit', emoji: '🎯', message: 'Visualize is built exactly for teams like yours.' }
+      : percentage >= 70
+      ? { title: 'Great Fit', emoji: '✅', message: "You'll get serious value from Visualize." }
+      : { title: 'Worth a Look', emoji: '🤔', message: 'Visualize can still help — try it free and see.' }
+
+  return (
+    <>
+      <button
+        onClick={() => setOpen(true)}
+        className={`fixed bottom-24 right-4 lg:bottom-6 lg:right-6 z-40 flex items-center gap-2 px-5 py-3.5 rounded-full bg-[linear-gradient(to_right,#8A50FF_0%,#5439DF_100%)] text-white font-semibold shadow-[0_12px_40px_-8px_rgba(138,80,255,0.6)] hover:scale-105 active:scale-95 transition-transform ${
+          open ? 'opacity-0 pointer-events-none' : 'opacity-100'
+        }`}
+        aria-label="Check if Visualize fits your business"
+      >
+        <img src="/visualise.png" alt="" className="w-5 h-5 object-contain" />
+        <span className="text-sm">Does Visualize fit?</span>
+      </button>
+
+      {open && (
+        <div className="fixed bottom-24 right-4 lg:bottom-6 lg:right-6 z-50 w-[min(92vw,380px)] bg-dark-900 border border-dark-700 rounded-2xl shadow-2xl overflow-hidden animate-fade-in">
+          <div className="flex items-center justify-between px-5 py-3.5 bg-dark-800/80 border-b border-dark-700">
+            <div>
+              <p className="text-sm font-bold text-foreground">Visualize Fit Check</p>
+              <p className="text-[11px] text-dark-400">Takes 30 seconds</p>
+            </div>
+            <button
+              onClick={close}
+              className="p-1.5 rounded-lg text-dark-400 hover:text-foreground hover:bg-dark-700 transition-colors"
+              aria-label="Close"
+            >
+              {Icons.x}
+            </button>
+          </div>
+
+          <div className="p-5">
+            {step < questions.length ? (
+              <>
+                <div className="flex items-center gap-1.5 mb-4">
+                  {questions.map((_, i) => (
+                    <div
+                      key={i}
+                      className={`h-1 flex-1 rounded-full transition-colors ${
+                        i <= step ? 'bg-primary-500' : 'bg-dark-700'
+                      }`}
+                    />
+                  ))}
+                </div>
+                <p className="text-xs text-dark-400 mb-2">
+                  Question {step + 1} of {questions.length}
+                </p>
+                <h4 className="text-base font-semibold text-foreground mb-4">
+                  {questions[step].q}
+                </h4>
+                <div className="space-y-2">
+                  {questions[step].options.map((opt, i) => (
+                    <button
+                      key={i}
+                      onClick={() => handleAnswer(opt.score)}
+                      className="w-full text-left px-4 py-3 text-sm text-dark-200 bg-dark-800 hover:bg-dark-700 border border-dark-700 hover:border-primary-500/60 rounded-xl transition-colors"
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <div className="text-center py-2">
+                <div className="text-5xl mb-3">{result.emoji}</div>
+                <h4 className="text-xl font-bold text-foreground mb-1.5">{result.title}</h4>
+                <p className="text-sm text-dark-300 mb-4">{result.message}</p>
+                <div className="relative h-2 bg-dark-700 rounded-full overflow-hidden mb-2">
+                  <div
+                    className="absolute inset-y-0 left-0 bg-[linear-gradient(to_right,#8A50FF_0%,#5439DF_100%)] transition-all duration-700"
+                    style={{ width: `${percentage}%` }}
+                  />
+                </div>
+                <p className="text-xs text-dark-400 mb-5">{percentage}% match with Visualize</p>
+                <div className="flex gap-2">
+                  <Link
+                    to="/register"
+                    className="flex-1 px-4 py-3 text-sm font-bold text-white bg-[linear-gradient(to_right,#8A50FF_0%,#5439DF_100%)] rounded-xl hover:opacity-90 transition-opacity"
+                  >
+                    Start Free Trial
+                  </Link>
+                  <button
+                    onClick={reset}
+                    className="px-4 py-3 text-sm font-semibold text-dark-200 bg-dark-800 border border-dark-700 hover:bg-dark-700 rounded-xl transition-colors"
+                  >
+                    Retake
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </>
+  )
+}
+
+// ─── Sticky Mobile CTA ────────────────────────────────────────────────────────
+function StickyMobileCTA() {
+  const [visible, setVisible] = useState(false)
+
+  useEffect(() => {
+    const handleScroll = () => setVisible(window.scrollY > 600)
+    window.addEventListener('scroll', handleScroll)
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
+
+  return (
+    <div
+      className={`lg:hidden fixed bottom-0 left-0 right-0 z-40 px-4 pb-4 pt-3 bg-gradient-to-t from-dark-950 via-dark-950/95 to-transparent transition-all duration-300 ${
+        visible ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'
+      }`}
+    >
+      <Link
+        to="/register"
+        className="w-full flex items-center justify-center gap-2 px-6 py-4 text-base font-bold text-white bg-[linear-gradient(to_right,#8A50FF_0%,#5439DF_100%)] rounded-2xl shadow-2xl active:scale-[0.98] transition-transform"
+      >
+        Start Free — No Credit Card
+        {Icons.arrowRight}
+      </Link>
+    </div>
   )
 }
 
@@ -1246,14 +1808,13 @@ function FinalCTA() {
 
   return (
     <section ref={ref} className="landing-section relative py-32 overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary-500/5 to-transparent" />
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary-500/10 rounded-full blur-[100px] animate-pulse-glow" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-foreground/5 rounded-full blur-[100px] animate-pulse-glow" />
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative text-center">
         <h2 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-foreground mb-6 leading-tight">
           Every Day Without Data
           <br />
-          <span className="text-gradient bg-gradient-to-r from-danger-400 via-warning-400 to-success-400 animate-gradient-x">
+          <span className="text-foreground">
             Is a Day Your Competitors Win
           </span>
         </h2>
@@ -1264,7 +1825,7 @@ function FinalCTA() {
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
           <Link
             to="/register"
-            className="group flex items-center gap-2 px-10 py-5 text-lg font-bold text-white bg-gradient-to-r from-primary-500 to-primary-600 rounded-2xl hover:from-primary-400 hover:to-primary-500 transition-all shadow-xl hover:shadow-primary-500/30 hover:scale-[1.03] active:scale-[0.98]"
+            className="group flex items-center gap-2 px-10 py-5 text-lg font-bold text-white bg-[linear-gradient(to_right,#8A50FF_0%,#5439DF_100%)] rounded-2xl hover:opacity-90 transition-all shadow-xl hover:scale-[1.03] active:scale-[0.98]"
           >
             Start Tracking for Free
             <span className="group-hover:translate-x-1 transition-transform">{Icons.arrowRight}</span>
@@ -1287,8 +1848,8 @@ function Footer() {
           {/* Brand */}
           <div className="md:col-span-1">
             <div className="flex items-center gap-2.5 mb-4">
-              <img src="/visualise.png" alt="Visualize" className="w-8 h-8 object-contain" />
-              <span className="text-lg font-bold text-white">
+              <img src="/visualize%20logo.png" alt="Visualize" className="w-11 h-11 object-contain" />
+              <span className="text-lg font-bold text-foreground">
                 Visualize
               </span>
             </div>
@@ -1363,13 +1924,17 @@ export default function Landing() {
       <Features />
       <AIShowcase />
       <UseCases />
+      <CaseStudies />
       <HowItWorks />
+      <ROICalculator />
+      <ComparisonTable />
       <Integrations />
       <Pricing />
-      <SocialProof />
       <FAQ />
       <FinalCTA />
       <Footer />
+      <StickyMobileCTA />
+      <FitChecker />
     </div>
   )
 }

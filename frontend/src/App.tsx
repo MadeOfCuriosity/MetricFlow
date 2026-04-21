@@ -18,6 +18,7 @@ import {
   AIBuilder,
   Insights,
   Settings,
+  Subscription,
   RoomDashboard,
   Data,
   AdminLayout,
@@ -76,6 +77,7 @@ function App() {
             <Route path="users" element={<Navigate to="/admin/users" replace />} />
             <Route path="integrations" element={<Navigate to="/settings?tab=integrations" replace />} />
             <Route path="settings" element={<Settings />} />
+            <Route path="subscription" element={<Subscription />} />
           </Route>
 
           {/* Catch all - redirect to dashboard */}

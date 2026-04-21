@@ -1,4 +1,12 @@
-export type IntegrationProvider = 'google_sheets' | 'zoho_crm' | 'zoho_books' | 'zoho_sheet' | 'leadsquared'
+export type IntegrationProvider =
+  | 'google_sheets'
+  | 'google_ads'
+  | 'ga4'
+  | 'meta_ads'
+  | 'zoho_crm'
+  | 'zoho_books'
+  | 'zoho_sheet'
+  | 'leadsquared'
 export type IntegrationStatus = 'pending_auth' | 'connected' | 'error' | 'disconnected'
 export type SyncSchedule = 'manual' | '1h' | '6h' | '12h' | '24h'
 export type AggregationType = 'direct' | 'count' | 'sum' | 'avg' | 'min' | 'max'

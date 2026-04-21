@@ -25,6 +25,39 @@ interface IntegrationSetupModalProps {
 
 const PROVIDERS: ProviderInfo[] = [
   {
+    id: 'google_ads',
+    name: 'Google Ads',
+    description: 'Daily campaign performance aggregated across all campaigns',
+    authType: 'oauth',
+    color: '#4285F4',
+    configFields: [
+      { key: 'customer_id', label: 'Customer ID', placeholder: 'e.g. 123-456-7890 (dashes optional)', type: 'text', required: true },
+      { key: 'login_customer_id', label: 'Manager (MCC) ID', placeholder: 'Optional — only if accessing via a manager account', type: 'text', required: false },
+      { key: 'campaign_name_contains', label: 'Campaign Name Filter', placeholder: 'Optional substring, e.g. "Brand"', type: 'text', required: false },
+    ],
+  },
+  {
+    id: 'meta_ads',
+    name: 'Meta Ads',
+    description: 'Facebook + Instagram ads via the Marketing API',
+    authType: 'oauth',
+    color: '#1877F2',
+    configFields: [
+      { key: 'ad_account_id', label: 'Ad Account ID', placeholder: 'e.g. act_1234567890 (or just 1234567890)', type: 'text', required: true },
+      { key: 'campaign_name_contains', label: 'Campaign Name Filter', placeholder: 'Optional substring filter', type: 'text', required: false },
+    ],
+  },
+  {
+    id: 'ga4',
+    name: 'Google Analytics 4',
+    description: 'Traffic, conversions, and revenue from GA4',
+    authType: 'oauth',
+    color: '#F9AB00',
+    configFields: [
+      { key: 'property_id', label: 'GA4 Property ID', placeholder: 'e.g. 123456789 (numeric — from GA4 admin)', type: 'text', required: true },
+    ],
+  },
+  {
     id: 'google_sheets',
     name: 'Google Sheets',
     description: 'Sync data from a Google Spreadsheet',
@@ -110,6 +143,17 @@ const PROVIDERS: ProviderInfo[] = [
     ],
   },
 ]
+
+const PROVIDER_INITIALS: Record<IntegrationProvider, string> = {
+  google_sheets: 'GS',
+  google_ads: 'GA',
+  ga4: 'G4',
+  meta_ads: 'M',
+  zoho_crm: 'Z',
+  zoho_books: 'ZB',
+  zoho_sheet: 'ZS',
+  leadsquared: 'LS',
+}
 
 const SCHEDULE_OPTIONS: { value: SyncSchedule; label: string }[] = [
   { value: 'manual', label: 'Manual only' },
@@ -313,7 +357,7 @@ export function IntegrationSetupModal({
                       className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold text-xs"
                       style={{ backgroundColor: providerInfo.color }}
                     >
-                      {providerInfo.id === 'google_sheets' ? 'GS' : providerInfo.id === 'zoho_crm' ? 'Z' : 'LS'}
+                      {PROVIDER_INITIALS[providerInfo.id]}
                     </div>
                     <Dialog.Title className="text-lg font-semibold text-foreground">
                       {editIntegration ? 'Configure' : 'Connect'} {providerInfo.name}

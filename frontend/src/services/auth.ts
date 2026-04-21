@@ -18,6 +18,9 @@ export interface Organization {
   name: string
   industry: string | null
   created_at: string
+  plan_code: string | null
+  plan_status: string | null
+  plan_current_end: string | null
 }
 
 export type UserRole = 'admin' | 'room_admin'

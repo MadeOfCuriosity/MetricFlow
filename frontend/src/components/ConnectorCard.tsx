@@ -42,6 +42,9 @@ function formatLastSync(dateStr: string | null): string {
 // Provider logo/icon as simple SVG text
 const PROVIDER_ICONS: Record<IntegrationProvider, string> = {
   google_sheets: 'GS',
+  google_ads: 'GA',
+  ga4: 'G4',
+  meta_ads: 'M',
   zoho_crm: 'Z',
   zoho_books: 'ZB',
   zoho_sheet: 'ZS',

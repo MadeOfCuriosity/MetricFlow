@@ -14,6 +14,24 @@ import type { Integration, IntegrationProvider } from '../types/integration'
 
 const PROVIDERS = [
   {
+    id: 'google_ads' as IntegrationProvider,
+    name: 'Google Ads',
+    description: 'Pull daily campaign performance: spend, CTR, CPC, conversions, ROAS, impression share — aggregated across all campaigns.',
+    color: '#4285F4',
+  },
+  {
+    id: 'meta_ads' as IntegrationProvider,
+    name: 'Meta Ads',
+    description: 'Sync Facebook + Instagram ads: spend, reach, frequency, CPM, CPA, ROAS, purchases, and leads from the Marketing API.',
+    color: '#1877F2',
+  },
+  {
+    id: 'ga4' as IntegrationProvider,
+    name: 'Google Analytics 4',
+    description: 'Traffic, conversions, revenue, engagement, and bounce rate from GA4 — the universal source of truth for web performance.',
+    color: '#F9AB00',
+  },
+  {
     id: 'google_sheets' as IntegrationProvider,
     name: 'Google Sheets',
     description: 'Import data from Google Spreadsheets. Map columns to data fields for automatic KPI calculation.',
