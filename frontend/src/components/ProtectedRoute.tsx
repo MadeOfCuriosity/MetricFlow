@@ -24,7 +24,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" state={{ from: location }} replace />
+    return <Navigate to="/landing" state={{ from: location }} replace />
   }
 
   // Subscription gate — block app access if the org doesn't have an active plan,
