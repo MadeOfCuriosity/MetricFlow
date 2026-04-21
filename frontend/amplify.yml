@@ -27,6 +27,11 @@ frontend:
           value: '1; mode=block'
         - key: 'Referrer-Policy'
           value: 'strict-origin-when-cross-origin'
+        # Allow Google Identity Services popup to postMessage back to the opener.
+        # Without this (or with the stricter 'same-origin') the GIS credential
+        # callback never fires and @react-oauth/google throws onError.
+        - key: 'Cross-Origin-Opener-Policy'
+          value: 'same-origin-allow-popups'
     - pattern: '/assets/*'
       headers:
         - key: 'Cache-Control'
