@@ -11,6 +11,7 @@ export interface RegisterOrgData {
   email: string
   password: string
   industry?: string
+  website?: string
 }
 
 export interface Organization {
@@ -79,6 +80,7 @@ export const authService = {
       admin_email: data.email,
       admin_password: data.password,
       industry: data.industry,
+      website: data.website,
     }
     const response = await api.post<AuthResponse>('/api/auth/register-org', payload)
     return response.data

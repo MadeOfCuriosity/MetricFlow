@@ -58,7 +58,7 @@ const PROVIDERS = [
   {
     id: 'leadsquared' as IntegrationProvider,
     name: 'LeadSquared',
-    description: 'Connect your LeadSquared account to pull lead and activity data into MetricFlow.',
+    description: 'Connect your LeadSquared account to pull lead and activity data into Visualize.',
     color: '#FF6B35',
   },
 ]

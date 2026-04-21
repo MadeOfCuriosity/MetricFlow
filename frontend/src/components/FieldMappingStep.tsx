@@ -93,7 +93,7 @@ export function FieldMappingStep({
       <div className={`grid gap-2 text-xs text-dark-400 font-medium ${showAggregation ? 'grid-cols-[1fr_auto_1fr_auto_auto]' : 'grid-cols-[1fr_auto_1fr_auto]'}`}>
         <span>Source Field</span>
         <span></span>
-        <span>MetricFlow Data Field</span>
+        <span>Visualize Data Field</span>
         {showAggregation && <span>Aggregation</span>}
         <span></span>
       </div>
@@ -162,7 +162,7 @@ export function FieldMappingStep({
 
       {rows.filter(r => r.external_field_name && r.data_field_id).length === 0 && (
         <p className="text-xs text-dark-400 mt-1">
-          Map at least one source field to a MetricFlow data field to enable syncing.
+          Map at least one source field to a Visualize data field to enable syncing.
         </p>
       )}
     </div>

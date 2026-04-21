@@ -87,10 +87,10 @@ describe('Login Page', () => {
     expect(emailInput.validity.valueMissing).toBe(true)
   })
 
-  it('displays MetricFlow branding', () => {
+  it('displays Visualize branding', () => {
     renderLogin()
 
-    expect(screen.getByText('MetricFlow')).toBeInTheDocument()
+    expect(screen.getByText('Visualize')).toBeInTheDocument()
   })
 
   it('has password field with correct type', () => {

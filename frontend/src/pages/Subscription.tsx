@@ -15,20 +15,59 @@ declare global {
 }
 
 const PLAN_DISPLAY: Record<string, { name: string; tagline: string; features: string[] }> = {
-  starter: {
-    name: 'Starter',
-    tagline: 'Best for small teams getting started',
-    features: ['Up to 5 users', '10 KPIs', 'Email support'],
+  team: {
+    name: 'Team',
+    tagline: 'For growing teams that need real-time KPI tracking and collaboration.',
+    features: [
+      '20 KPIs',
+      '5 Users',
+      '25 AI calls / day',
+      '2 Integrations',
+      '3 Team Rooms',
+      'AI Insights',
+      'Email support',
+    ],
   },
-  pro: {
-    name: 'Pro',
-    tagline: 'For growing teams that need more power',
-    features: ['Up to 25 users', 'Unlimited KPIs', 'AI insights', 'Priority support'],
+  team_annual: {
+    name: 'Team (Annual)',
+    tagline: 'Team plan billed yearly — save 20%.',
+    features: [
+      '20 KPIs',
+      '5 Users',
+      '25 AI calls / day',
+      '2 Integrations',
+      '3 Team Rooms',
+      'AI Insights',
+      'Email support',
+    ],
   },
-  enterprise: {
-    name: 'Enterprise',
-    tagline: 'For large orgs with custom needs',
-    features: ['Unlimited users', 'SSO', 'Dedicated support', 'Custom integrations'],
+  business: {
+    name: 'Business',
+    tagline: 'For scaling companies that demand complete visibility.',
+    features: [
+      'Unlimited KPIs',
+      '25 Users',
+      '50 AI calls / day',
+      'All Integrations',
+      'Unlimited Rooms',
+      'Admin Dashboard',
+      'Priority AI Insights',
+      'Priority support',
+    ],
+  },
+  business_annual: {
+    name: 'Business (Annual)',
+    tagline: 'Business plan billed yearly — save 20%.',
+    features: [
+      'Unlimited KPIs',
+      '25 Users',
+      '50 AI calls / day',
+      'All Integrations',
+      'Unlimited Rooms',
+      'Admin Dashboard',
+      'Priority AI Insights',
+      'Priority support',
+    ],
   },
 }
 
@@ -75,7 +114,7 @@ export function Subscription() {
       const options = {
         key: created.razorpay_key_id,
         subscription_id: created.subscription_id,
-        name: organization?.name || 'MetricFlow',
+        name: organization?.name || 'Visualize',
         description: `${PLAN_DISPLAY[planCode]?.name || planCode} subscription`,
         prefill: {
           name: user?.name || '',
@@ -143,7 +182,7 @@ export function Subscription() {
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-dark-50">Subscription</h1>
         <p className="text-dark-300 mt-1">
-          Manage your MetricFlow plan and billing.
+          Manage your Visualize plan and billing.
         </p>
       </div>
 

@@ -3,6 +3,8 @@ import { Outlet } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
 import { Header } from './Header'
 import { AdminAIAgent } from './AdminAIAgent'
+import { ImpersonationBanner } from './ImpersonationBanner'
+import { InAppNotifications } from './InAppNotifications'
 import { XMarkIcon } from '@heroicons/react/24/outline'
 
 export function Layout() {
@@ -46,11 +48,13 @@ export function Layout() {
 
       {/* Main content */}
       <div className="flex flex-col flex-1 overflow-hidden">
+        <ImpersonationBanner />
         <Header
           onMenuClick={() => setSidebarOpen(true)}
         />
 
         <main className="flex-1 overflow-y-auto bg-dark-950 p-6">
+          <InAppNotifications />
           <Outlet />
         </main>
       </div>

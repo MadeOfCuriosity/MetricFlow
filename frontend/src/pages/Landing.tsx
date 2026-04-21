@@ -307,7 +307,7 @@ function Hero() {
                   </div>
                   <div className="flex-1 flex justify-center">
                     <div className="px-4 py-1 rounded-lg bg-dark-800 text-xs text-dark-400 font-mono">
-                      app.metricflow.io/dashboard
+                      app.visualize.io/dashboard
                     </div>
                   </div>
                 </div>
@@ -899,23 +899,6 @@ function Pricing() {
 
   const plans = [
     {
-      name: 'Starter',
-      desc: 'For solopreneurs and small teams getting started with KPI tracking.',
-      price: { monthly: 0, annual: 0 },
-      cta: 'Start Free',
-      ctaStyle: 'glass hover:bg-dark-700/60 text-foreground',
-      features: [
-        { text: '3 KPIs', included: true },
-        { text: '1 User', included: true },
-        { text: '5 AI calls / day', included: true },
-        { text: '30-day data retention', included: true },
-        { text: 'Manual data entry', included: true },
-        { text: 'Integrations', included: false },
-        { text: 'Team Rooms', included: false },
-        { text: 'Admin Dashboard', included: false },
-      ],
-    },
-    {
       name: 'Team',
       desc: 'For growing teams that need real-time KPI tracking and collaboration.',
       price: { monthly: 3999, annual: 3199 },
@@ -984,7 +967,7 @@ function Pricing() {
             <span className="text-foreground">Serious Value.</span>
           </h2>
           <p className="text-lg text-dark-300 max-w-xl mx-auto mb-8">
-            Start free. Upgrade when you're addicted to knowing your numbers.
+            Try free for 14 days. No credit card required.
           </p>
 
           {/* Toggle */}
@@ -1011,7 +994,7 @@ function Pricing() {
           </div>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5 max-w-6xl mx-auto">
           {plans.map((plan) => (
             <div
               key={plan.name}
@@ -1746,7 +1729,7 @@ function FAQ() {
     },
     {
       q: "Can I try it before paying?",
-      a: "Yes — the Starter plan is free forever with 3 KPIs. All paid plans include a 14-day free trial with no credit card required. You'll know if Visualize is right for you long before we ask for a dime.",
+      a: "Yes — every paid plan includes a 14-day free trial with no credit card required. You'll know if Visualize is right for you long before we ask for a dime.",
     },
     {
       q: "What integrations do you support?",

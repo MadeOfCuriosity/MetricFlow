@@ -28,6 +28,18 @@ import {
   AdminOrganization,
   AdminIntegrations,
   AdminActivity,
+  SuperAdminLogin,
+  SuperAdminLayout,
+  SuperAdminInsights,
+  SuperAdminOrgs,
+  SuperAdminOrgDetail,
+  SuperAdminUsers,
+  SuperAdminSubscriptions,
+  SuperAdminAdmins,
+  SuperAdminCampaigns,
+  SuperAdminAuditLog,
+  SuperAdminIndustries,
+  SuperAdminHealth,
 } from './pages'
 
 function App() {
@@ -46,6 +58,21 @@ function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/google-setup" element={<GoogleOrgSetup />} />
           <Route path="/privacy" element={<Privacy />} />
+
+          {/* Super-admin (platform-level) — separate tree, own auth */}
+          <Route path="/superadmin/login" element={<SuperAdminLogin />} />
+          <Route path="/superadmin" element={<SuperAdminLayout />}>
+            <Route index element={<SuperAdminInsights />} />
+            <Route path="organizations" element={<SuperAdminOrgs />} />
+            <Route path="organizations/:orgId" element={<SuperAdminOrgDetail />} />
+            <Route path="users" element={<SuperAdminUsers />} />
+            <Route path="subscriptions" element={<SuperAdminSubscriptions />} />
+            <Route path="industries" element={<SuperAdminIndustries />} />
+            <Route path="campaigns" element={<SuperAdminCampaigns />} />
+            <Route path="audit-log" element={<SuperAdminAuditLog />} />
+            <Route path="health" element={<SuperAdminHealth />} />
+            <Route path="admins" element={<SuperAdminAdmins />} />
+          </Route>
 
           {/* Protected routes with layout */}
           <Route

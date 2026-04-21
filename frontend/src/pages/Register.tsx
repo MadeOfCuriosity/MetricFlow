@@ -26,6 +26,8 @@ export function Register() {
     password: '',
     confirmPassword: '',
     industry: '',
+    industry_other: '',
+    website: '',
   })
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -55,12 +57,18 @@ export function Register() {
     setIsLoading(true)
 
     try {
+      const industryValue =
+        formData.industry === 'Other'
+          ? formData.industry_other.trim() || undefined
+          : formData.industry || undefined
+
       await register({
         org_name: formData.org_name,
         user_name: formData.user_name,
         email: formData.email,
         password: formData.password,
-        industry: formData.industry || undefined,
+        industry: industryValue,
+        website: formData.website.trim() || undefined,
       })
       navigate('/dashboard', { replace: true })
     } catch (err: any) {
@@ -171,6 +179,21 @@ export function Register() {
             </div>
 
             <div>
+              <label htmlFor="website" className="block text-sm font-medium text-dark-200">
+                Website
+              </label>
+              <input
+                id="website"
+                name="website"
+                type="url"
+                value={formData.website}
+                onChange={handleChange}
+                className="mt-1 block w-full px-4 py-3 bg-dark-800 border border-dark-600 rounded-lg text-foreground placeholder-dark-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                placeholder="https://acme.com"
+              />
+            </div>
+
+            <div>
               <label htmlFor="industry" className="block text-sm font-medium text-dark-200">
                 Industry (optional)
               </label>
@@ -188,6 +211,17 @@ export function Register() {
                   </option>
                 ))}
               </select>
+              {formData.industry === 'Other' && (
+                <input
+                  id="industry_other"
+                  name="industry_other"
+                  type="text"
+                  value={formData.industry_other}
+                  onChange={handleChange}
+                  className="mt-2 block w-full px-4 py-3 bg-dark-800 border border-dark-600 rounded-lg text-foreground placeholder-dark-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  placeholder="Enter your industry"
+                />
+              )}
             </div>
 
             <div className="border-t border-dark-700 pt-5">
@@ -287,7 +321,7 @@ export function Register() {
       </div>
 
       {/* Right side - Features */}
-      <div className="hidden lg:flex lg:flex-1 bg-gradient-to-br from-indigo-600 to-indigo-800 items-center justify-center p-12">
+      <div className="hidden lg:flex lg:flex-1 items-center justify-center p-12" style={{ background: 'linear-gradient(to bottom right, #8A50FF, #5439DF)' }}>
         <div className="max-w-md">
           <h2 className="text-3xl font-bold text-white mb-6">
             Track what matters for your business
@@ -304,21 +338,6 @@ export function Register() {
               </li>
             ))}
           </ul>
-
-          <div className="mt-12 p-6 bg-white/10 backdrop-blur rounded-xl">
-            <p className="text-white italic">
-              "Visualize transformed how we track our sales metrics. The AI insights are incredibly valuable."
-            </p>
-            <div className="mt-4 flex items-center gap-3">
-              <div className="w-10 h-10 bg-primary-400 rounded-full flex items-center justify-center">
-                <span className="text-white font-medium">S</span>
-              </div>
-              <div>
-                <p className="text-white font-medium">Sarah Johnson</p>
-                <p className="text-primary-300 text-sm">VP of Sales, TechCorp</p>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </div>

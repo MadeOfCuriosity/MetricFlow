@@ -24,3 +24,17 @@ export {
   AdminIntegrations,
   AdminActivity,
 } from './admin'
+export {
+  SuperAdminLogin,
+  SuperAdminLayout,
+  SuperAdminInsights,
+  SuperAdminOrgs,
+  SuperAdminOrgDetail,
+  SuperAdminUsers,
+  SuperAdminSubscriptions,
+  SuperAdminAdmins,
+  SuperAdminCampaigns,
+  SuperAdminAuditLog,
+  SuperAdminIndustries,
+  SuperAdminHealth,
+} from './superadmin'
