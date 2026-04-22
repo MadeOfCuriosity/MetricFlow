@@ -37,4 +37,5 @@ export {
   SuperAdminAuditLog,
   SuperAdminIndustries,
   SuperAdminHealth,
+  SuperAdminLeads,
 } from './superadmin'

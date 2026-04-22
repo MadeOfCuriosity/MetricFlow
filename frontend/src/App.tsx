@@ -40,6 +40,7 @@ import {
   SuperAdminAuditLog,
   SuperAdminIndustries,
   SuperAdminHealth,
+  SuperAdminLeads,
 } from './pages'
 
 function App() {
@@ -71,6 +72,7 @@ function App() {
             <Route path="campaigns" element={<SuperAdminCampaigns />} />
             <Route path="audit-log" element={<SuperAdminAuditLog />} />
             <Route path="health" element={<SuperAdminHealth />} />
+            <Route path="leads" element={<SuperAdminLeads />} />
             <Route path="admins" element={<SuperAdminAdmins />} />
           </Route>
 

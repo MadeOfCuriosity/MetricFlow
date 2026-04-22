@@ -11,6 +11,7 @@ import {
   ClipboardDocumentListIcon,
   BuildingLibraryIcon,
   HeartIcon,
+  InboxArrowDownIcon,
 } from '@heroicons/react/24/outline'
 import { superadminService, SuperAdmin } from '../../services/superadmin'
 import { useTheme } from '../../context/ThemeContext'
@@ -20,6 +21,7 @@ const tabs = [
   { name: 'Organizations', href: '/superadmin/organizations', icon: BuildingOffice2Icon },
   { name: 'Users', href: '/superadmin/users', icon: UsersIcon },
   { name: 'Subscriptions', href: '/superadmin/subscriptions', icon: CreditCardIcon },
+  { name: 'Leads', href: '/superadmin/leads', icon: InboxArrowDownIcon },
   { name: 'Industries', href: '/superadmin/industries', icon: BuildingLibraryIcon },
   { name: 'Campaigns', href: '/superadmin/campaigns', icon: MegaphoneIcon },
   { name: 'Audit Log', href: '/superadmin/audit-log', icon: ClipboardDocumentListIcon },

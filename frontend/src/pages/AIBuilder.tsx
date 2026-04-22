@@ -95,11 +95,24 @@ export function AIBuilder() {
         conversation_history: newHistory,
       })
 
-      const { ai_response: aiResponse, suggested_kpi, rate_limit_remaining } = response.data
+      const { ai_response: aiResponse, suggested_kpi, rate_limit_remaining, error: aiError } = response.data
 
       // Update rate limit info from response
       if (rateLimitInfo && typeof rate_limit_remaining === 'number') {
         setRateLimitInfo({ ...rateLimitInfo, remaining: rate_limit_remaining })
+      }
+
+      // If upstream failed (empty response or error field), surface it instead of a blank bubble
+      if (!aiResponse || aiError) {
+        showError('AI Error', aiError || 'The AI service returned an empty response. Please try again.')
+        const errorMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: "I couldn't generate a response right now. Please try again in a moment.",
+          timestamp: new Date(),
+        }
+        setMessages((prev) => [...prev, errorMessage])
+        return
       }
 
       // Add assistant message

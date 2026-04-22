@@ -216,6 +216,20 @@ export interface IndustryMetrics {
   mrr: number
 }
 
+export interface SalesLead {
+  id: string
+  name: string
+  email: string
+  company: string | null
+  team_size: string | null
+  message: string | null
+  source: string
+  status: string
+  notes: string | null
+  created_at: string
+  updated_at: string
+}
+
 export interface SystemHealth {
   integration_failures: {
     org_id: string
@@ -369,6 +383,60 @@ export const superadminService = {
   // --- System health ---
   async getHealth(): Promise<SystemHealth> {
     const res = await superadminApi.get('/api/superadmin/health')
+    return res.data
+  },
+
+  // --- Sales leads ---
+  async listLeads(params: {
+    status?: string
+    q?: string
+    limit?: number
+    offset?: number
+  } = {}): Promise<{ items: SalesLead[]; total: number }> {
+    const res = await superadminApi.get('/api/superadmin/leads', { params })
+    return res.data
+  },
+
+  async updateLead(
+    leadId: string,
+    data: { status?: string; notes?: string }
+  ): Promise<SalesLead> {
+    const res = await superadminApi.patch<SalesLead>(
+      `/api/superadmin/leads/${leadId}`,
+      data
+    )
+    return res.data
+  },
+
+  async deleteLead(leadId: string): Promise<void> {
+    await superadminApi.delete(`/api/superadmin/leads/${leadId}`)
+  },
+
+  // --- Manual plan grants ---
+  async listAvailablePlans(): Promise<{ code: string; razorpay_plan_id: string }[]> {
+    const res = await superadminApi.get('/api/superadmin/plans')
+    return res.data
+  },
+
+  async grantPlan(
+    orgId: string,
+    data: { plan_code: string; duration_days: number; reason?: string }
+  ): Promise<OrgDetailSubscription> {
+    const res = await superadminApi.post<OrgDetailSubscription>(
+      `/api/superadmin/organizations/${orgId}/grant-plan`,
+      data
+    )
+    return res.data
+  },
+
+  async revokePlan(
+    orgId: string,
+    reason?: string
+  ): Promise<OrgDetailSubscription> {
+    const res = await superadminApi.post<OrgDetailSubscription>(
+      `/api/superadmin/organizations/${orgId}/revoke-plan`,
+      { reason: reason || null }
+    )
     return res.data
   },
 

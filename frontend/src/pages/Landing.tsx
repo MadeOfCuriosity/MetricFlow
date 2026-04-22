@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { ContactSalesModal } from '../components/ContactSalesModal'
 
 // ─── Intersection Observer Hook ───────────────────────────────────────────────
 function useReveal() {
@@ -187,7 +188,7 @@ function Navbar() {
               to="/register"
               className="px-6 py-2.5 text-sm font-semibold text-white bg-[linear-gradient(to_right,#8A50FF_0%,#5439DF_100%)] rounded-xl hover:opacity-90 transition-all shadow-lg hover:scale-[1.03] active:scale-[0.98]"
             >
-              Start Free Trial
+              Get Started
             </Link>
           </div>
 
@@ -216,7 +217,7 @@ function Navbar() {
               <a href="#pricing" onClick={() => setMobileOpen(false)} className="px-4 py-2.5 text-sm font-medium text-dark-200 hover:text-foreground hover:bg-dark-700/50 rounded-xl transition-colors">Pricing</a>
               <hr className="border-dark-700/50" />
               <Link to="/login" className="px-4 py-2.5 text-sm font-medium text-dark-200 hover:text-foreground rounded-xl transition-colors text-center">Sign In</Link>
-              <Link to="/register" className="px-4 py-2.5 text-sm font-semibold text-white bg-[linear-gradient(to_right,#8A50FF_0%,#5439DF_100%)] rounded-xl text-center">Start Free Trial</Link>
+              <Link to="/register" className="px-4 py-2.5 text-sm font-semibold text-white bg-[linear-gradient(to_right,#8A50FF_0%,#5439DF_100%)] rounded-xl text-center">Get Started</Link>
             </div>
           </div>
         )}
@@ -280,7 +281,7 @@ function Hero() {
         <div className="flex flex-col sm:flex-row items-center justify-center gap-6 text-sm text-dark-400 animate-fade-in-up delay-400">
           <div className="flex items-center gap-2">
             {Icons.check}
-            <span>No credit card required</span>
+            <span>Cancel anytime</span>
           </div>
           <div className="flex items-center gap-2">
             {Icons.check}
@@ -896,18 +897,18 @@ function Integrations() {
 function Pricing() {
   const ref = useReveal()
   const [annual, setAnnual] = useState(true)
+  const [contactModalOpen, setContactModalOpen] = useState(false)
 
   const plans = [
     {
       name: 'Team',
       desc: 'For growing teams that need real-time KPI tracking and collaboration.',
       price: { monthly: 3999, annual: 3199 },
-      cta: 'Start 14-Day Trial',
-      ctaStyle: 'bg-[linear-gradient(to_right,#8A50FF_0%,#5439DF_100%)] text-white hover:opacity-90 shadow-lg',
-      popular: true,
+      cta: 'Get Started',
+      ctaStyle: 'glass hover:bg-dark-700/60 text-foreground',
       features: [
-        { text: '20 KPIs', included: true },
-        { text: '5 Users', included: true },
+        { text: '30 KPIs', included: true },
+        { text: '8 Users', included: true },
         { text: '25 AI calls / day', included: true },
         { text: 'Unlimited data retention', included: true },
         { text: '2 Integrations', included: true },
@@ -920,8 +921,9 @@ function Pricing() {
       name: 'Business',
       desc: 'For scaling companies that demand complete visibility across every department.',
       price: { monthly: 7999, annual: 6399 },
-      cta: 'Start 14-Day Trial',
-      ctaStyle: 'glass hover:bg-dark-700/60 text-foreground',
+      cta: 'Get Started',
+      ctaStyle: 'bg-[linear-gradient(to_right,#8A50FF_0%,#5439DF_100%)] text-white hover:opacity-90 shadow-lg',
+      popular: true,
       features: [
         { text: 'Unlimited KPIs', included: true },
         { text: '25 Users', included: true },
@@ -939,6 +941,7 @@ function Pricing() {
       price: { monthly: -1, annual: -1 },
       cta: 'Contact Sales',
       ctaStyle: 'glass hover:bg-dark-700/60 text-foreground',
+      contactSales: true,
       features: [
         { text: 'Everything in Business', included: true },
         { text: 'Unlimited Users', included: true },
@@ -967,7 +970,7 @@ function Pricing() {
             <span className="text-foreground">Serious Value.</span>
           </h2>
           <p className="text-lg text-dark-300 max-w-xl mx-auto mb-8">
-            Try free for 14 days. No credit card required.
+            Pick the plan that fits your team. Cancel anytime.
           </p>
 
           {/* Toggle */}
@@ -1037,12 +1040,22 @@ function Pricing() {
                   )}
                 </div>
 
-                <Link
-                  to="/register"
-                  className={`w-full py-3 rounded-xl text-sm font-bold text-center transition-all hover:scale-[1.02] active:scale-[0.98] block mb-6 ${plan.ctaStyle}`}
-                >
-                  {plan.cta}
-                </Link>
+                {plan.contactSales ? (
+                  <button
+                    type="button"
+                    onClick={() => setContactModalOpen(true)}
+                    className={`w-full py-3 rounded-xl text-sm font-bold text-center transition-all hover:scale-[1.02] active:scale-[0.98] block mb-6 ${plan.ctaStyle}`}
+                  >
+                    {plan.cta}
+                  </button>
+                ) : (
+                  <Link
+                    to="/register"
+                    className={`w-full py-3 rounded-xl text-sm font-bold text-center transition-all hover:scale-[1.02] active:scale-[0.98] block mb-6 ${plan.ctaStyle}`}
+                  >
+                    {plan.cta}
+                  </Link>
+                )}
 
                 <div className="space-y-3 flex-1">
                   {plan.features.map((f) => (
@@ -1062,9 +1075,13 @@ function Pricing() {
         </div>
 
         <p className="text-center text-sm text-dark-400 mt-8">
-          All paid plans include a 14-day free trial. No credit card required.
+          Prices shown exclude GST. Cancel anytime.
         </p>
       </div>
+      <ContactSalesModal
+        open={contactModalOpen}
+        onClose={() => setContactModalOpen(false)}
+      />
     </section>
   )
 }
@@ -1664,7 +1681,7 @@ function FitChecker() {
                     to="/register"
                     className="flex-1 px-4 py-3 text-sm font-bold text-white bg-[linear-gradient(to_right,#8A50FF_0%,#5439DF_100%)] rounded-xl hover:opacity-90 transition-opacity"
                   >
-                    Start Free Trial
+                    Get Started
                   </Link>
                   <button
                     onClick={reset}
@@ -1702,7 +1719,7 @@ function StickyMobileCTA() {
         to="/register"
         className="w-full flex items-center justify-center gap-2 px-6 py-4 text-base font-bold text-white bg-[linear-gradient(to_right,#8A50FF_0%,#5439DF_100%)] rounded-2xl shadow-2xl active:scale-[0.98] transition-transform"
       >
-        Start Free — No Credit Card
+        Get Started
         {Icons.arrowRight}
       </Link>
     </div>
@@ -1728,8 +1745,8 @@ function FAQ() {
       a: "Enterprise-grade. Multi-tenant isolation means your data is completely separated from other organizations. Credentials are encrypted with Fernet encryption. JWT tokens with rotation prevent unauthorized access. We use the same security standards as enterprise SaaS platforms.",
     },
     {
-      q: "Can I try it before paying?",
-      a: "Yes — every paid plan includes a 14-day free trial with no credit card required. You'll know if Visualize is right for you long before we ask for a dime.",
+      q: "Can I cancel anytime?",
+      a: "Yes — you can cancel your subscription at any time from the billing page. You'll retain access until the end of your current billing cycle.",
     },
     {
       q: "What integrations do you support?",
@@ -1810,12 +1827,12 @@ function FinalCTA() {
             to="/register"
             className="group flex items-center gap-2 px-10 py-5 text-lg font-bold text-white bg-[linear-gradient(to_right,#8A50FF_0%,#5439DF_100%)] rounded-2xl hover:opacity-90 transition-all shadow-xl hover:scale-[1.03] active:scale-[0.98]"
           >
-            Start Tracking for Free
+            Get Started
             <span className="group-hover:translate-x-1 transition-transform">{Icons.arrowRight}</span>
           </Link>
         </div>
         <p className="text-sm text-dark-400 mt-6">
-          Free forever plan available. No credit card required. Setup in under 5 minutes.
+          Cancel anytime. Setup in under 5 minutes.
         </p>
       </div>
     </section>
