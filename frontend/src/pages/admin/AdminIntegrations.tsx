@@ -1,6 +1,8 @@
-import { useState, useEffect, useCallback } from 'react'
+import { Fragment, useState, useEffect, useCallback } from 'react'
+import { Dialog, Transition } from '@headlessui/react'
 import {
   ArrowPathIcon,
+  PlusIcon,
   TrashIcon,
   ClockIcon,
   CheckCircleIcon,
@@ -79,6 +81,7 @@ export function AdminIntegrations() {
   const [syncingIds, setSyncingIds] = useState<Set<string>>(new Set())
 
   // Modals
+  const [isPickerOpen, setIsPickerOpen] = useState(false)
   const [setupProvider, setSetupProvider] = useState<IntegrationProvider | null>(null)
   const [editIntegration, setEditIntegration] = useState<Integration | null>(null)
   const [isSetupOpen, setIsSetupOpen] = useState(false)
@@ -156,8 +159,26 @@ export function AdminIntegrations() {
     (i) => i.status === 'connected'
   ).length
 
+  const handleChooseProvider = (providerId: string) => {
+    setIsPickerOpen(false)
+    setSetupProvider(providerId as IntegrationProvider)
+    setIsSetupOpen(true)
+  }
+
   return (
     <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div />
+        <button
+          onClick={() => setIsPickerOpen(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-500 transition-colors text-sm font-medium"
+        >
+          <PlusIcon className="w-4 h-4" />
+          Add Integration
+        </button>
+      </div>
+
       {/* Summary stats */}
       <div className="grid grid-cols-3 gap-4">
         <div className="bg-dark-900 border border-dark-700 rounded-xl p-4">
@@ -185,10 +206,7 @@ export function AdminIntegrations() {
             <ArrowPathIcon className="w-12 h-12 mx-auto mb-4 text-dark-500" />
             <p>No integrations configured yet.</p>
             <button
-              onClick={() => {
-                setSetupProvider('google_sheets')
-                setIsSetupOpen(true)
-              }}
+              onClick={() => setIsPickerOpen(true)}
               className="mt-3 text-sm text-primary-400 hover:text-primary-300"
             >
               Set up your first integration
@@ -324,6 +342,74 @@ export function AdminIntegrations() {
           </table>
         )}
       </div>
+
+      {/* Provider Picker */}
+      <Transition appear show={isPickerOpen} as={Fragment}>
+        <Dialog as="div" className="relative z-50" onClose={() => setIsPickerOpen(false)}>
+          <Transition.Child
+            as={Fragment}
+            enter="ease-out duration-300"
+            enterFrom="opacity-0"
+            enterTo="opacity-100"
+            leave="ease-in duration-200"
+            leaveFrom="opacity-100"
+            leaveTo="opacity-0"
+          >
+            <div className="fixed inset-0 bg-black/60" />
+          </Transition.Child>
+
+          <div className="fixed inset-0 overflow-y-auto">
+            <div className="flex min-h-full items-center justify-center p-4">
+              <Transition.Child
+                as={Fragment}
+                enter="ease-out duration-300"
+                enterFrom="opacity-0 scale-95"
+                enterTo="opacity-100 scale-100"
+                leave="ease-in duration-200"
+                leaveFrom="opacity-100 scale-100"
+                leaveTo="opacity-0 scale-95"
+              >
+                <Dialog.Panel className="w-full max-w-lg bg-dark-900 border border-dark-700 rounded-2xl shadow-xl p-6">
+                  <Dialog.Title className="text-lg font-semibold text-foreground">
+                    Choose an integration
+                  </Dialog.Title>
+                  <p className="text-sm text-dark-400 mt-1 mb-4">
+                    Pick a source to pull data from.
+                  </p>
+                  <div className="space-y-2">
+                    {Object.entries(PROVIDERS).map(([id, provider]) => (
+                      <button
+                        key={id}
+                        onClick={() => handleChooseProvider(id)}
+                        className="w-full flex items-center gap-3 p-3 bg-dark-800 border border-dark-600 rounded-lg hover:border-primary-500 transition-colors text-left"
+                      >
+                        <div
+                          className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
+                          style={{ backgroundColor: provider.color }}
+                        >
+                          {provider.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-foreground font-medium">{provider.name}</p>
+                          <p className="text-xs text-dark-400">{provider.description}</p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex justify-end mt-6">
+                    <button
+                      onClick={() => setIsPickerOpen(false)}
+                      className="px-4 py-2 text-dark-300 hover:text-foreground transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </Dialog.Panel>
+              </Transition.Child>
+            </div>
+          </div>
+        </Dialog>
+      </Transition>
 
       {/* Setup Modal */}
       <IntegrationSetupModal

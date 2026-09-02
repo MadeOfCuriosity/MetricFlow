@@ -5,8 +5,19 @@ import {
 } from '@heroicons/react/24/outline'
 import { useAuth } from '../../context/AuthContext'
 
+const PLAN_NAME: Record<string, string> = {
+  team: 'Team',
+  team_annual: 'Team (Annual)',
+  business: 'Business',
+  business_annual: 'Business (Annual)',
+}
+
 export function AdminOrganization() {
   const { organization } = useAuth()
+  const planCode = organization?.plan_code
+  const planName = planCode ? PLAN_NAME[planCode] || planCode : 'Free'
+  const planStatus = organization?.plan_status || 'active'
+  const isPlanActive = planStatus === 'active'
 
   return (
     <div className="space-y-6">
@@ -48,13 +59,21 @@ export function AdminOrganization() {
 
         <div className="flex items-center justify-between p-4 bg-dark-800 border border-dark-600 rounded-lg">
           <div>
-            <p className="text-foreground font-medium">Free Plan</p>
+            <p className="text-foreground font-medium">{planName} Plan</p>
             <p className="text-sm text-dark-400 mt-0.5">
-              You are currently on the free plan with full access.
+              {planCode
+                ? `You are currently on the ${planName} plan.`
+                : 'You are currently on the free plan with full access.'}
             </p>
           </div>
-          <span className="px-3 py-1 bg-success-500/20 text-success-400 text-xs font-medium rounded-full">
-            Active
+          <span
+            className={`px-3 py-1 text-xs font-medium rounded-full ${
+              isPlanActive
+                ? 'bg-success-500/20 text-success-400'
+                : 'bg-warning-500/20 text-warning-400'
+            }`}
+          >
+            {isPlanActive ? 'Active' : planStatus}
           </span>
         </div>
       </div>

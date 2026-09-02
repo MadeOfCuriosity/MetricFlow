@@ -151,10 +151,19 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   )
 }
 
+const noop = () => {}
+const DEFAULT_TOAST_CONTEXT: ToastContextType = {
+  toasts: [],
+  showToast: noop,
+  hideToast: noop,
+  success: noop,
+  error: noop,
+  warning: noop,
+  info: noop,
+}
+
 export function useToast() {
   const context = useContext(ToastContext)
-  if (context === undefined) {
-    throw new Error('useToast must be used within a ToastProvider')
-  }
-  return context
+  return context ?? DEFAULT_TOAST_CONTEXT
 }
+

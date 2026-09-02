@@ -1,5 +1,7 @@
 export { Layout } from './Layout'
 export { Sidebar } from './Sidebar'
+export { AppDock } from './AppDock'
+export { SideDock } from './SideDock'
 export { Header } from './Header'
 export { ProtectedRoute } from './ProtectedRoute'
 export { KPICard } from './KPICard'

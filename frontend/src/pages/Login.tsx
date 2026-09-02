@@ -3,7 +3,36 @@ import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { GoogleLogin, CredentialResponse } from '@react-oauth/google'
 import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
+import { useToast } from '../context/ToastContext'
 import { ExclamationCircleIcon, EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline'
+
+interface Testimonial {
+  initials: string
+  name: string
+  handle: string
+  text: string
+}
+
+const testimonials: Testimonial[] = [
+  {
+    initials: 'SC',
+    name: 'Sarah Chen',
+    handle: '@sarahdigital',
+    text: 'Visualize turned a mess of spreadsheets into a dashboard our whole team actually checks every morning.',
+  },
+  {
+    initials: 'MJ',
+    name: 'Marcus Johnson',
+    handle: '@marcustech',
+    text: 'Setup took an afternoon. Now every room owner sees their numbers without asking me for a report.',
+  },
+  {
+    initials: 'DM',
+    name: 'David Martinez',
+    handle: '@davidcreates',
+    text: 'The AI KPI builder alone saved us weeks of custom dashboard work.',
+  },
+]
 
 export function Login() {
   const [email, setEmail] = useState('')
@@ -14,10 +43,12 @@ export function Login() {
 
   const { login, googleLogin } = useAuth()
   const { resolvedTheme } = useTheme()
+  const { info } = useToast()
   const navigate = useNavigate()
   const location = useLocation()
 
   const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/dashboard'
+  const testimonial = testimonials[0]
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -66,24 +97,27 @@ export function Login() {
     }
   }
 
-  return (
-    <div className="min-h-screen bg-dark-950 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        {/* Logo */}
-        <div className="flex justify-center">
-          <img src={resolvedTheme === 'light' ? '/visualise_dark.png' : '/visualise.png'} alt="Visualize" className="w-12 h-12" />
-        </div>
-        <h2 className="mt-6 text-center text-3xl font-bold text-foreground">
-          Welcome back
-        </h2>
-        <p className="mt-2 text-center text-sm text-dark-300">
-          Sign in to your Visualize account
-        </p>
-      </div>
+  const handleResetPassword = (e: React.MouseEvent) => {
+    e.preventDefault()
+    info('Password reset unavailable', 'Contact your organization admin to reset your password.')
+  }
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-dark-900 py-8 px-4 shadow-xl border border-dark-700 rounded-xl sm:px-10">
-          <form className="space-y-6" onSubmit={handleSubmit}>
+  return (
+    <div className="min-h-screen bg-dark-950 lg:grid lg:grid-cols-2">
+      {/* Sign-in form */}
+      <div className="flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-12 xl:px-20">
+        <div className="mx-auto w-full max-w-sm">
+          <div className="flex justify-center lg:justify-start">
+            <img src={resolvedTheme === 'light' ? '/visualise_dark.png' : '/visualise.png'} alt="Visualize" className="w-12 h-12" />
+          </div>
+          <h2 className="mt-6 text-3xl font-bold text-foreground text-center lg:text-left">
+            Welcome back
+          </h2>
+          <p className="mt-2 text-sm text-dark-300 text-center lg:text-left">
+            Sign in to your Visualize account
+          </p>
+
+          <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
             {error && (
               <div className="bg-danger-500/10 border border-danger-500/20 rounded-lg p-4 flex items-center gap-3">
                 <ExclamationCircleIcon className="h-5 w-5 text-danger-400 flex-shrink-0" />
@@ -164,7 +198,7 @@ export function Login() {
                 <div className="w-full border-t border-dark-700" />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-dark-900 text-dark-400">Or continue with</span>
+                <span className="px-2 bg-dark-950 text-dark-400">Or continue with</span>
               </div>
             </div>
 
@@ -179,23 +213,54 @@ export function Login() {
             </div>
           </div>
 
-          <div className="mt-6">
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-dark-700" />
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-dark-900 text-dark-400">New to Visualize?</span>
-              </div>
-            </div>
+          <div className="mt-6 text-center text-sm">
+            <button
+              type="button"
+              onClick={handleResetPassword}
+              className="text-dark-300 hover:text-foreground transition-colors"
+            >
+              Reset password
+            </button>
+          </div>
 
-            <div className="mt-6">
-              <Link
-                to="/register"
-                className="w-full flex justify-center py-3 px-4 border border-dark-600 rounded-lg shadow-sm text-sm font-medium text-dark-200 bg-transparent hover:bg-dark-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors"
-              >
-                Create an organization
-              </Link>
+          <p className="mt-4 text-center text-sm text-dark-400">
+            New to our platform?{' '}
+            <Link to="/register" className="text-primary-400 hover:text-primary-300 font-medium transition-colors">
+              Create Account
+            </Link>
+          </p>
+        </div>
+      </div>
+
+      {/* Hero */}
+      <div className="hidden lg:flex relative overflow-hidden bg-dark-950">
+        <div className="absolute inset-0 hero-grid" />
+        <div className="absolute -top-24 -right-24 w-96 h-96 rounded-full bg-primary-500/20 blur-3xl glow-primary" />
+        <div className="absolute -bottom-24 -left-24 w-96 h-96 rounded-full bg-success-500/10 blur-3xl" />
+
+        <div className="relative flex flex-col justify-center items-center w-full p-12">
+          <div className="text-center max-w-md animate-fade-in-up">
+            <h3 className="text-2xl font-semibold text-foreground">
+              See every metric that matters, in one place
+            </h3>
+            <p className="mt-3 text-dark-300">
+              Track KPIs, spot trends, and keep every room accountable — without the spreadsheet chaos.
+            </p>
+          </div>
+        </div>
+
+        {/* Testimonial */}
+        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 w-full max-w-sm px-6">
+          <div className="glass-strong rounded-xl p-5 shadow-xl">
+            <p className="text-sm text-dark-100">"{testimonial.text}"</p>
+            <div className="mt-4 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-primary-500/20 border border-primary-500/40 flex items-center justify-center text-sm font-semibold text-primary-300 flex-shrink-0">
+                {testimonial.initials}
+              </div>
+              <div>
+                <p className="text-sm font-medium text-foreground">{testimonial.name}</p>
+                <p className="text-xs text-dark-400">{testimonial.handle}</p>
+              </div>
             </div>
           </div>
         </div>

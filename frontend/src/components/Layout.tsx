@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { Outlet } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
+import { AppDock } from './AppDock'
+import { SideDock } from './SideDock'
 import { Header } from './Header'
 import { AdminAIAgent } from './AdminAIAgent'
 import { ImpersonationBanner } from './ImpersonationBanner'
@@ -39,11 +41,12 @@ export function Layout() {
       </div>
 
       {/* Desktop sidebar */}
-      <div className="hidden lg:flex lg:flex-shrink-0">
-        <Sidebar
-          collapsed={!desktopSidebarOpen}
-          onToggleCollapse={() => setDesktopSidebarOpen(!desktopSidebarOpen)}
-        />
+      <div
+        className={`hidden lg:flex lg:flex-shrink-0 overflow-hidden transition-all duration-300 ${
+          desktopSidebarOpen ? 'w-72' : 'w-0'
+        }`}
+      >
+        <Sidebar />
       </div>
 
       {/* Main content */}
@@ -53,13 +56,18 @@ export function Layout() {
           onMenuClick={() => setSidebarOpen(true)}
         />
 
-        <main className="flex-1 overflow-y-auto bg-dark-950 p-6">
+        <main className="flex-1 overflow-y-auto bg-dark-950 p-6 pb-28">
           <InAppNotifications />
           <Outlet />
         </main>
       </div>
 
       <AdminAIAgent />
+      <AppDock />
+      <SideDock
+        sidebarOpen={desktopSidebarOpen}
+        onToggleSidebar={() => setDesktopSidebarOpen(!desktopSidebarOpen)}
+      />
     </div>
   )
 }

@@ -17,17 +17,21 @@ import {
   KPIDataView,
   AIBuilder,
   Insights,
-  Settings,
   Subscription,
   RoomDashboard,
   Data,
-  AdminLayout,
+  SettingsLayout,
   AdminDashboard,
-  AdminUsers,
   AdminRooms,
-  AdminOrganization,
   AdminIntegrations,
+  AdminApps,
   AdminActivity,
+  AdminUsers,
+  AdminOrganization,
+  SettingsProfile,
+  SettingsNotifications,
+  SettingsAppearance,
+  SettingsSecurity,
   SuperAdminLogin,
   SuperAdminLayout,
   SuperAdminInsights,
@@ -95,17 +99,29 @@ function App() {
             <Route path="ai-builder" element={<Navigate to="/dashboard" replace />} />
             <Route path="rooms/:roomId/ai-builder" element={<AIBuilder />} />
             <Route path="rooms/:roomId" element={<RoomDashboard />} />
-            <Route path="admin" element={<AdminLayout />}>
+            <Route path="settings" element={<SettingsLayout />}>
               <Route index element={<AdminDashboard />} />
-              <Route path="users" element={<AdminUsers />} />
               <Route path="rooms" element={<AdminRooms />} />
-              <Route path="organization" element={<AdminOrganization />} />
               <Route path="integrations" element={<AdminIntegrations />} />
+              <Route path="apps" element={<AdminApps />} />
               <Route path="activity" element={<AdminActivity />} />
+              <Route path="profile" element={<SettingsProfile />} />
+              <Route path="users" element={<AdminUsers />} />
+              <Route path="organization" element={<AdminOrganization />} />
+              <Route path="notifications" element={<SettingsNotifications />} />
+              <Route path="appearance" element={<SettingsAppearance />} />
+              <Route path="security" element={<SettingsSecurity />} />
             </Route>
-            <Route path="users" element={<Navigate to="/admin/users" replace />} />
-            <Route path="integrations" element={<Navigate to="/settings?tab=integrations" replace />} />
-            <Route path="settings" element={<Settings />} />
+            <Route path="users" element={<Navigate to="/settings/users" replace />} />
+            <Route path="integrations" element={<Navigate to="/settings/integrations" replace />} />
+            {/* Legacy admin links */}
+            <Route path="admin" element={<Navigate to="/settings" replace />} />
+            <Route path="admin/users" element={<Navigate to="/settings/users" replace />} />
+            <Route path="admin/rooms" element={<Navigate to="/settings/rooms" replace />} />
+            <Route path="admin/organization" element={<Navigate to="/settings/organization" replace />} />
+            <Route path="admin/integrations" element={<Navigate to="/settings/integrations" replace />} />
+            <Route path="admin/apps" element={<Navigate to="/settings/apps" replace />} />
+            <Route path="admin/activity" element={<Navigate to="/settings/activity" replace />} />
             <Route path="subscription" element={<Subscription />} />
           </Route>
 

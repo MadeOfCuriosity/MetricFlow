@@ -9,7 +9,6 @@ import {
   BellIcon,
   SwatchIcon,
   KeyIcon,
-  ShieldCheckIcon,
 } from '@heroicons/react/24/outline'
 import { useAuth } from '../context/AuthContext'
 
@@ -18,19 +17,20 @@ interface HeaderProps {
 }
 
 const settingsLinks = [
-  { tab: 'profile', label: 'Profile', icon: UserCircleIcon },
-  { tab: 'organization', label: 'Organization', icon: BuildingOfficeIcon },
-  { tab: 'notifications', label: 'Notifications', icon: BellIcon },
-  { tab: 'appearance', label: 'Appearance', icon: SwatchIcon },
-  { tab: 'security', label: 'Security', icon: KeyIcon },
+  { tab: 'profile', label: 'Profile', icon: UserCircleIcon, adminOnly: false },
+  { tab: 'organization', label: 'Organization', icon: BuildingOfficeIcon, adminOnly: true },
+  { tab: 'notifications', label: 'Notifications', icon: BellIcon, adminOnly: false },
+  { tab: 'appearance', label: 'Appearance', icon: SwatchIcon, adminOnly: false },
+  { tab: 'security', label: 'Security', icon: KeyIcon, adminOnly: false },
 ]
 
 export function Header({ onMenuClick }: HeaderProps) {
   const { user, organization, logout, isAdmin } = useAuth()
   const navigate = useNavigate()
+  const visibleSettingsLinks = settingsLinks.filter((link) => !link.adminOnly || isAdmin)
 
   return (
-    <header className="sticky top-0 z-10 bg-dark-900 border-b border-dark-700">
+    <header className="m-4 mb-0 z-10 bg-dark-900 border border-dark-700 rounded-2xl shadow-card">
       <div className="flex items-center justify-between h-16 px-4 sm:px-6">
         {/* Mobile menu button */}
         <button
@@ -79,11 +79,11 @@ export function Header({ onMenuClick }: HeaderProps) {
                 </div>
 
                 <div className="py-1">
-                  {settingsLinks.map((link) => (
+                  {visibleSettingsLinks.map((link) => (
                     <Menu.Item key={link.tab}>
                       {({ active }) => (
                         <button
-                          onClick={() => navigate(`/settings?tab=${link.tab}`)}
+                          onClick={() => navigate(`/settings/${link.tab}`)}
                           className={`${
                             active ? 'bg-dark-700' : ''
                           } flex items-center gap-3 w-full px-4 py-2 text-sm text-dark-200`}
@@ -94,24 +94,6 @@ export function Header({ onMenuClick }: HeaderProps) {
                       )}
                     </Menu.Item>
                   ))}
-                </div>
-
-                <div className="border-t border-dark-600 pt-1">
-                  {isAdmin && (
-                    <Menu.Item>
-                      {({ active }) => (
-                        <button
-                          onClick={() => navigate('/admin')}
-                          className={`${
-                            active ? 'bg-dark-700' : ''
-                          } flex items-center gap-3 w-full px-4 py-2 text-sm text-dark-200`}
-                        >
-                          <ShieldCheckIcon className="h-5 w-5" />
-                          Admin Panel
-                        </button>
-                      )}
-                    </Menu.Item>
-                  )}
                 </div>
 
                 <div className="border-t border-dark-600 pt-1">

@@ -45,6 +45,26 @@ function DashboardContent() {
     )
   }
 
+  if (data.error) {
+    return (
+      <div className="bg-dark-900 border border-dark-700 rounded-xl p-12 text-center shadow-card">
+        <ChartBarIcon className="w-16 h-16 text-danger-500 mx-auto mb-4" />
+        <h2 className="text-xl font-semibold text-foreground mb-2">Couldn't load your dashboard</h2>
+        <p className="text-dark-300 mb-6 max-w-md mx-auto">
+          {data.error}. This can happen if your session expired — try refreshing the page or
+          signing in again.
+        </p>
+        <button
+          onClick={() => window.location.reload()}
+          className="inline-flex items-center gap-2 px-4 py-2 border border-primary-500 bg-transparent text-foreground rounded-lg hover:bg-primary-500/10 transition-colors"
+        >
+          <ArrowPathIcon className="w-5 h-5" />
+          Retry
+        </button>
+      </div>
+    )
+  }
+
   // Empty state when no KPIs exist
   if (data.kpisWithEntries.length === 0) {
     return (

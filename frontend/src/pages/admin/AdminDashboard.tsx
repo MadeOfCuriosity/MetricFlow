@@ -95,7 +95,7 @@ export function AdminDashboard() {
       value: stats?.total_users ?? 0,
       icon: UsersIcon,
       color: 'bg-primary-500/20 text-primary-400',
-      link: '/admin/users',
+      link: '/settings/users',
     },
     {
       label: 'Total KPIs',
@@ -109,14 +109,14 @@ export function AdminDashboard() {
       value: stats?.total_rooms ?? 0,
       icon: FolderIcon,
       color: 'bg-purple-500/20 text-purple-400',
-      link: '/admin/rooms',
+      link: '/settings/rooms',
     },
     {
       label: 'Active Integrations',
       value: stats?.active_integrations ?? 0,
       icon: ArrowPathRoundedSquareIcon,
       color: 'bg-sky-500/20 text-sky-400',
-      link: '/admin/integrations',
+      link: '/settings/integrations',
     },
     {
       label: "Today's Entries",
@@ -231,7 +231,7 @@ export function AdminDashboard() {
           <h2 className="text-sm font-semibold text-foreground mb-4">Quick Actions</h2>
           <div className="space-y-3">
             <button
-              onClick={() => navigate('/admin/users')}
+              onClick={() => navigate('/settings/users')}
               className="flex items-center gap-3 w-full p-3 bg-dark-800 hover:bg-dark-700 rounded-lg transition-colors text-left"
             >
               <div className="p-2 bg-primary-500/20 rounded-lg">
@@ -243,7 +243,7 @@ export function AdminDashboard() {
               </div>
             </button>
             <button
-              onClick={() => navigate('/admin/rooms')}
+              onClick={() => navigate('/settings/rooms')}
               className="flex items-center gap-3 w-full p-3 bg-dark-800 hover:bg-dark-700 rounded-lg transition-colors text-left"
             >
               <div className="p-2 bg-purple-500/20 rounded-lg">
@@ -275,7 +275,7 @@ export function AdminDashboard() {
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-sm font-semibold text-foreground">Recent Activity</h2>
           <button
-            onClick={() => navigate('/admin/activity')}
+            onClick={() => navigate('/settings/activity')}
             className="text-xs text-primary-400 hover:text-primary-300 transition-colors"
           >
             View all

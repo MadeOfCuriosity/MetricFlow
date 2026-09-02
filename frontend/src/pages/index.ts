@@ -9,20 +9,24 @@ export { KPIs } from './KPIs'
 export { KPIDataView } from './KPIDataView'
 export { AIBuilder } from './AIBuilder'
 export { Insights } from './Insights'
-export { Settings } from './Settings'
 export { RoomDashboard } from './RoomDashboard'
 export { UserManagement } from './UserManagement'
 export { Data } from './Data'
 export { Integrations } from './Integrations'
 export { GoogleOrgSetup } from './GoogleOrgSetup'
 export {
-  AdminLayout,
+  SettingsLayout,
   AdminDashboard,
-  AdminUsers,
   AdminRooms,
-  AdminOrganization,
   AdminIntegrations,
+  AdminApps,
   AdminActivity,
+  AdminUsers,
+  AdminOrganization,
+  SettingsProfile,
+  SettingsNotifications,
+  SettingsAppearance,
+  SettingsSecurity,
 } from './admin'
 export {
   SuperAdminLogin,

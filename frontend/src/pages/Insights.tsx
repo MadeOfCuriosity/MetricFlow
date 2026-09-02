@@ -14,14 +14,11 @@ import api from '../services/api'
 
 interface Insight {
   id: string
-  kpi_id: string
-  kpi_name: string
-  insight_type: 'trend' | 'anomaly' | 'milestone' | 'recommendation'
+  kpi_id: string | null
+  kpi_name: string | null
+  insight_text: string
   priority: 'high' | 'medium' | 'low'
-  title: string
-  description: string
-  is_read: boolean
-  created_at: string
+  generated_at: string
 }
 
 interface Statistics {
@@ -38,7 +35,6 @@ export function Insights() {
   const [stats, setStats] = useState<Statistics | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
-  const [filter, setFilter] = useState<'all' | 'unread'>('all')
   const [dateRange, setDateRange] = useState<DateRange>({ startDate: null, endDate: null })
 
   useEffect(() => {
@@ -77,30 +73,14 @@ export function Insights() {
     }
   }
 
-  const handleMarkAsRead = async (id: string) => {
-    try {
-      await api.patch(`/api/insights/${id}`, { is_read: true })
-      setInsights((prev) =>
-        prev.map((i) => (i.id === id ? { ...i, is_read: true } : i))
-      )
-    } catch (err) {
-      console.error('Failed to mark as read:', err)
-    }
-  }
-
   const dateFilteredInsights = insights.filter((i) => {
     if (!dateRange.startDate && !dateRange.endDate) return true
-    const insightDate = i.created_at?.slice(0, 10)
+    const insightDate = i.generated_at?.slice(0, 10)
     if (!insightDate) return true
     if (dateRange.startDate && insightDate < dateRange.startDate) return false
     if (dateRange.endDate && insightDate > dateRange.endDate) return false
     return true
   })
-
-  const filteredInsights =
-    filter === 'unread' ? dateFilteredInsights.filter((i) => !i.is_read) : dateFilteredInsights
-
-  const unreadCount = dateFilteredInsights.filter((i) => !i.is_read).length
 
   // Loading skeleton
   const LoadingSkeleton = () => (
@@ -252,14 +232,10 @@ export function Insights() {
       ) : (
         <>
           {/* Stats */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="bg-dark-900 border border-dark-700 rounded-xl p-4">
               <p className="text-sm text-dark-400 mb-1">Total Insights</p>
               <p className="text-2xl font-bold text-foreground">{insights.length}</p>
-            </div>
-            <div className="bg-dark-900 border border-dark-700 rounded-xl p-4">
-              <p className="text-sm text-dark-400 mb-1">Unread</p>
-              <p className="text-2xl font-bold text-primary-400">{unreadCount}</p>
             </div>
             <div className="bg-dark-900 border border-dark-700 rounded-xl p-4">
               <p className="text-sm text-dark-400 mb-1">Data Points</p>
@@ -275,54 +251,22 @@ export function Insights() {
             onChange={(range) => setDateRange(range)}
           />
 
-          {/* Filter tabs */}
-          <div className="flex gap-2">
-            <button
-              onClick={() => setFilter('all')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                filter === 'all'
-                  ? 'border border-primary-500 text-foreground'
-                  : 'bg-dark-800 text-dark-300 hover:bg-dark-600'
-              }`}
-            >
-              All ({dateFilteredInsights.length})
-            </button>
-            <button
-              onClick={() => setFilter('unread')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                filter === 'unread'
-                  ? 'border border-primary-500 text-foreground'
-                  : 'bg-dark-800 text-dark-300 hover:bg-dark-600'
-              }`}
-            >
-              Unread ({unreadCount})
-            </button>
-          </div>
-
           {/* Insights list */}
-          {filteredInsights.length === 0 ? (
+          {dateFilteredInsights.length === 0 ? (
             <div className="bg-dark-900 border border-dark-700 rounded-xl p-8 text-center">
               <LightBulbIcon className="w-10 h-10 text-dark-500 mx-auto mb-3" />
-              <p className="text-dark-300">No unread insights</p>
+              <p className="text-dark-300">No insights in this range</p>
             </div>
           ) : (
             <div className="space-y-4">
-              {filteredInsights.map((insight) => (
-                <div
+              {dateFilteredInsights.map((insight) => (
+                <InsightCard
                   key={insight.id}
-                  onClick={() => !insight.is_read && handleMarkAsRead(insight.id)}
-                  className={`cursor-pointer transition-opacity ${
-                    insight.is_read ? 'opacity-60' : ''
-                  }`}
-                >
-                  <InsightCard
-                    type={insight.insight_type}
-                    priority={insight.priority}
-                    title={insight.title}
-                    description={insight.description}
-                    kpiName={insight.kpi_name}
-                  />
-                </div>
+                  priority={insight.priority}
+                  text={insight.insight_text}
+                  kpiName={insight.kpi_name}
+                  generatedAt={insight.generated_at}
+                />
               ))}
             </div>
           )}

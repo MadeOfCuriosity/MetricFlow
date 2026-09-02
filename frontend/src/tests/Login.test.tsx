@@ -3,10 +3,19 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { BrowserRouter } from 'react-router-dom'
 import { AuthProvider } from '../context/AuthContext'
+import { ThemeProvider } from '../context/ThemeContext'
 import { Login } from '../pages/Login'
+
+// Mock @react-oauth/google
+vi.mock('@react-oauth/google', () => ({
+  GoogleLogin: () => <div data-testid="google-login">Google Login</div>,
+  GoogleOAuthProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  useGoogleOAuth: () => ({ clientId: 'test' }),
+}))
 
 // Mock axios
 vi.mock('axios', () => ({
+
   default: {
     create: () => ({
       interceptors: {
@@ -32,9 +41,11 @@ vi.mock('react-router-dom', async () => {
 function renderLogin() {
   return render(
     <BrowserRouter>
-      <AuthProvider>
-        <Login />
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <Login />
+        </AuthProvider>
+      </ThemeProvider>
     </BrowserRouter>
   )
 }
@@ -47,7 +58,7 @@ describe('Login Page', () => {
   it('renders login form', () => {
     renderLogin()
 
-    expect(screen.getByRole('heading', { name: /sign in/i })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /welcome back/i })).toBeInTheDocument()
     expect(screen.getByLabelText(/email/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/password/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument()
@@ -56,7 +67,7 @@ describe('Login Page', () => {
   it('shows link to register page', () => {
     renderLogin()
 
-    const registerLink = screen.getByRole('link', { name: /create one/i })
+    const registerLink = screen.getByRole('link', { name: /create account/i })
     expect(registerLink).toBeInTheDocument()
     expect(registerLink).toHaveAttribute('href', '/register')
   })
@@ -90,7 +101,7 @@ describe('Login Page', () => {
   it('displays Visualize branding', () => {
     renderLogin()
 
-    expect(screen.getByText('Visualize')).toBeInTheDocument()
+    expect(screen.getByAltText('Visualize')).toBeInTheDocument()
   })
 
   it('has password field with correct type', () => {

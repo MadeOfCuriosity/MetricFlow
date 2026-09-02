@@ -90,6 +90,11 @@ api.interceptors.response.use(
         processQueue(refreshError as Error, null)
         localStorage.removeItem('token')
         localStorage.removeItem('refreshToken')
+        localStorage.removeItem('user')
+        localStorage.removeItem('organization')
+        if (window.location.pathname !== '/login') {
+          window.location.assign('/login')
+        }
         return Promise.reject(refreshError)
       } finally {
         isRefreshing = false
