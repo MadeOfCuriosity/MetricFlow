@@ -39,7 +39,7 @@ export function ThemeToggle({ collapsed = false }: ThemeToggleProps) {
             onClick={() => setTheme(option.value)}
             className={`p-2 rounded-full transition-all duration-200 ${
               theme === option.value
-                ? 'bg-primary-500/20 text-primary-400 shadow-sm'
+                ? 'bg-dark-700 text-foreground shadow-sm'
                 : 'text-dark-400 hover:text-dark-200'
             }`}
             title={option.label}

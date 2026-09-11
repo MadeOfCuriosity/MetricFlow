@@ -254,14 +254,14 @@ export function Entries() {
             </button>
           </div>
 
-          {/* Import CSV (form view only) */}
+          {/* Import CSV / Excel (form view only) */}
           {viewMode === 'form' && (
             <button
               onClick={() => setIsImportModalOpen(true)}
               className="inline-flex items-center gap-1.5 px-3 py-2 text-sm border border-dark-600 text-dark-200 hover:text-foreground hover:border-dark-500 rounded-lg transition-colors"
             >
               <ArrowUpTrayIcon className="w-4 h-4" />
-              Import CSV
+              Import CSV / Excel
             </button>
           )}
 

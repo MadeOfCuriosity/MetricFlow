@@ -249,8 +249,8 @@ export function DateRangeSelector({ onChange, defaultPreset = 'all' }: DateRange
           onClick={() => handlePresetClick(key)}
           className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
             activePreset === key
-              ? 'border border-primary-500 text-foreground'
-              : 'bg-dark-800 text-dark-300 hover:bg-dark-600'
+              ? 'bg-foreground text-dark-950 font-semibold shadow-sm'
+              : 'bg-dark-800 text-dark-300 hover:bg-dark-700 hover:text-foreground'
           }`}
         >
           {label}
@@ -275,7 +275,7 @@ export function DateRangeSelector({ onChange, defaultPreset = 'all' }: DateRange
           <button
             onClick={handleCustomApply}
             disabled={!customStart || !customEnd}
-            className="px-3 py-1.5 rounded-lg text-sm font-medium border border-primary-500 text-foreground hover:bg-primary-500/10 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="px-3 py-1.5 rounded-lg text-sm font-medium bg-foreground text-dark-950 hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
           >
             Apply
           </button>

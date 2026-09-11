@@ -48,16 +48,16 @@ const getToastStyles = (type: ToastType) => {
     case 'warning':
       return {
         bg: 'bg-warning-500/90',
-        border: 'border-yellow-700',
+        border: 'border-warning-600',
         icon: ExclamationTriangleIcon,
         iconColor: 'text-warning-400',
       }
     case 'info':
       return {
-        bg: 'bg-primary-500/90',
-        border: 'border-blue-700',
+        bg: 'bg-dark-800',
+        border: 'border-dark-700',
         icon: InformationCircleIcon,
-        iconColor: 'text-primary-400',
+        iconColor: 'text-foreground',
       }
   }
 }

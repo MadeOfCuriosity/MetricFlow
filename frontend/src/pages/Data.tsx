@@ -117,7 +117,7 @@ export function Data() {
             className="inline-flex items-center gap-2 px-4 py-2 border border-dark-600 text-dark-200 hover:text-foreground hover:border-dark-500 rounded-lg transition-colors"
           >
             <ArrowUpTrayIcon className="h-5 w-5" />
-            Import CSV
+            Import CSV / Excel
           </button>
           <button
             onClick={() => setIsCreateModalOpen(true)}

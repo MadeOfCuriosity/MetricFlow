@@ -19,10 +19,10 @@ import {
   Insights,
   Subscription,
   RoomDashboard,
+  Rooms,
   Data,
   SettingsLayout,
   AdminDashboard,
-  AdminRooms,
   AdminIntegrations,
   AdminApps,
   AdminActivity,
@@ -95,13 +95,14 @@ function App() {
             <Route path="kpis/:kpiId/data" element={<KPIDataView />} />
             <Route path="data" element={<Data />} />
             <Route path="entries" element={<Entries />} />
+            <Route path="rooms" element={<Rooms />} />
             <Route path="insights" element={<Insights />} />
             <Route path="ai-builder" element={<Navigate to="/dashboard" replace />} />
             <Route path="rooms/:roomId/ai-builder" element={<AIBuilder />} />
             <Route path="rooms/:roomId" element={<RoomDashboard />} />
             <Route path="settings" element={<SettingsLayout />}>
               <Route index element={<AdminDashboard />} />
-              <Route path="rooms" element={<AdminRooms />} />
+              <Route path="rooms" element={<Navigate to="/rooms" replace />} />
               <Route path="integrations" element={<AdminIntegrations />} />
               <Route path="apps" element={<AdminApps />} />
               <Route path="activity" element={<AdminActivity />} />
@@ -117,7 +118,7 @@ function App() {
             {/* Legacy admin links */}
             <Route path="admin" element={<Navigate to="/settings" replace />} />
             <Route path="admin/users" element={<Navigate to="/settings/users" replace />} />
-            <Route path="admin/rooms" element={<Navigate to="/settings/rooms" replace />} />
+            <Route path="admin/rooms" element={<Navigate to="/rooms" replace />} />
             <Route path="admin/organization" element={<Navigate to="/settings/organization" replace />} />
             <Route path="admin/integrations" element={<Navigate to="/settings/integrations" replace />} />
             <Route path="admin/apps" element={<Navigate to="/settings/apps" replace />} />

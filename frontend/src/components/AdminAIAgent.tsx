@@ -7,6 +7,7 @@ import {
   ExclamationTriangleIcon,
 } from '@heroicons/react/24/outline'
 import { useAuth } from '../context/AuthContext'
+import { useTheme } from '../context/ThemeContext'
 import { sendAdminAgentMessage } from '../services/adminAI'
 
 function RobotIcon({ className }: { className?: string }) {
@@ -36,9 +37,24 @@ interface ConversationMessage {
   content: string
 }
 
-export function AdminAIAgent() {
+export interface AdminAIAgentProps {
+  isOpen?: boolean
+  onClose?: () => void
+  showFloatingButton?: boolean
+}
+
+export function AdminAIAgent({
+  isOpen: controlledIsOpen,
+  onClose: controlledOnClose,
+  showFloatingButton = false,
+}: AdminAIAgentProps = {}) {
   const { isAdmin } = useAuth()
-  const [isOpen, setIsOpen] = useState(false)
+  const { resolvedTheme } = useTheme()
+  const [internalIsOpen, setInternalIsOpen] = useState(false)
+
+  const isControlled = typeof controlledIsOpen === 'boolean'
+  const isOpen = isControlled ? controlledIsOpen : internalIsOpen
+
   const [messages, setMessages] = useState<Message[]>([])
   const [conversationHistory, setConversationHistory] = useState<ConversationMessage[]>([])
   const [input, setInput] = useState('')
@@ -61,7 +77,11 @@ export function AdminAIAgent() {
   if (!isAdmin) return null
 
   const handleClose = () => {
-    setIsOpen(false)
+    if (isControlled) {
+      controlledOnClose?.()
+    } else {
+      setInternalIsOpen(false)
+    }
     setMessages([])
     setConversationHistory([])
     setInput('')
@@ -156,15 +176,21 @@ export function AdminAIAgent() {
 
   return (
     <>
-      {/* Floating button */}
-      {!isOpen && (
+      {/* Floating button (optional, default false since integrated into topbar) */}
+      {showFloatingButton && !isOpen && (
         <button
-          onClick={() => setIsOpen(true)}
-          className="fixed bottom-6 right-6 z-40 h-12 px-5 bg-primary-500 hover:bg-primary-600 rounded-full shadow-lg flex items-center gap-2 transition-all hover:scale-105 animate-float hover:[animation-play-state:paused]"
+          onClick={() => {
+            if (isControlled) {
+              // Handled by parent
+            } else {
+              setInternalIsOpen(true)
+            }
+          }}
+          className="fixed bottom-6 right-6 z-40 h-12 px-5 bg-foreground text-dark-950 hover:opacity-90 rounded-full shadow-lg border border-dark-700 flex items-center gap-2 transition-all hover:scale-105 animate-float hover:[animation-play-state:paused]"
         >
-          <span className="text-sm font-medium text-white">Ask</span>
-          <img src="/visualise.png" alt="" className="w-5 h-5" />
-          <span className="text-sm font-bold text-white">Visualize</span>
+          <span className="text-sm font-medium">Ask</span>
+          <img src={resolvedTheme === 'light' ? '/visualise_dark.png' : '/visualise.png'} alt="" className="w-5 h-5" />
+          <span className="text-sm font-bold">Visualize</span>
         </button>
       )}
 
@@ -178,21 +204,26 @@ export function AdminAIAgent() {
         leaveFrom="opacity-100 translate-y-0 scale-100"
         leaveTo="opacity-0 translate-y-4 scale-95"
       >
-        <div className="fixed bottom-6 right-6 z-40 w-[400px] h-[600px] max-h-[calc(100vh-3rem)] bg-dark-900 border border-dark-700 rounded-2xl shadow-xl flex flex-col overflow-hidden">
+        <div className="fixed bottom-6 right-6 z-50 w-[400px] h-[600px] max-h-[calc(100vh-3rem)] bg-dark-900 border border-dark-700 rounded-2xl shadow-2xl flex flex-col overflow-hidden">
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-dark-700 flex-shrink-0">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-primary-500/10 rounded-lg flex items-center justify-center">
-                <RobotIcon className="w-4 h-4 text-primary-400" />
+          <div className="flex items-center justify-between px-4 py-3 border-b border-dark-700 flex-shrink-0 bg-dark-850/50">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-full border border-dark-700 bg-dark-800 flex items-center justify-center flex-shrink-0 shadow-sm">
+                <img
+                  src={resolvedTheme === 'light' ? '/visualise_dark.png' : '/visualise.png'}
+                  alt="Visualize"
+                  className="w-4 h-4 object-contain"
+                />
               </div>
               <div>
-                <h3 className="text-sm font-semibold text-foreground">AI Assistant</h3>
-                <p className="text-xs text-dark-400">Ask about your org data</p>
+                <h3 className="text-sm font-bold text-foreground leading-tight">Ask Visualize</h3>
+                <p className="text-[11px] text-dark-400 leading-tight">AI Assistant for your organization</p>
               </div>
             </div>
             <button
               onClick={handleClose}
-              className="p-1.5 text-dark-400 hover:text-foreground hover:bg-dark-800 rounded-lg transition-colors"
+              className="p-1.5 text-dark-400 hover:text-foreground hover:bg-dark-800 rounded-lg transition-colors focus:outline-none"
+              title="Close"
             >
               <XMarkIcon className="w-5 h-5" />
             </button>

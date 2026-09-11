@@ -72,9 +72,21 @@ export function AdminRooms() {
         {isLoading ? (
           <div className="p-8 text-center text-dark-300">Loading rooms...</div>
         ) : roomTree.length === 0 ? (
-          <div className="p-8 text-center text-dark-300">
-            <FolderIcon className="w-12 h-12 mx-auto mb-4 text-dark-500" />
-            <p>No rooms yet. Create your first room to get started.</p>
+          <div className="p-12 flex flex-col items-center justify-center text-center">
+            <div
+              onClick={() => setIsCreateModalOpen(true)}
+              className="flex flex-col items-center group cursor-pointer select-none p-4 rounded-2xl hover:bg-dark-800/40 transition-all"
+            >
+              <div className="w-40 h-32 rounded-2xl border-2 border-dashed border-dark-700 group-hover:border-dark-500 bg-dark-800/20 group-hover:bg-dark-800/60 transition-all flex items-center justify-center group-hover:scale-105 duration-200">
+                <PlusIcon className="w-8 h-8 text-dark-400 group-hover:text-foreground transition-colors stroke-[1.5]" />
+              </div>
+              <div className="mt-3.5 flex flex-col items-center text-center">
+                <span className="text-sm font-semibold text-foreground tracking-tight group-hover:text-white transition-colors">
+                  New Room
+                </span>
+                <span className="text-xs text-dark-400 mt-0.5">Click to create</span>
+              </div>
+            </div>
           </div>
         ) : (
           <div className="divide-y divide-dark-700">

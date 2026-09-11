@@ -7,6 +7,8 @@ import type {
   CreateFieldEntriesRequest,
   CreateFieldEntriesResponse,
   CSVImportResponse,
+  CSVAnalysisResponse,
+  CSVColumnMappingConfig,
   TodayFieldFormResponse,
   SheetViewResponse,
 } from '../types/dataField'
@@ -28,18 +30,26 @@ export const dataFieldsApi = {
     api.put<DataField>(`/api/data-fields/${id}`, data).then(r => r.data),
 
   delete: (id: string) =>
-    api.delete(`/api/data-fields/${id}`),
-
-  getKPIs: (id: string) =>
-    api.get(`/api/data-fields/${id}/kpis`).then(r => r.data),
+    api.delete(`/api/data-fields/${id}`).then(r => r.data),
 
   // Per-field entry operations
   submitFieldEntries: (data: CreateFieldEntriesRequest) =>
     api.post<CreateFieldEntriesResponse>('/api/entries/fields', data).then(r => r.data),
 
+  createEntries: (data: CreateFieldEntriesRequest) =>
+    api.post<CreateFieldEntriesResponse>('/api/entries/fields', data).then(r => r.data),
+
   getTodayFieldForm: (date?: string, interval?: string) => {
     const params = new URLSearchParams()
     if (date) params.set('date', date)
+    if (interval) params.set('interval', interval)
+    const qs = params.toString()
+    return api.get<TodayFieldFormResponse>(`/api/entries/fields/today${qs ? `?${qs}` : ''}`).then(r => r.data)
+  },
+
+  getTodayForm: (roomId?: string, interval?: string) => {
+    const params = new URLSearchParams()
+    if (roomId) params.set('room_id', roomId)
     if (interval) params.set('interval', interval)
     const qs = params.toString()
     return api.get<TodayFieldFormResponse>(`/api/entries/fields/today${qs ? `?${qs}` : ''}`).then(r => r.data)
@@ -51,13 +61,29 @@ export const dataFieldsApi = {
     return api.get<SheetViewResponse>(`/api/entries/fields/sheet?${params}`).then(r => r.data)
   },
 
-  importCSV: (file: File) => {
+
+  analyzeCSV: (file: File, sheetName?: string) => {
     const formData = new FormData()
     formData.append('file', file)
+    if (sheetName) {
+      formData.append('sheet_name', sheetName)
+    }
+    return api.post<CSVAnalysisResponse>('/api/entries/fields/analyze-csv', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }).then(r => r.data)
+  },
+
+  importCSV: (file: File, mappingConfig?: CSVColumnMappingConfig) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    if (mappingConfig) {
+      formData.append('mapping_config', JSON.stringify(mappingConfig))
+    }
     return api.post<CSVImportResponse>('/api/entries/fields/import-csv', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     }).then(r => r.data)
   },
+
 
   downloadTemplate: async (month?: string) => {
     const params = month ? `?month=${month}` : ''

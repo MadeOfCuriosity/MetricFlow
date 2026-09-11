@@ -32,11 +32,11 @@ interface KPIListProps {
 
 const getCategoryColor = (category: string) => {
   const colors: Record<string, { bg: string; text: string; border: string }> = {
-    Sales: { bg: 'bg-primary-500/10', text: 'text-primary-400', border: 'border-primary-500/20' },
-    Marketing: { bg: 'bg-purple-500/10', text: 'text-purple-400', border: 'border-purple-800/50' },
-    Operations: { bg: 'bg-warning-500/10', text: 'text-warning-400', border: 'border-warning-500/20' },
-    Finance: { bg: 'bg-success-500/10', text: 'text-success-400', border: 'border-success-500/20' },
-    Custom: { bg: 'bg-dark-600/30', text: 'text-dark-300', border: 'border-dark-600' },
+    Sales: { bg: 'bg-dark-800', text: 'text-foreground', border: 'border-dark-700' },
+    Marketing: { bg: 'bg-dark-800', text: 'text-foreground', border: 'border-dark-700' },
+    Operations: { bg: 'bg-warning-500/15', text: 'text-warning-400', border: 'border-warning-500/30' },
+    Finance: { bg: 'bg-success-500/15', text: 'text-success-400', border: 'border-success-500/30' },
+    Custom: { bg: 'bg-dark-800', text: 'text-dark-300', border: 'border-dark-700' },
   }
   return colors[category] || colors.Custom
 }

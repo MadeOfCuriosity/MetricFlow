@@ -127,7 +127,44 @@ export interface SheetViewResponse {
   total_cells: number
 }
 
-// CSV Import
+// CSV & Excel Import & Analysis
+export type CSVLayoutType = 'matrix' | 'columnar' | 'long' | 'transactional' | 'statement'
+
+export interface CSVFieldMapping {
+  source_column: string
+  target_field_id?: string | null
+  target_field_name?: string | null
+  action: 'auto' | 'map' | 'create' | 'ignore'
+}
+
+export interface CSVColumnMappingConfig {
+  layout: CSVLayoutType
+  date_column?: string | null
+  room_column?: string | null
+  field_column?: string | null
+  value_column?: string | null
+  date_format?: string | null
+  statement_date?: string | null
+  sheet_name?: string | null
+  aggregation?: 'sum' | 'avg' | 'min' | 'max' | 'count' | 'latest'
+  field_mappings?: CSVFieldMapping[]
+}
+
+export interface CSVAnalysisResponse {
+  detected_layout: CSVLayoutType
+  delimiter: string
+  total_rows: number
+  headers: string[]
+  preview_rows: string[][]
+  suggested_date_column: string | null
+  suggested_room_column: string | null
+  suggested_statement_date?: string | null
+  suggested_field_mappings: CSVFieldMapping[]
+  unmatched_columns: string[]
+  sheets?: string[]
+  selected_sheet?: string | null
+}
+
 export interface CSVImportResponse {
   rows_processed: number
   entries_created: number
@@ -136,3 +173,5 @@ export interface CSVImportResponse {
   errors: { row: number; error: string }[]
   unmatched_columns: string[]
 }
+
+

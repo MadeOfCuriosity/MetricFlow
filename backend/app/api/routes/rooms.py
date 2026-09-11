@@ -70,6 +70,7 @@ def get_room_tree(
             id=d["id"],
             name=d["name"],
             description=d["description"],
+            color=d.get("color"),
             children=[dict_to_tree_node(c) for c in d["children"]],
             kpi_count=d["kpi_count"],
         )

@@ -114,7 +114,7 @@ function DashboardContent() {
         </div>
         <Link
           to="/entries"
-          className="inline-flex items-center gap-2 px-4 py-2 border border-primary-500 bg-transparent text-foreground rounded-lg hover:bg-primary-500/10 transition-colors"
+          className="inline-flex items-center gap-2 px-4 py-2 bg-foreground text-dark-950 font-semibold rounded-lg hover:opacity-90 transition-opacity"
         >
           <PlusIcon className="w-5 h-5" />
           Enter today's data
@@ -139,7 +139,7 @@ function DashboardContent() {
               </button>
               <button
                 onClick={() => setAddModalOpen(true)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm bg-foreground text-dark-950 font-medium rounded-lg hover:opacity-90 transition-opacity"
               >
                 <PlusIcon className="w-4 h-4" />
                 Add Widget
@@ -150,7 +150,7 @@ function DashboardContent() {
             onClick={() => setEditMode(!isEditMode)}
             className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg transition-colors ${
               isEditMode
-                ? 'bg-primary-500/15 text-primary-400 border border-primary-500/30'
+                ? 'bg-foreground text-dark-950 font-medium'
                 : 'bg-dark-800 text-dark-300 hover:text-foreground hover:bg-dark-700'
             }`}
           >

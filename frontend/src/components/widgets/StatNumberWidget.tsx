@@ -16,8 +16,8 @@ interface StatNumberWidgetProps {
 const STAT_VARIANTS = {
   kpis: {
     icon: ChartBarIcon,
-    bgColor: 'bg-primary-500/15',
-    iconColor: 'text-primary-400',
+    bgColor: 'bg-dark-800 border border-dark-700',
+    iconColor: 'text-foreground',
     label: 'KPIs Tracked',
   },
   entries: {

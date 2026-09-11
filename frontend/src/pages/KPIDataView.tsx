@@ -96,11 +96,11 @@ export function KPIDataView() {
 
   const getCategoryColor = (cat: string) => {
     const colors: Record<string, string> = {
-      Sales: 'bg-primary-500/10 text-primary-400',
-      Marketing: 'bg-purple-500/10 text-purple-400',
-      Operations: 'bg-warning-500/10 text-warning-400',
-      Finance: 'bg-success-500/10 text-success-400',
-      Custom: 'bg-dark-400/10 text-dark-300',
+      Sales: 'bg-dark-800 text-foreground border border-dark-700',
+      Marketing: 'bg-dark-800 text-foreground border border-dark-700',
+      Operations: 'bg-warning-500/15 text-warning-400',
+      Finance: 'bg-success-500/15 text-success-400',
+      Custom: 'bg-dark-800 text-dark-300 border border-dark-700',
     }
     return colors[cat] || colors.Custom
   }

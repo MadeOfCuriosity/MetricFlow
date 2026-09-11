@@ -47,11 +47,11 @@ export function AggregatedKPICard({
 
   const getCategoryColor = (cat: string) => {
     const colors: Record<string, string> = {
-      Sales: 'bg-primary-500/10 text-primary-400',
-      Marketing: 'bg-purple-500/10 text-purple-400',
-      Operations: 'bg-warning-500/10 text-warning-400',
-      Finance: 'bg-success-500/10 text-success-400',
-      Custom: 'bg-dark-600/30 text-dark-300',
+      Sales: 'bg-dark-800 text-foreground border border-dark-700',
+      Marketing: 'bg-dark-800 text-foreground border border-dark-700',
+      Operations: 'bg-warning-500/15 text-warning-400',
+      Finance: 'bg-success-500/15 text-success-400',
+      Custom: 'bg-dark-800 text-dark-300 border border-dark-700',
     }
     return colors[cat] || colors.Custom
   }
@@ -67,8 +67,8 @@ export function AggregatedKPICard({
   return (
     <div
       onClick={onClick}
-      className={`bg-dark-900 border rounded-xl p-5 transition-all cursor-pointer shadow-card hover:shadow-card-hover hover:border-primary-500/50 ${
-        isSelected ? 'border-primary-500 ring-1 ring-primary-500/30' : 'border-dark-700'
+      className={`bg-dark-900 border rounded-xl p-5 transition-all cursor-pointer shadow-card hover:shadow-card-hover hover:border-foreground/40 ${
+        isSelected ? 'border-foreground ring-1 ring-foreground/20' : 'border-dark-700'
       }`}
     >
       <div className="flex items-start justify-between mb-3">
@@ -77,7 +77,7 @@ export function AggregatedKPICard({
             <span className={`inline-block px-2 py-0.5 text-xs font-medium rounded-full ${getCategoryColor(kpi.category)}`}>
               {kpi.category}
             </span>
-            <span className="inline-block px-2 py-0.5 text-xs font-medium rounded-full bg-primary-500/20 text-primary-300">
+            <span className="inline-block px-2 py-0.5 text-xs font-medium rounded-full bg-dark-800 text-dark-300 border border-dark-700">
               {aggregation_method.toUpperCase()}
             </span>
           </div>
@@ -127,12 +127,12 @@ export function AggregatedKPICard({
             {breakdown.map((b, i) => {
               const pct = (b.value / breakdownTotal) * 100
               const barColors = [
-                'bg-primary-500',
+                'bg-foreground',
+                'bg-dark-400',
                 'bg-success-500',
                 'bg-warning-500',
-                'bg-purple-500',
-                'bg-pink-500',
-                'bg-sky-500',
+                'bg-dark-500',
+                'bg-dark-300',
               ]
               return (
                 <div
@@ -148,12 +148,12 @@ export function AggregatedKPICard({
           <div className="flex flex-wrap gap-x-3 gap-y-1">
             {breakdown.map((b, i) => {
               const dotColors = [
-                'bg-primary-500',
+                'bg-foreground',
+                'bg-dark-400',
                 'bg-success-500',
                 'bg-warning-500',
-                'bg-purple-500',
-                'bg-pink-500',
-                'bg-sky-500',
+                'bg-dark-500',
+                'bg-dark-300',
               ]
               return (
                 <div key={b.room_id} className="flex items-center gap-1 text-xs text-dark-300">

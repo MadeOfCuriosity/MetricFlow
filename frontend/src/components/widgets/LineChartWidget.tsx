@@ -58,7 +58,7 @@ export function LineChartWidget({
               <p className="text-sm text-dark-400">No data to display</p>
               <Link
                 to="/entries"
-                className="mt-2 inline-flex items-center gap-1 text-xs text-primary-400 hover:text-primary-300"
+                className="mt-2 inline-flex items-center gap-1 text-xs text-dark-300 hover:text-foreground"
               >
                 <PlusIcon className="w-3 h-3" />
                 Add entry

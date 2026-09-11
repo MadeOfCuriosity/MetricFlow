@@ -62,8 +62,8 @@ interface KPIDetailModalProps {
 
 const getCategoryColor = (category: string) => {
   const colors: Record<string, string> = {
-    Sales: 'text-primary-400',
-    Marketing: 'text-purple-400',
+    Sales: 'text-foreground',
+    Marketing: 'text-foreground',
     Operations: 'text-warning-400',
     Finance: 'text-success-400',
     Custom: 'text-dark-300',

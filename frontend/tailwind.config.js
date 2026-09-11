@@ -27,25 +27,25 @@ export default {
         },
         // Theme-aware foreground (white in dark, near-black in light)
         foreground: 'rgb(var(--color-foreground) / <alpha-value>)',
-        // Primary blue accent
+        // Theme-aware primary monochrome accent (via CSS variables)
         primary: {
-          50: '#eef4ff',
-          100: '#dae6ff',
-          200: '#bdd4ff',
-          300: '#90b8ff',
-          400: '#5b8fff',
-          500: '#5b7fff',
-          600: '#4a6fe8',
-          700: '#3d5bc9',
-          800: '#354da3',
-          900: '#314481',
-          950: '#1e2a4f',
+          50: 'rgb(var(--color-primary-50) / <alpha-value>)',
+          100: 'rgb(var(--color-primary-100) / <alpha-value>)',
+          200: 'rgb(var(--color-primary-200) / <alpha-value>)',
+          300: 'rgb(var(--color-primary-300) / <alpha-value>)',
+          400: 'rgb(var(--color-primary-400) / <alpha-value>)',
+          500: 'rgb(var(--color-primary-500) / <alpha-value>)',
+          600: 'rgb(var(--color-primary-600) / <alpha-value>)',
+          700: 'rgb(var(--color-primary-700) / <alpha-value>)',
+          800: 'rgb(var(--color-primary-800) / <alpha-value>)',
+          900: 'rgb(var(--color-primary-900) / <alpha-value>)',
+          950: 'rgb(var(--color-primary-950) / <alpha-value>)',
         },
-        // Status colors
+        // Supporting status colors (calibrated for monochrome balance)
         success: {
-          400: '#4ade80',
-          500: '#22c55e',
-          600: '#16a34a',
+          400: '#34d399',
+          500: '#10b981',
+          600: '#059669',
         },
         warning: {
           400: '#fbbf24',

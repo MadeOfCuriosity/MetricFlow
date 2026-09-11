@@ -24,11 +24,11 @@ import { adminService, AdminStats, ActivityEntry } from '../../services/admin'
 import { formatDistanceToNow } from 'date-fns'
 
 const ACTIVITY_ICONS: Record<string, string> = {
-  data_entry: 'bg-primary-500/20 text-primary-400',
-  user_joined: 'bg-success-500/20 text-success-400',
-  kpi_created: 'bg-warning-500/20 text-warning-400',
-  room_created: 'bg-purple-500/20 text-purple-400',
-  integration_synced: 'bg-sky-500/20 text-sky-400',
+  data_entry: 'bg-dark-800 text-foreground border border-dark-700',
+  user_joined: 'bg-success-500/15 text-success-400',
+  kpi_created: 'bg-warning-500/15 text-warning-400',
+  room_created: 'bg-dark-800 text-foreground border border-dark-700',
+  integration_synced: 'bg-dark-800 text-dark-300 border border-dark-700',
 }
 
 export function AdminDashboard() {
@@ -94,35 +94,35 @@ export function AdminDashboard() {
       label: 'Total Users',
       value: stats?.total_users ?? 0,
       icon: UsersIcon,
-      color: 'bg-primary-500/20 text-primary-400',
+      color: 'bg-dark-800 text-foreground border border-dark-700',
       link: '/settings/users',
     },
     {
       label: 'Total KPIs',
       value: stats?.total_kpis ?? 0,
       icon: ChartBarIcon,
-      color: 'bg-success-500/20 text-success-400',
+      color: 'bg-success-500/15 text-success-400',
       link: '/kpis',
     },
     {
       label: 'Total Rooms',
       value: stats?.total_rooms ?? 0,
       icon: FolderIcon,
-      color: 'bg-purple-500/20 text-purple-400',
+      color: 'bg-dark-800 text-foreground border border-dark-700',
       link: '/settings/rooms',
     },
     {
       label: 'Active Integrations',
       value: stats?.active_integrations ?? 0,
       icon: ArrowPathRoundedSquareIcon,
-      color: 'bg-sky-500/20 text-sky-400',
+      color: 'bg-dark-800 text-dark-300 border border-dark-700',
       link: '/settings/integrations',
     },
     {
       label: "Today's Entries",
       value: stats?.today_data_entries ?? 0,
       icon: CalendarDaysIcon,
-      color: 'bg-warning-500/20 text-warning-400',
+      color: 'bg-warning-500/15 text-warning-400',
       link: '/entries',
     },
     {
@@ -246,8 +246,8 @@ export function AdminDashboard() {
               onClick={() => navigate('/settings/rooms')}
               className="flex items-center gap-3 w-full p-3 bg-dark-800 hover:bg-dark-700 rounded-lg transition-colors text-left"
             >
-              <div className="p-2 bg-purple-500/20 rounded-lg">
-                <PlusIcon className="h-4 w-4 text-purple-400" />
+              <div className="p-2 bg-dark-700 rounded-lg">
+                <PlusIcon className="h-4 w-4 text-foreground" />
               </div>
               <div>
                 <p className="text-sm font-medium text-foreground">Create Room</p>

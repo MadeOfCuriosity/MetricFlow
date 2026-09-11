@@ -44,9 +44,9 @@ export function TrendChart({
   height = 300,
   showGrid = true,
 }: TrendChartProps) {
-  // Calculate if trend is positive or negative
+  // Supporting status colors for positive/negative trends
   const isPositive = data.length >= 2 && data[data.length - 1].value >= data[0].value
-  const lineColor = isPositive ? '#4ade80' : '#f87171'
+  const lineColor = isPositive ? '#10b981' : '#ef4444'
   const gradientId = `gradient-${kpiName.replace(/\s+/g, '-')}`
 
   if (data.length === 0) {
@@ -69,27 +69,27 @@ export function TrendChart({
         >
           <defs>
             <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor={lineColor} stopOpacity={0.3} />
+              <stop offset="5%" stopColor={lineColor} stopOpacity={0.25} />
               <stop offset="95%" stopColor={lineColor} stopOpacity={0} />
             </linearGradient>
           </defs>
           {showGrid && (
             <CartesianGrid
               strokeDasharray="3 3"
-              stroke="#2a2a2e"
+              stroke="rgb(var(--color-dark-700))"
               vertical={false}
             />
           )}
           <XAxis
             dataKey="date"
             tickFormatter={(date) => format(new Date(date), 'MMM d')}
-            stroke="#52525b"
+            stroke="rgb(var(--color-dark-400))"
             fontSize={12}
             tickLine={false}
             axisLine={false}
           />
           <YAxis
-            stroke="#52525b"
+            stroke="rgb(var(--color-dark-400))"
             fontSize={12}
             tickLine={false}
             axisLine={false}
@@ -107,7 +107,7 @@ export function TrendChart({
             activeDot={{
               r: 6,
               fill: lineColor,
-              stroke: '#1f1f23',
+              stroke: 'rgb(var(--color-dark-800))',
               strokeWidth: 2,
             }}
             fill={`url(#${gradientId})`}

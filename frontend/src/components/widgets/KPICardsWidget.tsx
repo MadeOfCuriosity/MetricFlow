@@ -22,7 +22,7 @@ export function KPICardsWidget({ data, selectedKPI, setSelectedKPI, dateRange }:
   return (
     <div className="h-full flex flex-col">
       <div className="flex items-center justify-between mb-3 flex-shrink-0">
-        <Link to="/kpis" className="text-xs text-primary-400 hover:text-primary-300">
+        <Link to="/kpis" className="text-xs text-dark-300 hover:text-foreground">
           Manage KPIs
         </Link>
       </div>

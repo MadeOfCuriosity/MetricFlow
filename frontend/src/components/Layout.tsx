@@ -2,16 +2,16 @@ import { useState } from 'react'
 import { Outlet } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
 import { AppDock } from './AppDock'
-import { SideDock } from './SideDock'
 import { Header } from './Header'
 import { AdminAIAgent } from './AdminAIAgent'
 import { ImpersonationBanner } from './ImpersonationBanner'
 import { InAppNotifications } from './InAppNotifications'
+import { RadialMenu } from './RadialMenu'
 import { XMarkIcon } from '@heroicons/react/24/outline'
 
 export function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [desktopSidebarOpen, setDesktopSidebarOpen] = useState(true)
+  const [isAIAgentOpen, setIsAIAgentOpen] = useState(false)
 
   return (
     <div className="flex h-screen bg-dark-950">
@@ -40,20 +40,13 @@ export function Layout() {
         </div>
       </div>
 
-      {/* Desktop sidebar */}
-      <div
-        className={`hidden lg:flex lg:flex-shrink-0 overflow-hidden transition-all duration-300 ${
-          desktopSidebarOpen ? 'w-72' : 'w-0'
-        }`}
-      >
-        <Sidebar />
-      </div>
-
       {/* Main content */}
       <div className="flex flex-col flex-1 overflow-hidden">
         <ImpersonationBanner />
         <Header
           onMenuClick={() => setSidebarOpen(true)}
+          onToggleAIAgent={() => setIsAIAgentOpen((prev) => !prev)}
+          isAIAgentOpen={isAIAgentOpen}
         />
 
         <main className="flex-1 overflow-y-auto bg-dark-950 p-6 pb-28">
@@ -62,12 +55,12 @@ export function Layout() {
         </main>
       </div>
 
-      <AdminAIAgent />
-      <AppDock />
-      <SideDock
-        sidebarOpen={desktopSidebarOpen}
-        onToggleSidebar={() => setDesktopSidebarOpen(!desktopSidebarOpen)}
+      <AdminAIAgent
+        isOpen={isAIAgentOpen}
+        onClose={() => setIsAIAgentOpen(false)}
       />
+      <AppDock />
+      <RadialMenu />
     </div>
   )
 }

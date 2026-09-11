@@ -62,15 +62,15 @@ export function PresetSelectionModal({
   const getCategoryColor = (category: string) => {
     switch (category) {
       case 'Sales':
-        return 'bg-primary-500/10 text-primary-400 border-primary-500/20'
+        return 'bg-dark-800 text-foreground border-dark-700'
       case 'Marketing':
-        return 'bg-purple-500/10 text-purple-400 border-purple-500/20'
+        return 'bg-dark-800 text-foreground border-dark-700'
       case 'Operations':
-        return 'bg-success-500/10 text-success-400 border-success-500/20'
+        return 'bg-warning-500/15 text-warning-400 border-warning-500/30'
       case 'Finance':
-        return 'bg-warning-500/10 text-warning-400 border-warning-500/20'
+        return 'bg-success-500/15 text-success-400 border-success-500/30'
       default:
-        return 'bg-dark-700 text-dark-300 border-dark-600'
+        return 'bg-dark-800 text-dark-300 border-dark-700'
     }
   }
 

@@ -3,6 +3,7 @@ export interface Room {
   org_id: string
   name: string
   description: string | null
+  color?: string | null
   parent_room_id: string | null
   created_by: string | null
   created_at: string
@@ -14,6 +15,7 @@ export interface RoomTreeNode {
   id: string
   name: string
   description: string | null
+  color?: string | null
   children: RoomTreeNode[]
   kpi_count: number
 }
@@ -30,12 +32,14 @@ export interface RoomTreeResponse {
 export interface CreateRoomData {
   name: string
   description?: string
+  color?: string | null
   parent_room_id?: string
 }
 
 export interface UpdateRoomData {
   name?: string
-  description?: string
+  description?: string | null
+  color?: string | null
 }
 
 export interface AssignKPIsData {

@@ -286,8 +286,8 @@ export function UserManagement() {
                       <span
                         className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                           user.role === 'admin'
-                            ? 'bg-purple-500/20 text-purple-400'
-                            : 'bg-primary-500/20 text-primary-400'
+                            ? 'bg-dark-800 text-foreground border border-dark-700'
+                            : 'bg-dark-800 text-dark-300 border border-dark-700'
                         }`}
                       >
                         {user.role === 'admin' ? 'Admin' : 'Room Admin'}

@@ -7,16 +7,22 @@ import {
   TrashIcon,
   FolderPlusIcon,
   SparklesIcon,
+  TagIcon,
+  PencilSquareIcon,
 } from '@heroicons/react/24/outline'
 import { KPICard, TrendChart, DateRangeSelector, getPresetLabel } from '../components'
 import type { DateRange, DateRangePreset } from '../components'
 import { roomsApi } from '../services/rooms'
 import api from '../services/api'
-import { RoomDashboardResponse, KPI, AggregatedKPI } from '../types/room'
+import { RoomDashboardResponse, KPI, AggregatedKPI, Room } from '../types/room'
 import { useRoom } from '../context/RoomContext'
 import { useAuth } from '../context/AuthContext'
+import { useToast } from '../context/ToastContext'
 import { CreateRoomModal } from '../components/CreateRoomModal'
+import { EditRoomModal } from '../components/EditRoomModal'
+import { TagColorPickerPopover } from '../components/TagColorPickerPopover'
 import { AggregatedKPICard } from '../components/AggregatedKPICard'
+import { getTagColor } from '../constants/tagColors'
 
 interface DataEntry {
   id: string
@@ -34,7 +40,8 @@ interface KPIWithEntries extends KPI {
 export function RoomDashboard() {
   const { roomId } = useParams<{ roomId: string }>()
   const navigate = useNavigate()
-  const { deleteRoom, fetchRoomTree } = useRoom()
+  const { deleteRoom, updateRoom, fetchRoomTree } = useRoom()
+  const { success: showSuccess, error: showErrorToast } = useToast()
   const { isAdmin } = useAuth()
   const [dashboardData, setDashboardData] = useState<RoomDashboardResponse | null>(null)
   const [roomKpisWithEntries, setRoomKpisWithEntries] = useState<KPIWithEntries[]>([])
@@ -46,8 +53,51 @@ export function RoomDashboard() {
   const [error, setError] = useState<string | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
   const [isCreateSubRoomOpen, setIsCreateSubRoomOpen] = useState(false)
+  const [isEditRoomOpen, setIsEditRoomOpen] = useState(false)
   const [dateRange, setDateRange] = useState<DateRange>({ startDate: null, endDate: null })
   const [activePreset, setActivePreset] = useState<DateRangePreset>('monthly')
+
+  const handleTagColorChange = async (newColor: string | null) => {
+    if (!roomId || !dashboardData) return
+    try {
+      await updateRoom(roomId, { color: newColor })
+      setDashboardData((prev) =>
+        prev
+          ? {
+              ...prev,
+              room: {
+                ...prev.room,
+                color: newColor,
+              },
+            }
+          : null
+      )
+      showSuccess(
+        newColor ? 'Tag color updated' : 'Tag color removed',
+        newColor ? `Room tagged as ${newColor}` : 'Default obsidian folder restored'
+      )
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { detail?: string } } }
+      showErrorToast('Failed to update tag', error.response?.data?.detail || 'Please try again')
+    }
+  }
+
+  const handleRoomUpdated = (updatedRoom: Room) => {
+    setDashboardData((prev) =>
+      prev
+        ? {
+            ...prev,
+            room: {
+              ...prev.room,
+              name: updatedRoom.name,
+              description: updatedRoom.description,
+              color: updatedRoom.color,
+            },
+          }
+        : null
+    )
+    showSuccess('Room updated', `"${updatedRoom.name}" has been updated`)
+  }
 
   useEffect(() => {
     const fetchData = async () => {
@@ -271,15 +321,70 @@ export function RoomDashboard() {
       {/* Room header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">{dashboardData.room.name}</h1>
+          <div className="flex items-center gap-3">
+            {/* Clickable macOS tag dot or add-tag trigger */}
+            <TagColorPickerPopover
+              selectedColor={dashboardData.room.color}
+              onSelectColor={handleTagColorChange}
+              align="left"
+            >
+              {({ toggle }) => {
+                const tag = getTagColor(dashboardData.room.color)
+                return (
+                  <button
+                    type="button"
+                    onClick={toggle}
+                    className="relative p-1 rounded-full hover:bg-dark-800 transition-all cursor-pointer group flex items-center justify-center"
+                    title={tag ? `Tag: ${tag.name} (Click to change)` : 'Add macOS tag color'}
+                    aria-label="Change room tag color"
+                  >
+                    {tag ? (
+                      <span
+                        className={`w-4 h-4 rounded-full ${tag.dotClass || ''} ring-2 ring-dark-900 group-hover:scale-125 transition-transform`}
+                        style={{
+                          backgroundColor: tag.hex,
+                          boxShadow: `0 0 10px ${tag.ambientGlow}`,
+                        }}
+                      />
+                    ) : (
+                      <div className="w-5 h-5 rounded-full border border-dashed border-dark-500 hover:border-foreground flex items-center justify-center transition-colors">
+                        <TagIcon className="w-3 h-3 text-dark-400 group-hover:text-foreground" />
+                      </div>
+                    )}
+                  </button>
+                )
+              }}
+            </TagColorPickerPopover>
+
+            <h1 className="text-2xl font-bold text-foreground">{dashboardData.room.name}</h1>
+
+            {isAdmin && (
+              <button
+                type="button"
+                onClick={() => setIsEditRoomOpen(true)}
+                className="p-1.5 text-dark-400 hover:text-foreground hover:bg-dark-800 rounded-lg transition-colors cursor-pointer"
+                title="Edit Room"
+                aria-label="Edit Room"
+              >
+                <PencilSquareIcon className="w-4 h-4" />
+              </button>
+            )}
+          </div>
           {dashboardData.room.description && (
             <p className="text-dark-300 mt-1">{dashboardData.room.description}</p>
           )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Tag Color selector dropdown */}
+          <TagColorPickerPopover
+            selectedColor={dashboardData.room.color}
+            onSelectColor={handleTagColorChange}
+            align="right"
+          />
+
           <button
             onClick={() => navigate(`/rooms/${roomId}/ai-builder`)}
-            className="inline-flex items-center gap-2 px-3 py-2 text-sm text-primary-400 hover:text-primary-300 bg-primary-500/10 hover:bg-primary-500/20 rounded-lg transition-colors"
+            className="inline-flex items-center gap-2 px-3 py-2 text-sm text-primary-400 hover:text-primary-300 bg-primary-500/10 hover:bg-primary-500/20 rounded-lg transition-colors cursor-pointer"
             title="Create KPI"
           >
             <SparklesIcon className="w-4 h-4" />
@@ -289,11 +394,22 @@ export function RoomDashboard() {
           {isAdmin && (
             <button
               onClick={() => setIsCreateSubRoomOpen(true)}
-              className="inline-flex items-center gap-2 px-3 py-2 text-sm text-dark-200 hover:text-foreground hover:bg-dark-800 rounded-lg transition-colors"
+              className="inline-flex items-center gap-2 px-3 py-2 text-sm text-dark-200 hover:text-foreground hover:bg-dark-800 rounded-lg transition-colors cursor-pointer"
               title="Add Sub-Room"
             >
               <FolderPlusIcon className="w-4 h-4" />
               Add Sub-Room
+            </button>
+          )}
+          {/* Edit room for admin */}
+          {isAdmin && (
+            <button
+              onClick={() => setIsEditRoomOpen(true)}
+              className="inline-flex items-center gap-2 px-3 py-2 text-sm text-dark-200 hover:text-foreground hover:bg-dark-800 rounded-lg transition-colors cursor-pointer"
+              title="Edit Room Details"
+            >
+              <PencilSquareIcon className="w-4 h-4" />
+              Edit
             </button>
           )}
           {/* Only leaf rooms (no children) can be deleted */}
@@ -301,7 +417,7 @@ export function RoomDashboard() {
             <button
               onClick={handleDeleteRoom}
               disabled={isDeleting}
-              className="inline-flex items-center gap-2 px-3 py-2 text-sm text-danger-400 hover:text-danger-300 hover:bg-danger-500/10 rounded-lg transition-colors disabled:opacity-50"
+              className="inline-flex items-center gap-2 px-3 py-2 text-sm text-danger-400 hover:text-danger-300 hover:bg-danger-500/10 rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
               title="Delete Room"
             >
               <TrashIcon className="w-4 h-4" />
@@ -345,8 +461,8 @@ export function RoomDashboard() {
 
         <div className="bg-dark-900 border border-dark-700 rounded-xl p-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-purple-600/20 rounded-lg flex items-center justify-center">
-              <ChartBarIcon className="w-5 h-5 text-purple-400" />
+            <div className="w-10 h-10 bg-dark-800 border border-dark-700 rounded-lg flex items-center justify-center">
+              <ChartBarIcon className="w-5 h-5 text-foreground" />
             </div>
             <div>
               <p className="text-2xl font-bold text-foreground">{dashboardData.room.sub_room_count}</p>
@@ -558,6 +674,16 @@ export function RoomDashboard() {
         onCreated={handleSubRoomCreated}
         parentRoomId={roomId}
       />
+
+      {/* Edit Room Modal */}
+      {dashboardData && (
+        <EditRoomModal
+          isOpen={isEditRoomOpen}
+          onClose={() => setIsEditRoomOpen(false)}
+          room={dashboardData.room}
+          onUpdated={handleRoomUpdated}
+        />
+      )}
 
     </div>
   )

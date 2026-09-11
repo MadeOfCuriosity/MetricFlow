@@ -37,7 +37,7 @@ const navGroups: NavGroup[] = [
   {
     label: 'Workspace',
     items: [
-      { id: 'rooms', label: 'Rooms', href: '/settings/rooms', icon: FolderIcon, adminOnly: true },
+      { id: 'rooms', label: 'Rooms', href: '/rooms', icon: FolderIcon, adminOnly: true },
       { id: 'integrations', label: 'Integrations', href: '/settings/integrations', icon: ArrowPathRoundedSquareIcon, adminOnly: true },
       { id: 'apps', label: 'Apps', href: '/settings/apps', icon: Squares2X2Icon, adminOnly: true },
       { id: 'activity', label: 'Activity', href: '/settings/activity', icon: ClockIcon, adminOnly: true },

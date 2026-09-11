@@ -47,18 +47,18 @@ export function KPICard({
 
   const getSparklineColor = () => {
     if (trend === null) return '#52525b'
-    if (trend > 0) return '#4ade80'
-    if (trend < 0) return '#f87171'
+    if (trend > 0) return '#10b981'
+    if (trend < 0) return '#ef4444'
     return '#52525b'
   }
 
   const getCategoryColor = (cat: string) => {
     const colors: Record<string, string> = {
-      Sales: 'bg-primary-500/10 text-primary-400',
-      Marketing: 'bg-purple-500/10 text-purple-400',
-      Operations: 'bg-warning-500/10 text-warning-400',
-      Finance: 'bg-success-500/10 text-success-400',
-      Custom: 'bg-dark-600/30 text-dark-300',
+      Sales: 'bg-dark-800 text-foreground border border-dark-700',
+      Marketing: 'bg-dark-800 text-foreground border border-dark-700',
+      Operations: 'bg-warning-500/15 text-warning-400',
+      Finance: 'bg-success-500/15 text-success-400',
+      Custom: 'bg-dark-800 text-dark-300 border border-dark-700',
     }
     return colors[cat] || colors.Custom
   }
@@ -66,8 +66,8 @@ export function KPICard({
   return (
     <div
       onClick={onClick}
-      className={`bg-dark-900 border rounded-xl p-5 transition-all cursor-pointer shadow-card hover:shadow-card-hover hover:border-primary-500/50 ${
-        isSelected ? 'border-primary-500 ring-1 ring-primary-500/30' : 'border-dark-700'
+      className={`bg-dark-900 border rounded-xl p-5 transition-all cursor-pointer shadow-card hover:shadow-card-hover hover:border-foreground/40 ${
+        isSelected ? 'border-foreground ring-1 ring-foreground/20' : 'border-dark-700'
       }`}
     >
       <div className="flex items-start justify-between mb-3">

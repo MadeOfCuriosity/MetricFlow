@@ -16,32 +16,32 @@ const TYPE_CONFIG: Record<
 > = {
   data_entry: {
     icon: DocumentTextIcon,
-    bg: 'bg-primary-500/20',
-    text: 'text-primary-400',
+    bg: 'bg-dark-800',
+    text: 'text-foreground',
     label: 'Data Entry',
   },
   user_joined: {
     icon: UserIcon,
-    bg: 'bg-success-500/20',
+    bg: 'bg-success-500/15',
     text: 'text-success-400',
     label: 'User',
   },
   kpi_created: {
     icon: ChartBarIcon,
-    bg: 'bg-warning-500/20',
+    bg: 'bg-warning-500/15',
     text: 'text-warning-400',
     label: 'KPI',
   },
   room_created: {
     icon: FolderIcon,
-    bg: 'bg-purple-500/20',
-    text: 'text-purple-400',
+    bg: 'bg-dark-800',
+    text: 'text-foreground',
     label: 'Room',
   },
   integration_synced: {
     icon: ArrowPathIcon,
-    bg: 'bg-sky-500/20',
-    text: 'text-sky-400',
+    bg: 'bg-dark-800',
+    text: 'text-dark-300',
     label: 'Integration',
   },
 }

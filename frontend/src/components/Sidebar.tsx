@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { NavLink, useNavigate, useLocation } from 'react-router-dom'
-import { useTheme } from '../context/ThemeContext'
 import {
   PlusIcon,
   FolderIcon,
   ChevronRightIcon,
   ChevronDownIcon,
+  ChevronLeftIcon,
 } from '@heroicons/react/24/outline'
 import { useRoom } from '../context/RoomContext'
 import { useAuth } from '../context/AuthContext'
@@ -37,7 +37,7 @@ function RoomTreeItem({ room, level, isLast, ancestorLines }: RoomTreeItemProps)
         to={`/rooms/${room.id}`}
         className={`group relative flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
           isActive
-            ? 'bg-primary-500/15 text-primary-400'
+            ? 'bg-foreground/10 text-foreground font-semibold'
             : 'text-dark-300 hover:text-foreground hover:bg-dark-800'
         }`}
         style={{ paddingLeft: `${12 + level * 16}px` }}
@@ -115,10 +115,15 @@ function RoomTreeItem({ room, level, isLast, ancestorLines }: RoomTreeItemProps)
   )
 }
 
-export function Sidebar() {
+export interface SidebarProps {
+  className?: string
+  onCollapse?: () => void
+  footer?: React.ReactNode
+}
+
+export function Sidebar({ className, onCollapse, footer }: SidebarProps = {}) {
   const { roomTree, isLoading } = useRoom()
   const { isAdmin } = useAuth()
-  const { resolvedTheme } = useTheme()
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const navigate = useNavigate()
 
@@ -127,17 +132,13 @@ export function Sidebar() {
     navigate(`/rooms/${roomId}`)
   }
 
+  const containerClass =
+    className ||
+    'flex flex-col w-64 m-4 bg-dark-900 border border-dark-700 rounded-2xl shadow-card overflow-hidden'
+
   return (
     <>
-      <div className="flex flex-col w-64 m-4 bg-dark-900 border border-dark-700 rounded-2xl shadow-card overflow-hidden">
-        {/* Logo */}
-        <div className="flex items-center h-16 border-b border-dark-700 px-6">
-          <div className="flex items-center gap-2">
-            <img src={resolvedTheme === 'light' ? '/visualise_dark.png' : '/visualise.png'} alt="Visualize" className="w-6 h-6 flex-shrink-0" />
-            <span className="text-xl font-bold text-foreground">Visualize</span>
-          </div>
-        </div>
-
+      <div className={containerClass}>
         {/* Navigation */}
         <nav className="flex-1 py-4 space-y-1 overflow-y-auto px-3">
           {/* Rooms Section */}
@@ -146,15 +147,26 @@ export function Sidebar() {
               <span className="text-xs font-semibold text-dark-400 uppercase tracking-wider">
                 {isAdmin ? 'Rooms' : 'My Rooms'}
               </span>
-              {isAdmin && (
-                <button
-                  onClick={() => setIsCreateModalOpen(true)}
-                  className="p-1 text-dark-300 hover:text-foreground hover:bg-dark-800 rounded transition-colors"
-                  title="Add Room"
-                >
-                  <PlusIcon className="h-4 w-4" />
-                </button>
-              )}
+              <div className="flex items-center gap-1">
+                {isAdmin && (
+                  <button
+                    onClick={() => setIsCreateModalOpen(true)}
+                    className="p-1 text-dark-300 hover:text-foreground hover:bg-dark-800 rounded transition-colors"
+                    title="Add Room"
+                  >
+                    <PlusIcon className="h-4 w-4" />
+                  </button>
+                )}
+                {onCollapse && (
+                  <button
+                    onClick={onCollapse}
+                    className="p-1 text-dark-300 hover:text-foreground hover:bg-dark-800 rounded transition-colors"
+                    title="Collapse Sidebar"
+                  >
+                    <ChevronLeftIcon className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
             </div>
             <div className="space-y-0.5">
               {isLoading ? (
@@ -177,6 +189,7 @@ export function Sidebar() {
             </div>
           </div>
         </nav>
+        {footer}
       </div>
 
       {/* Create Room Modal - Only for Admin */}
