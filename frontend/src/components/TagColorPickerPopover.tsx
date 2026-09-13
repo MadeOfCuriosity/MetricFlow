@@ -92,7 +92,7 @@ export function TagColorPickerPopover({
           onClick={(e) => e.stopPropagation()}
           className={`absolute top-full mt-2 z-50 ${alignClasses} w-72 rounded-xl bg-dark-900 border border-dark-700 p-3 shadow-2xl backdrop-blur-md animate-in fade-in duration-150`}
         >
-          <div className="flex items-center justify-between mb-2.5 pb-2 border-b border-dark-800">
+          <div className="flex items-center justify-between mb-2.5 pb-2 border-b border-dark-700">
             <span className="text-[11px] font-semibold uppercase tracking-wider text-dark-400">
               macOS Tag & Color
             </span>
@@ -116,14 +116,14 @@ export function TagColorPickerPopover({
               title="No color"
               className={`w-6 h-6 rounded-full flex items-center justify-center border transition-all cursor-pointer ${
                 !selectedColor
-                  ? 'border-white/80 bg-dark-700 text-white scale-110 shadow-xs'
+                  ? 'border-foreground/80 bg-dark-700 text-foreground scale-110 shadow-xs'
                   : 'border-dark-700 bg-dark-800 text-dark-400 hover:border-dark-500 hover:text-dark-200'
               }`}
             >
               <span className="text-[10px] leading-none">✕</span>
             </button>
 
-            <div className="h-4 w-px bg-dark-800 mx-0.5" />
+            <div className="h-4 w-px bg-dark-700 mx-0.5" />
 
             {/* 7 macOS Colors */}
             {MAC_TAG_COLORS.map((tag) => {
@@ -136,7 +136,7 @@ export function TagColorPickerPopover({
                   title={tag.name}
                   className={`relative w-6 h-6 rounded-full transition-all cursor-pointer flex items-center justify-center ${
                     isSelected
-                      ? 'ring-2 ring-offset-2 ring-offset-dark-900 ring-white scale-115'
+                      ? 'ring-2 ring-offset-2 ring-offset-dark-900 ring-foreground scale-115'
                       : 'hover:scale-110 opacity-85 hover:opacity-100'
                   }`}
                   style={{
@@ -144,19 +144,21 @@ export function TagColorPickerPopover({
                     boxShadow: isSelected ? `0 0 10px ${tag.ambientGlow}` : undefined,
                   }}
                 >
-                  {isSelected && <CheckIcon className="w-3.5 h-3.5 text-white stroke-[3]" />}
+                  {isSelected && (
+                    <span className="w-1.5 h-1.5 rounded-full bg-white shadow-xs" />
+                  )}
                 </button>
               )
             })}
 
-            <div className="h-4 w-px bg-dark-800 mx-0.5" />
+            <div className="h-4 w-px bg-dark-700 mx-0.5" />
 
             {/* Simple Native Color Picker */}
             <label
               title={isCustom ? `Custom: ${selectedColor}` : 'Custom color picker'}
               className={`relative w-6 h-6 rounded-full transition-all cursor-pointer flex items-center justify-center overflow-hidden border ${
                 isCustom
-                  ? 'ring-2 ring-offset-2 ring-offset-dark-900 ring-white scale-115 border-white shadow-md'
+                  ? 'ring-2 ring-offset-2 ring-offset-dark-900 ring-foreground scale-115 border-foreground shadow-md'
                   : 'border-dark-600 hover:border-dark-400 hover:scale-110 opacity-90 hover:opacity-100'
               }`}
               style={

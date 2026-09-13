@@ -22,6 +22,7 @@ import { CreateRoomModal } from '../components/CreateRoomModal'
 import { DeleteConfirmModal } from '../components/DeleteConfirmModal'
 import { GlassmorphicFolder } from '../components/GlassmorphicFolder'
 import { TagColorPickerPopover } from '../components/TagColorPickerPopover'
+import { SEOHead } from '../components/SEOHead'
 import { getTagColor } from '../constants/tagColors'
 import { Room, RoomTreeNode } from '../types/room'
 
@@ -108,6 +109,7 @@ export function Rooms() {
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto pb-12">
+      <SEOHead title="Rooms" description="Organize metrics and KPIs across departments, teams, and collaborative spaces." />
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -355,12 +357,12 @@ export function Rooms() {
                               style={{ backgroundColor: tag.hex }}
                             />
                           ) : (
-                            <span className="w-2 h-2 rounded-full border border-dashed border-dark-600 group-hover:border-dark-400 transition-colors" />
+                            <span className="w-2 h-2 rounded-full border border-dashed border-dark-400 dark:border-dark-600 group-hover:border-foreground transition-colors" />
                           )}
                         </button>
                       )}
                     </TagColorPickerPopover>
-                    <span className="text-sm font-semibold text-foreground tracking-tight px-2 py-0.5 rounded-md group-hover:bg-dark-800/80 group-hover:text-white transition-colors truncate max-w-full">
+                    <span className="text-sm font-semibold text-foreground tracking-tight px-2 py-0.5 rounded-md group-hover:bg-dark-800/80 group-hover:text-foreground transition-colors truncate max-w-full">
                       {room.name}
                     </span>
                   </div>

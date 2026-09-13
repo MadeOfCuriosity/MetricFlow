@@ -146,7 +146,7 @@ export function Header({ onMenuClick, onToggleAIAgent, isAIAgentOpen }: HeaderPr
               className="text-sm font-semibold text-foreground tracking-tight hover:opacity-80 transition-opacity focus:outline-none truncate max-w-[150px] sm:max-w-[240px]"
               title={organization?.name ? `${organization.name} Dashboard` : 'Dashboard'}
             >
-              {organization?.name || 'MetricFlow'}
+              {organization?.name || 'Visualize'}
             </button>
           </div>
 

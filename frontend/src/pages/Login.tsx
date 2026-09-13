@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
 import { useToast } from '../context/ToastContext'
 import { ExclamationCircleIcon, EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline'
+import { SEOHead } from '../components'
 
 interface Testimonial {
   initials: string
@@ -104,6 +105,7 @@ export function Login() {
 
   return (
     <div className="min-h-screen bg-dark-950 lg:grid lg:grid-cols-2">
+      <SEOHead title="Sign In" description="Sign in to your Visualize workspace to monitor KPIs, rooms, and telemetry." />
       {/* Sign-in form */}
       <div className="flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-12 xl:px-20">
         <div className="mx-auto w-full max-w-sm">

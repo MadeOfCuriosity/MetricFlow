@@ -3,10 +3,18 @@ export interface TagColorDef {
   name: string
   hex: string
   dotClass: string
+  // Dark mode
   glassTintTop: string
   glassTintBottom: string
   glassRim: string
   ambientGlow: string
+  // Light mode
+  lightBackTop: string
+  lightBackBottom: string
+  lightTintTop: string
+  lightTintBottom: string
+  lightRim: string
+  lightGlow: string
 }
 
 export const MAC_TAG_COLORS: TagColorDef[] = [
@@ -19,6 +27,12 @@ export const MAC_TAG_COLORS: TagColorDef[] = [
     glassTintBottom: '#dc2626',
     glassRim: '#fecaca',
     ambientGlow: 'rgba(248, 113, 113, 0.28)',
+    lightBackTop: '#fee2e2',
+    lightBackBottom: '#fca5a5',
+    lightTintTop: '#fecaca',
+    lightTintBottom: '#f87171',
+    lightRim: '#ffffff',
+    lightGlow: 'rgba(248, 113, 113, 0.22)',
   },
   {
     id: 'orange',
@@ -29,6 +43,12 @@ export const MAC_TAG_COLORS: TagColorDef[] = [
     glassTintBottom: '#ea580c',
     glassRim: '#ffedd5',
     ambientGlow: 'rgba(251, 146, 60, 0.28)',
+    lightBackTop: '#ffedd5',
+    lightBackBottom: '#fdba74',
+    lightTintTop: '#fed7aa',
+    lightTintBottom: '#fb923c',
+    lightRim: '#ffffff',
+    lightGlow: 'rgba(251, 146, 60, 0.22)',
   },
   {
     id: 'yellow',
@@ -39,6 +59,12 @@ export const MAC_TAG_COLORS: TagColorDef[] = [
     glassTintBottom: '#ca8a04',
     glassRim: '#fef9c3',
     ambientGlow: 'rgba(250, 204, 21, 0.26)',
+    lightBackTop: '#fef9c3',
+    lightBackBottom: '#fde047',
+    lightTintTop: '#fef08a',
+    lightTintBottom: '#facc15',
+    lightRim: '#ffffff',
+    lightGlow: 'rgba(250, 204, 21, 0.20)',
   },
   {
     id: 'green',
@@ -49,6 +75,12 @@ export const MAC_TAG_COLORS: TagColorDef[] = [
     glassTintBottom: '#16a34a',
     glassRim: '#dcfce7',
     ambientGlow: 'rgba(74, 222, 128, 0.28)',
+    lightBackTop: '#dcfce7',
+    lightBackBottom: '#86efac',
+    lightTintTop: '#bbf7d0',
+    lightTintBottom: '#4ade80',
+    lightRim: '#ffffff',
+    lightGlow: 'rgba(74, 222, 128, 0.22)',
   },
   {
     id: 'blue',
@@ -59,6 +91,12 @@ export const MAC_TAG_COLORS: TagColorDef[] = [
     glassTintBottom: '#2563eb',
     glassRim: '#dbeafe',
     ambientGlow: 'rgba(96, 165, 250, 0.30)',
+    lightBackTop: '#dbeafe',
+    lightBackBottom: '#93c5fd',
+    lightTintTop: '#bfdbfe',
+    lightTintBottom: '#60a5fa',
+    lightRim: '#ffffff',
+    lightGlow: 'rgba(96, 165, 250, 0.22)',
   },
   {
     id: 'purple',
@@ -69,6 +107,12 @@ export const MAC_TAG_COLORS: TagColorDef[] = [
     glassTintBottom: '#9333ea',
     glassRim: '#f3e8ff',
     ambientGlow: 'rgba(192, 132, 252, 0.30)',
+    lightBackTop: '#f3e8ff',
+    lightBackBottom: '#d8b4fe',
+    lightTintTop: '#e9d5ff',
+    lightTintBottom: '#c084fc',
+    lightRim: '#ffffff',
+    lightGlow: 'rgba(192, 132, 252, 0.22)',
   },
   {
     id: 'gray',
@@ -79,6 +123,12 @@ export const MAC_TAG_COLORS: TagColorDef[] = [
     glassTintBottom: '#475569',
     glassRim: '#f8fafc',
     ambientGlow: 'rgba(203, 213, 225, 0.22)',
+    lightBackTop: '#f8fafc',
+    lightBackBottom: '#e2e8f0',
+    lightTintTop: '#f1f5f9',
+    lightTintBottom: '#cbd5e1',
+    lightRim: '#ffffff',
+    lightGlow: 'rgba(203, 213, 225, 0.16)',
   },
 ]
 
@@ -121,6 +171,12 @@ export function getTagColor(colorId?: string | null): TagColorDef | null {
       glassTintBottom: adjustBrightness(colorId, -15),
       glassRim: adjustBrightness(colorId, 45),
       ambientGlow: hexToRgba(colorId, 0.30),
+      lightBackTop: adjustBrightness(colorId, 55),
+      lightBackBottom: adjustBrightness(colorId, 25),
+      lightTintTop: adjustBrightness(colorId, 35),
+      lightTintBottom: colorId,
+      lightRim: '#ffffff',
+      lightGlow: hexToRgba(colorId, 0.22),
     }
   }
   return null

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ContactSalesModal } from '../components/ContactSalesModal'
+import { SEOHead } from '../components'
 
 // ─── Intersection Observer Hook ───────────────────────────────────────────────
 function useReveal() {
@@ -1917,6 +1918,10 @@ function Footer() {
 export default function Landing() {
   return (
     <div className="landing-page min-h-screen bg-dark-950 text-dark-100 overflow-x-hidden">
+      <SEOHead
+        title="Business KPI Tracking Made Simple"
+        description="Track every KPI that matters, connect your data sources, and share dashboards with your team in minutes."
+      />
       <Navbar />
       <Hero />
       <StatsBar />

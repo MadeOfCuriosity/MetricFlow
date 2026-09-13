@@ -179,7 +179,7 @@ export function CreateRoomModal({ isOpen, onClose, onCreated, parentRoomId }: Cr
                         title="None"
                         className={`w-6 h-6 rounded-full flex items-center justify-center border transition-all cursor-pointer ${
                           !selectedColor
-                            ? 'border-white/90 bg-dark-600 text-white scale-110 shadow-xs'
+                            ? 'border-foreground/90 bg-dark-600 text-foreground scale-110 shadow-xs'
                             : 'border-dark-500 bg-dark-800 text-dark-400 hover:border-dark-400 hover:text-dark-200'
                         }`}
                       >
@@ -199,7 +199,7 @@ export function CreateRoomModal({ isOpen, onClose, onCreated, parentRoomId }: Cr
                             title={tag.name}
                             className={`relative w-6 h-6 rounded-full transition-all cursor-pointer flex items-center justify-center ${
                               isSelected
-                                ? 'ring-2 ring-offset-2 ring-offset-dark-800 ring-white scale-115'
+                                ? 'ring-2 ring-offset-2 ring-offset-dark-800 ring-foreground scale-115'
                                 : 'hover:scale-110 opacity-85 hover:opacity-100'
                             }`}
                             style={{
@@ -224,7 +224,7 @@ export function CreateRoomModal({ isOpen, onClose, onCreated, parentRoomId }: Cr
                             title={isCustom ? `Custom: ${selectedColor}` : 'Custom color picker'}
                             className={`relative w-6 h-6 rounded-full transition-all cursor-pointer flex items-center justify-center overflow-hidden border ${
                               isCustom
-                                ? 'ring-2 ring-offset-2 ring-offset-dark-800 ring-white scale-115 border-white shadow-md'
+                                ? 'ring-2 ring-offset-2 ring-offset-dark-800 ring-foreground scale-115 border-foreground shadow-md'
                                 : 'border-dark-500 hover:border-dark-300 hover:scale-110 opacity-90 hover:opacity-100'
                             }`}
                             style={

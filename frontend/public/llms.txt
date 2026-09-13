@@ -1,0 +1,26 @@
+# Visualize
+
+> Visualize is an executive and operational continuous business intelligence & KPI tracking platform. It allows teams to organize metrics across hierarchical collaborative Rooms, build AI-assisted metric formulas, integrate multiple data sources, and monitor telemetry in real-time.
+
+## Key Capabilities
+
+- **KPI Tracking & Telemetry**: Define quantitative metrics across custom intervals (daily, weekly, monthly, quarterly). Track progress against targets, historical performance, and variance.
+- **Hierarchical Rooms & Pods**: Organize metrics and KPIs across departments, teams, and collaborative sub-spaces with macOS-style frosted glass desktop folders and tag categorization.
+- **AI Metric Builder**: Natural language metric definition powered by Google Gemini that generates complex formulas, benchmarks, and data schemas automatically.
+- **Multi-Source Data Ingestion**: Direct REST API entry logging, Google Sheets and Zoho CRM connectors, and universal CSV/Excel spreadsheets importer.
+- **Multi-Tenant Security**: Role-based access control (Owner, Admin, Member, Viewer), organization workspaces, and tokenized authorization.
+
+## Public Web Links
+
+- [Landing Page](https://visualize.io/landing): Product overview, key features, architecture, and customer stories.
+- [Sign In](https://visualize.io/login): Access authenticated workspace.
+- [Create Account](https://visualize.io/register): Register a new team or organization workspace.
+- [Privacy Policy](https://visualize.io/privacy): Data security, storage, and privacy practices.
+- [Full Documentation](https://visualize.io/llms-full.txt): Complete architectural overview and data model schemas for LLM context.
+
+## Core Data Concepts
+
+- **Room**: A collaborative workspace representing a department, pod, or objective containing focused metrics.
+- **KPI**: A specific measurable indicator with target values, aggregation rules (sum, average, max, min, latest), and display formats (currency, percentage, number).
+- **DataField**: An underlying data variable or ingested metric column.
+- **Entry**: A periodic timestamped recorded value for a DataField or KPI.

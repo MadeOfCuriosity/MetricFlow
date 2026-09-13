@@ -1,0 +1,44 @@
+# Visualize — Complete Platform Architecture & LLM Context
+
+## Executive Summary
+Visualize is a continuous business intelligence platform designed for startups, scaleups, and agencies to track every KPI that matters, connect data sources, and collaborate across team rooms in minutes.
+
+## Product Architecture
+
+### 1. Frontend Architecture
+- **Framework**: React 18 with TypeScript and Vite.
+- **Styling**: Tailwind CSS with custom liquid glass and frosted glass aesthetic modules.
+- **Routing**: React Router 6 with protected authenticated routes and public marketing/legal routes.
+- **Visualization**: Recharts, SVG procedural rendering (frosted glass desktop folders with optical diffusion), and Framer Motion layout transitions.
+- **Theme**: Automatic system / explicit dark and light mode support with zero-FOUC CSS variable injection.
+
+### 2. Backend Architecture
+- **Framework**: FastAPI (Python 3.12).
+- **Database**: PostgreSQL 15 via SQLAlchemy 2.0 and Alembic migrations.
+- **Authentication**: JWT access & refresh tokens with Google OAuth 2.0 and organization tenancy.
+- **Background & AI**: Google Gemini API for natural language metric generation and insights.
+
+### 3. Key Concepts & Data Models
+
+#### Organizations & Users
+- `Organization`: The top-level tenant. All data is strictly isolated by `org_id`.
+- `User`: Members belonging to an organization with role-based permissions (`owner`, `admin`, `member`, `viewer`).
+
+#### Rooms
+- `Room`: Virtual workspace folders representing a team or department (e.g., Marketing, Sales, Engineering, Finance).
+- Sub-rooms: Support for nested room hierarchies with parent-child relationships.
+- Color Tags: Mac-style color tagging (Red, Orange, Yellow, Green, Blue, Purple, Gray) influencing folder visual material.
+
+#### KPIs & Data Fields
+- `KPI`: Key Performance Indicator with target, current value, trend analysis, and period intervals.
+- `DataField`: Data column definitions mapped to automated integrations or manual data entries.
+- `Entry`: Recorded numerical or categorical data points tied to dates and intervals.
+
+### 4. API Endpoints Reference
+- `POST /api/auth/register`: Create organization & owner user
+- `POST /api/auth/login`: Authenticate user and issue JWTs
+- `GET /api/rooms`: List rooms and hierarchical folders
+- `POST /api/rooms`: Create a room or sub-room
+- `GET /api/kpis`: List active KPIs with computed values
+- `POST /api/entries`: Record new data entry points
+- `GET /api/insights`: AI-generated metric summaries and anomalies

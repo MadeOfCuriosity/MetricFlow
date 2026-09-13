@@ -46,7 +46,7 @@ export function AppDock() {
           const isLast = index === dockItems.length - 1
 
           let podClasses =
-            'h-12 w-12 bg-dark-900 flex-shrink-0 flex items-center justify-center relative group focus:outline-none cursor-pointer hover:bg-dark-850 transition-colors'
+            'h-12 w-12 bg-dark-900 flex-shrink-0 flex items-center justify-center relative group focus:outline-none focus-visible:ring-0 cursor-pointer hover:bg-dark-850 transition-colors'
           if (isFirst) {
             podClasses += ' rounded-l-full border-t border-b border-l border-dark-700'
           } else if (isLast) {
@@ -74,13 +74,13 @@ export function AppDock() {
                 <div
                   className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 ${
                     isActive
-                      ? 'bg-foreground text-dark-950 shadow-sm'
+                      ? 'bg-dark-800 text-foreground border border-dark-600 shadow-xs dark:bg-foreground dark:text-dark-950 dark:border-transparent'
                       : 'text-dark-300 group-hover:text-foreground group-hover:bg-dark-800/80'
                   }`}
                 >
                   <item.icon
                     className={`w-4 h-4 ${
-                      isActive ? 'text-dark-950 stroke-[2.2]' : 'stroke-[2]'
+                      isActive ? 'text-foreground dark:text-dark-950 stroke-[2.2]' : 'stroke-[2]'
                     }`}
                   />
                 </div>

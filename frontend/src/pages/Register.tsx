@@ -4,6 +4,7 @@ import { GoogleLogin, CredentialResponse } from '@react-oauth/google'
 import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
 import { ExclamationCircleIcon, CheckCircleIcon } from '@heroicons/react/24/outline'
+import { SEOHead } from '../components'
 
 const industries = [
   'Technology',
@@ -119,6 +120,7 @@ export function Register() {
 
   return (
     <div className="min-h-screen bg-dark-950 flex">
+      <SEOHead title="Create Account" description="Create your Visualize organization and start tracking business KPIs in minutes." />
       {/* Left side - Form */}
       <div className="flex-1 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-20 xl:px-24">
         <div className="mx-auto w-full max-w-sm lg:max-w-md">

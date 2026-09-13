@@ -1,0 +1,25 @@
+# Robots.txt for Visualize (https://visualize.io)
+
+User-agent: *
+Allow: /
+Allow: /landing
+Allow: /login
+Allow: /register
+Allow: /privacy
+Allow: /llms.txt
+Allow: /llms-full.txt
+Allow: /og-image.png
+Allow: /sitemap.xml
+
+# Disallow private authenticated application routes
+Disallow: /dashboard
+Disallow: /rooms/
+Disallow: /kpis/
+Disallow: /data
+Disallow: /entries
+Disallow: /insights
+Disallow: /settings/
+Disallow: /superadmin/
+Disallow: /api/
+
+Sitemap: https://visualize.io/sitemap.xml
