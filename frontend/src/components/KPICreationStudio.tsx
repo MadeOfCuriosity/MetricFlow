@@ -686,7 +686,7 @@ export function KPICreationStudio({
       <main className="flex-1 min-w-0 h-full flex flex-col overflow-hidden relative">
         {/* Floating Top Pill: 3 Tabs [AI, Manual, Presets] */}
         <div className="flex items-center justify-center pt-1 pb-2 flex-shrink-0 z-20">
-          <div className="flex items-center p-1 bg-dark-900/95 border border-dark-750/90 rounded-2xl shadow-lg backdrop-blur-md">
+          <div className="flex items-center p-1 bg-dark-900/90 border border-dark-800 rounded-2xl shadow-lg backdrop-blur-md">
             <button
               type="button"
               onClick={() => setActiveMiddleTab('ai')}
@@ -951,7 +951,7 @@ export function KPICreationStudio({
                 />
               </div>
 
-              <div className="flex items-center gap-1 p-1 bg-dark-950 border border-dark-750 rounded-xl overflow-x-auto">
+              <div className="flex items-center gap-1 p-1 bg-dark-950 border border-dark-800 rounded-xl overflow-x-auto">
                 {PRESET_CATEGORIES.map((cat) => (
                   <button
                     key={cat}
@@ -1008,7 +1008,7 @@ export function KPICreationStudio({
                         </div>
 
                         <div className="pt-2 border-t border-dark-800/80 flex items-center justify-between gap-2">
-                          <code className="text-[11px] font-mono text-primary-300/90 bg-dark-900/80 px-2 py-1 rounded border border-dark-750 truncate flex-1">
+                          <code className="text-[11px] font-mono text-primary-300/90 bg-dark-900/80 px-2 py-1 rounded border border-dark-800 truncate flex-1">
                             {preset.formula}
                           </code>
                           <button
@@ -1041,7 +1041,7 @@ export function KPICreationStudio({
       {isStudioOpen ? (
         <aside className="w-80 flex-shrink-0 h-full flex flex-col rounded-2xl bg-dark-900 border border-dark-700 overflow-hidden shadow-sm animate-in fade-in duration-150">
           {/* Header */}
-          <div className="p-3.5 border-b border-dark-750 flex items-center justify-between gap-2">
+          <div className="p-3.5 border-b border-dark-800 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <Bars3BottomLeftIcon className="w-4 h-4 text-dark-400 stroke-[2]" />
               <span className="text-xs font-bold uppercase tracking-wider text-foreground">

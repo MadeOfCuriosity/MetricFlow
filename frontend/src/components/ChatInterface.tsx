@@ -362,7 +362,7 @@ export function ChatInterface({
         }}
       >
         {/* Floating Input Box Card */}
-        <div className="rounded-2xl bg-dark-900 border border-dark-700/80 shadow-2xl p-3.5 focus-within:border-dark-500 transition-colors">
+        <div className="rounded-2xl bg-dark-900 border border-dark-800 shadow-2xl p-3.5 transition-colors">
           <textarea
             ref={textareaRef}
             rows={1}
@@ -371,7 +371,7 @@ export function ChatInterface({
             onKeyDown={handleKeyDown}
             placeholder="Describe what you wanna track"
             disabled={isLoading}
-            className="w-full bg-transparent resize-none outline-none text-foreground placeholder-dark-400 text-sm py-1 px-1.5 font-normal leading-relaxed custom-scrollbar max-h-40"
+            className="w-full bg-transparent resize-none outline-none focus:outline-none ring-0 focus:ring-0 focus-visible:ring-0 focus-visible:outline-none border-0 focus:border-0 shadow-none text-foreground placeholder-dark-400 text-sm py-1 px-1.5 font-normal leading-relaxed custom-scrollbar max-h-40"
           />
 
           <div className="flex items-center justify-between pt-2 px-0.5">
@@ -481,7 +481,7 @@ export function ChatInterface({
                   key={prompt}
                   type="button"
                   onClick={() => onSendMessage(prompt)}
-                  className="px-4 py-2 rounded-xl bg-dark-900/90 hover:bg-dark-800 border border-dark-750/80 hover:border-dark-600 text-xs text-dark-300 hover:text-foreground transition-all cursor-pointer shadow-sm"
+                  className="px-4 py-2 rounded-xl bg-dark-900/80 hover:bg-dark-850 border border-dark-800 text-xs text-dark-400 hover:text-foreground hover:border-dark-700 transition-all cursor-pointer shadow-sm"
                 >
                   {prompt}
                 </button>
