@@ -5,7 +5,7 @@ import {
   ChartBarIcon,
   CircleStackIcon,
   DocumentTextIcon,
-  LightBulbIcon,
+  FolderIcon,
 } from '@heroicons/react/24/outline'
 import { LiquidBridge } from './LiquidBridge'
 
@@ -14,7 +14,7 @@ const dockItems = [
   { name: 'KPIs', href: '/kpis', icon: ChartBarIcon },
   { name: 'Data', href: '/data', icon: CircleStackIcon },
   { name: 'Data Entry', href: '/entries', icon: DocumentTextIcon },
-  { name: 'Insights', href: '/insights', icon: LightBulbIcon },
+  { name: 'Rooms', href: '/rooms', icon: FolderIcon },
 ]
 
 export function AppDock() {
@@ -27,6 +27,9 @@ export function AppDock() {
     }
     if (href === '/data') {
       return location.pathname === '/data' || (location.pathname.startsWith('/data') && !location.pathname.startsWith('/entries'))
+    }
+    if (href === '/rooms') {
+      return location.pathname === '/rooms' || location.pathname.startsWith('/rooms')
     }
     return location.pathname.startsWith(href)
   }

@@ -17,9 +17,9 @@ import {
   KPIDataView,
   AIBuilder,
   Insights,
+  Rooms,
   Subscription,
   RoomDashboard,
-  Rooms,
   Data,
   SettingsLayout,
   AdminDashboard,
@@ -95,8 +95,8 @@ function App() {
             <Route path="kpis/:kpiId/data" element={<KPIDataView />} />
             <Route path="data" element={<Data />} />
             <Route path="entries" element={<Entries />} />
-            <Route path="rooms" element={<Rooms />} />
             <Route path="insights" element={<Insights />} />
+            <Route path="rooms" element={<Rooms />} />
             <Route path="ai-builder" element={<Navigate to="/dashboard" replace />} />
             <Route path="rooms/:roomId/ai-builder" element={<AIBuilder />} />
             <Route path="rooms/:roomId" element={<RoomDashboard />} />

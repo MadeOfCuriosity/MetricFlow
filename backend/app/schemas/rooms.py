@@ -9,6 +9,7 @@ class RoomCreateRequest(BaseModel):
     """Request to create a new room."""
     name: str = Field(..., min_length=2, max_length=255)
     description: Optional[str] = None
+    color: Optional[str] = None
     parent_room_id: Optional[UUID] = None
 
 
@@ -16,6 +17,7 @@ class RoomUpdateRequest(BaseModel):
     """Request to update an existing room."""
     name: Optional[str] = Field(None, min_length=2, max_length=255)
     description: Optional[str] = None
+    color: Optional[str] = None
 
 
 class RoomResponse(BaseModel):
@@ -24,6 +26,7 @@ class RoomResponse(BaseModel):
     org_id: UUID
     name: str
     description: Optional[str]
+    color: Optional[str] = None
     parent_room_id: Optional[UUID]
     created_by: Optional[UUID]
     created_at: datetime
@@ -38,6 +41,7 @@ class RoomTreeNode(BaseModel):
     id: UUID
     name: str
     description: Optional[str]
+    color: Optional[str] = None
     children: list["RoomTreeNode"] = []
     kpi_count: int = 0
 

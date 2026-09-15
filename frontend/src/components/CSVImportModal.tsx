@@ -266,7 +266,7 @@ export function CSVImportModal({ isOpen, onClose, onImported }: CSVImportModalPr
               source_column: col,
               target_field_id: matched ? matched.id : null,
               target_field_name: matched ? matched.name : col.replace(/_/g, ' '),
-              action: (matched ? 'map' : 'create') as const,
+              action: (matched ? 'map' : 'create') as 'map' | 'create',
             }
           })
 
@@ -769,7 +769,7 @@ export function CSVImportModal({ isOpen, onClose, onImported }: CSVImportModalPr
                               <label className="block text-xs font-medium text-dark-300 mb-1">Daily Aggregation</label>
                               <select
                                 value={aggregation}
-                                onChange={(e) => setAggregation(e.target.value as any)}
+                                onChange={(e) => setAggregation(e.target.value as 'sum' | 'avg' | 'min' | 'max' | 'count' | 'latest')}
                                 className="w-full text-xs bg-dark-800 border border-dark-600 rounded-lg px-2.5 py-1.5 text-foreground focus:outline-none focus:border-primary-500"
                               >
                                 <option value="sum">Sum (Total daily sum)</option>
@@ -780,6 +780,38 @@ export function CSVImportModal({ isOpen, onClose, onImported }: CSVImportModalPr
                                 <option value="latest">Latest</option>
                               </select>
                             </div>
+                          )}
+
+                          {/* Long / EAV Field & Value Columns */}
+                          {layout === 'long' && (
+                            <>
+                              <div>
+                                <label className="block text-xs font-medium text-dark-300 mb-1">Field Name Column</label>
+                                <select
+                                  value={fieldColumn}
+                                  onChange={(e) => setFieldColumn(e.target.value)}
+                                  className="w-full text-xs bg-dark-800 border border-dark-600 rounded-lg px-2.5 py-1.5 text-foreground focus:outline-none focus:border-primary-500"
+                                >
+                                  <option value="">Auto-Detect</option>
+                                  {analysis.headers.map((h) => (
+                                    <option key={h} value={h}>{h}</option>
+                                  ))}
+                                </select>
+                              </div>
+                              <div>
+                                <label className="block text-xs font-medium text-dark-300 mb-1">Value Column</label>
+                                <select
+                                  value={valueColumn}
+                                  onChange={(e) => setValueColumn(e.target.value)}
+                                  className="w-full text-xs bg-dark-800 border border-dark-600 rounded-lg px-2.5 py-1.5 text-foreground focus:outline-none focus:border-primary-500"
+                                >
+                                  <option value="">Auto-Detect</option>
+                                  {analysis.headers.map((h) => (
+                                    <option key={h} value={h}>{h}</option>
+                                  ))}
+                                </select>
+                              </div>
+                            </>
                           )}
                         </div>
 
