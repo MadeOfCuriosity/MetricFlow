@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Cog6ToothIcon, PlayIcon, TrashIcon, TableCellsIcon } from '@heroicons/react/24/outline'
+import { Cog6ToothIcon, PlayIcon, TrashIcon, TableCellsIcon, Squares2X2Icon, CheckCircleIcon } from '@heroicons/react/24/outline'
 import { useToast } from '../../context/ToastContext'
 import { AppConfigModal } from '../../components/AppConfigModal'
 import { DeleteConfirmModal } from '../../components/DeleteConfirmModal'
@@ -29,7 +29,7 @@ export function AdminApps() {
     } finally {
       setIsLoading(false)
     }
-  }, [])
+  }, [showError])
 
   useEffect(() => {
     fetchApps()
@@ -98,10 +98,12 @@ export function AdminApps() {
     if (!configApp) return
     try {
       await appsApi.configureSecrets(configApp.key, secretConfig)
+      success('Saved', `${configApp.name} secret configuration updated.`)
+      setConfigApp(null)
+      fetchApps()
     } catch (err: unknown) {
       const e = err as { response?: { data?: { detail?: string } } }
-      showError(e.response?.data?.detail || 'Failed to save credentials')
-      throw err
+      showError(e.response?.data?.detail || 'Failed to save secret configuration')
     }
   }
 
@@ -110,48 +112,57 @@ export function AdminApps() {
     setIsUninstalling(true)
     try {
       await appsApi.uninstall(uninstallApp.key)
-      success('Uninstalled', `${uninstallApp.name} has been removed.`)
+      success('Uninstalled', `${uninstallApp.name} has been uninstalled.`)
       setUninstallApp(null)
       fetchApps()
     } catch (err: unknown) {
       const e = err as { response?: { data?: { detail?: string } } }
-      showError(e.response?.data?.detail || 'Failed to uninstall')
+      showError(e.response?.data?.detail || 'Failed to uninstall app')
     } finally {
       setIsUninstalling(false)
     }
   }
 
-  const installedCount = apps.filter((a) => a.installation).length
-  const enabledCount = apps.filter((a) => a.installation?.is_enabled).length
+  const installedCount = apps.filter((a) => Boolean(a.installation)).length
+  const enabledCount = apps.filter((a) => Boolean(a.installation?.is_enabled)).length
 
   return (
     <div className="space-y-6">
-      {/* Summary stats */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="bg-dark-900 border border-dark-700 rounded-xl p-4">
-          <p className="text-sm text-dark-400">Installed</p>
-          <p className="text-xl font-bold text-foreground mt-1">{installedCount}</p>
+      {/* Subtle Summary Badges */}
+      <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
+        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-dark-900 border border-dark-700/70 text-xs">
+          <Squares2X2Icon className="w-3.5 h-3.5 text-dark-400 stroke-[1.8]" />
+          <span className="text-dark-400">Total Apps:</span>
+          <span className="font-semibold text-foreground">{apps.length}</span>
         </div>
-        <div className="bg-dark-900 border border-dark-700 rounded-xl p-4">
-          <p className="text-sm text-dark-400">Enabled</p>
-          <p className="text-xl font-bold text-success-400 mt-1">{enabledCount}</p>
+
+        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-dark-900 border border-dark-700/70 text-xs">
+          <CheckCircleIcon className="w-3.5 h-3.5 text-emerald-400 stroke-[1.8]" />
+          <span className="text-dark-400">Installed:</span>
+          <span className="font-semibold text-foreground">{installedCount}</span>
+        </div>
+
+        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-dark-900 border border-dark-700/70 text-xs">
+          <span className="w-1.5 h-1.5 rounded-full bg-primary-400" />
+          <span className="text-dark-400">Enabled:</span>
+          <span className="font-semibold text-foreground">{enabledCount}</span>
         </div>
       </div>
 
       {/* App cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {isLoading ? (
-          <div className="col-span-2 p-8 text-center text-dark-300 bg-dark-900 border border-dark-700 rounded-xl">
-            Loading apps...
+          <div className="col-span-2 p-12 text-center text-xs text-dark-400 bg-dark-900 border border-dark-700 rounded-2xl">
+            Loading extension apps...
           </div>
         ) : apps.length === 0 ? (
-          <div className="col-span-2 p-8 text-center text-dark-300 bg-dark-900 border border-dark-700 rounded-xl">
-            No apps available yet.
+          <div className="col-span-2 p-12 text-center text-xs text-dark-400 bg-dark-900 border border-dark-700 rounded-2xl">
+            No extension apps available yet.
           </div>
         ) : (
           apps.map((app) => {
-            const installed = !!app.installation
-            const enabled = !!app.installation?.is_enabled
+            const installed = Boolean(app.installation)
+            const enabled = Boolean(app.installation?.is_enabled)
             const busy = busyKeys.has(app.key)
             const entitlementBlocked =
               app.installation &&
@@ -160,103 +171,111 @@ export function AdminApps() {
             return (
               <div
                 key={app.key}
-                className="bg-dark-900 border border-dark-700 rounded-xl p-5 flex flex-col gap-3"
+                className="bg-dark-900 border border-dark-700 rounded-2xl p-6 flex flex-col justify-between gap-4 shadow-sm hover:border-dark-600 transition-all"
               >
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-foreground font-medium">{app.name}</p>
-                    <p className="text-sm text-dark-400 mt-1">{app.description}</p>
+                <div>
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-bold text-foreground tracking-tight">{app.name}</p>
+                      <p className="text-xs text-dark-400 mt-1 line-clamp-2 leading-relaxed">{app.description}</p>
+                    </div>
+                    {installed && (
+                      <span
+                        className={`text-[10px] font-semibold uppercase tracking-wider px-2.5 py-0.5 rounded-md border flex-shrink-0 ${
+                          enabled
+                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                            : 'bg-dark-800 text-dark-400 border-dark-700'
+                        }`}
+                      >
+                        {enabled ? 'Enabled' : 'Disabled'}
+                      </span>
+                    )}
                   </div>
-                  {installed && (
-                    <span
-                      className={`text-xs px-2 py-1 rounded-full flex-shrink-0 ${
-                        enabled
-                          ? 'bg-success-500/10 text-success-400'
-                          : 'bg-dark-700 text-dark-300'
-                      }`}
-                    >
-                      {enabled ? 'Enabled' : 'Disabled'}
-                    </span>
+
+                  <div className="flex flex-wrap gap-1.5 text-[11px] text-dark-400 mt-3">
+                    {app.triggers.map((t) => (
+                      <span key={t} className="px-2 py-0.5 bg-dark-950 border border-dark-800 rounded-md capitalize font-medium">
+                        {t.replace('_', ' ')}
+                      </span>
+                    ))}
+                    {app.requires_entitlement && (
+                      <span className="px-2 py-0.5 bg-dark-950 border border-dark-800 rounded-md text-amber-400/80">Requires entitlement</span>
+                    )}
+                  </div>
+
+                  {entitlementBlocked && (
+                    <p className="text-xs text-amber-400 mt-2 font-medium">
+                      Entitlement not granted yet — contact support to enable this app.
+                    </p>
+                  )}
+
+                  {lastRunSummary[app.key] && (
+                    <p className="text-xs text-dark-400 truncate mt-2">Last run: {lastRunSummary[app.key]}</p>
+                  )}
+
+                  {app.installation && (
+                    <p className="text-[11px] text-dark-500 mt-2">
+                      Installed {formatDistanceToNow(new Date(app.installation.installed_at), { addSuffix: true })}
+                    </p>
                   )}
                 </div>
 
-                <div className="flex flex-wrap gap-1.5 text-xs text-dark-400">
-                  {app.triggers.map((t) => (
-                    <span key={t} className="px-2 py-0.5 bg-dark-800 rounded-full capitalize">
-                      {t.replace('_', ' ')}
-                    </span>
-                  ))}
-                  {app.requires_entitlement && (
-                    <span className="px-2 py-0.5 bg-dark-800 rounded-full">Requires entitlement</span>
-                  )}
-                </div>
-
-                {entitlementBlocked && (
-                  <p className="text-xs text-warning-400">
-                    Entitlement not granted yet — contact support to enable this app.
-                  </p>
-                )}
-
-                {lastRunSummary[app.key] && (
-                  <p className="text-xs text-dark-400 truncate">Last run: {lastRunSummary[app.key]}</p>
-                )}
-
-                {app.installation && (
-                  <p className="text-xs text-dark-500">
-                    Installed {formatDistanceToNow(new Date(app.installation.installed_at), { addSuffix: true })}
-                  </p>
-                )}
-
-                <div className="flex items-center gap-2 mt-auto pt-2">
+                <div className="flex items-center gap-2 pt-3 border-t border-dark-800">
                   {!installed ? (
                     <button
+                      type="button"
                       onClick={() => handleInstall(app)}
                       disabled={busy}
-                      className="px-3 py-1.5 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-500 transition-colors disabled:opacity-50"
+                      className="px-4 py-2 text-xs font-semibold bg-foreground text-dark-950 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50 shadow-sm cursor-pointer"
                     >
-                      Install
+                      Install App
                     </button>
                   ) : (
                     <>
                       <button
+                        type="button"
                         onClick={() => handleEnableToggle(app)}
                         disabled={busy || Boolean(!enabled && entitlementBlocked)}
-                        className={`px-3 py-1.5 text-sm rounded-lg transition-colors disabled:opacity-50 ${
+                        className={`px-3.5 py-1.5 text-xs font-semibold rounded-xl transition-all cursor-pointer disabled:opacity-50 ${
                           enabled
-                            ? 'bg-dark-700 text-dark-200 hover:bg-dark-600'
-                            : 'bg-primary-600 text-white hover:bg-primary-500'
+                            ? 'bg-dark-800 border border-dark-700 text-dark-300 hover:text-foreground hover:bg-dark-700'
+                            : 'bg-foreground text-dark-950 hover:opacity-90 shadow-sm'
                         }`}
                       >
                         {enabled ? 'Disable' : 'Enable'}
                       </button>
                       <button
+                        type="button"
                         onClick={() => handleRun(app)}
                         disabled={busy || !enabled}
                         title="Run now"
-                        className="p-2 text-dark-300 hover:text-primary-400 hover:bg-primary-500/10 rounded-lg transition-colors disabled:opacity-30"
+                        className="p-1.5 text-dark-400 hover:text-foreground hover:bg-dark-800 rounded-lg transition-colors disabled:opacity-30 cursor-pointer"
                       >
                         <PlayIcon className="w-4 h-4" />
                       </button>
                       <button
+                        type="button"
                         onClick={() => setConfigApp(app)}
                         title="Configure"
-                        className="p-2 text-dark-300 hover:text-foreground hover:bg-dark-600 rounded-lg transition-colors"
+                        className="p-1.5 text-dark-400 hover:text-foreground hover:bg-dark-800 rounded-lg transition-colors cursor-pointer"
                       >
                         <Cog6ToothIcon className="w-4 h-4" />
                       </button>
                       {app.key === 'whatsapp_notifier' && (
                         <button
+                          type="button"
                           onClick={() => setDataPanelAppKey(app.key)}
                           title="Manage data source, recipients & suppressions"
-                          className="p-2 text-dark-300 hover:text-foreground hover:bg-dark-600 rounded-lg transition-colors"
+                          className="p-1.5 text-dark-400 hover:text-foreground hover:bg-dark-800 rounded-lg transition-colors cursor-pointer"
                         >
                           <TableCellsIcon className="w-4 h-4" />
                         </button>
                       )}
                       <button
+                        type="button"
                         onClick={() => setUninstallApp(app)}
                         title="Uninstall"
-                        className="p-2 text-dark-300 hover:text-danger-400 hover:bg-danger-500/10 rounded-lg transition-colors ml-auto"
+                        className="p-1.5 text-dark-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors ml-auto cursor-pointer"
                       >
                         <TrashIcon className="w-4 h-4" />
                       </button>
@@ -270,7 +289,7 @@ export function AdminApps() {
       </div>
 
       <AppConfigModal
-        isOpen={!!configApp}
+        isOpen={Boolean(configApp)}
         onClose={() => setConfigApp(null)}
         onSave={handleSaveConfig}
         onSaveSecrets={handleSaveSecrets}
@@ -278,7 +297,7 @@ export function AdminApps() {
       />
 
       <WhatsAppNotifierPanel
-        isOpen={!!dataPanelApp}
+        isOpen={Boolean(dataPanelApp)}
         onClose={() => setDataPanelAppKey(null)}
         app={dataPanelApp}
         onConfigChanged={fetchApps}
@@ -286,7 +305,7 @@ export function AdminApps() {
 
       {uninstallApp && (
         <DeleteConfirmModal
-          isOpen={!!uninstallApp}
+          isOpen={Boolean(uninstallApp)}
           onClose={() => setUninstallApp(null)}
           onConfirm={handleUninstall}
           title="Uninstall App"

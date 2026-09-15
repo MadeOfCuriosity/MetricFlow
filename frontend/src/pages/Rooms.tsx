@@ -13,7 +13,6 @@ import {
   ListBulletIcon,
   FolderPlusIcon,
   ArrowRightIcon,
-  TagIcon,
 } from '@heroicons/react/24/outline'
 import { useRoom } from '../context/RoomContext'
 import { useToast } from '../context/ToastContext'
@@ -21,13 +20,10 @@ import { useAuth } from '../context/AuthContext'
 import { CreateRoomModal } from '../components/CreateRoomModal'
 import { DeleteConfirmModal } from '../components/DeleteConfirmModal'
 import { GlassmorphicFolder } from '../components/GlassmorphicFolder'
-import { TagColorPickerPopover } from '../components/TagColorPickerPopover'
-import { SEOHead } from '../components/SEOHead'
-import { getTagColor } from '../constants/tagColors'
 import { Room, RoomTreeNode } from '../types/room'
 
 export function Rooms() {
-  const { rooms, roomTree, isLoading, fetchRooms, fetchRoomTree, updateRoom, deleteRoom } = useRoom()
+  const { rooms, roomTree, isLoading, fetchRooms, fetchRoomTree, deleteRoom } = useRoom()
   const { success, error: showError } = useToast()
   const { isAdmin } = useAuth()
   const navigate = useNavigate()
@@ -94,22 +90,8 @@ export function Rooms() {
     }
   }
 
-  const handleUpdateRoomColor = async (roomId: string, newColor: string | null) => {
-    try {
-      await updateRoom(roomId, { color: newColor })
-      success(
-        newColor ? 'Tag updated' : 'Tag removed',
-        newColor ? `Room tagged as ${newColor}` : 'Default obsidian folder restored'
-      )
-    } catch (err: unknown) {
-      const error = err as { response?: { data?: { detail?: string } } }
-      showError('Failed to update tag', error.response?.data?.detail || 'Please try again')
-    }
-  }
-
   return (
     <div className="space-y-8 max-w-7xl mx-auto pb-12">
-      <SEOHead title="Rooms" description="Organize metrics and KPIs across departments, teams, and collaborative spaces." />
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -270,7 +252,6 @@ export function Rooms() {
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-y-12 gap-x-6 justify-items-center py-4">
           {filteredRooms.map((room) => {
             const isHovered = hoveredRoomId === room.id
-            const tag = getTagColor(room.color)
 
             return (
               <div
@@ -282,23 +263,6 @@ export function Rooms() {
               >
                 {/* Floating Quick Actions on Hover */}
                 <div className="absolute top-1 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-20 bg-dark-900/90 border border-dark-700 rounded-lg p-0.5 shadow-lg backdrop-blur-sm">
-                  <TagColorPickerPopover
-                    selectedColor={room.color}
-                    onSelectColor={(c) => handleUpdateRoomColor(room.id, c)}
-                    align="right"
-                  >
-                    {({ toggle }) => (
-                      <button
-                        type="button"
-                        onClick={toggle}
-                        className="p-1 text-dark-400 hover:text-foreground rounded hover:bg-dark-800 transition-colors cursor-pointer"
-                        title="Set tag color"
-                        aria-label="Set tag color"
-                      >
-                        <TagIcon className="w-3.5 h-3.5" />
-                      </button>
-                    )}
-                  </TagColorPickerPopover>
                   <button
                     type="button"
                     onClick={(e) => {
@@ -330,39 +294,15 @@ export function Rooms() {
                 {/* Glassmorphic 3D Desktop Folder Icon */}
                 <div className="relative flex items-center justify-center transition-transform duration-200 ease-out group-hover:scale-105">
                   <GlassmorphicFolder
-                    color={room.color}
-                    className="w-36 h-34"
+                    className="w-40 h-32"
                     isHovered={isHovered}
                   />
                 </div>
 
                 {/* Desktop Folder Name & Subtitle */}
                 <div className="mt-3.5 flex flex-col items-center max-w-full text-center px-1">
-                  <div className="flex items-center justify-center gap-1.5 max-w-full">
-                    <TagColorPickerPopover
-                      selectedColor={room.color}
-                      onSelectColor={(c) => handleUpdateRoomColor(room.id, c)}
-                      align="center"
-                    >
-                      {({ toggle }) => (
-                        <button
-                          type="button"
-                          onClick={toggle}
-                          className="flex items-center justify-center p-0.5 rounded-full hover:bg-dark-800 transition-all cursor-pointer"
-                          title={tag ? `Tag: ${tag.name} (Click to change)` : 'Add tag color'}
-                        >
-                          {tag ? (
-                            <span
-                              className={`w-2 h-2 rounded-full flex-shrink-0 ${tag.dotClass || ''} hover:scale-125 transition-transform`}
-                              style={{ backgroundColor: tag.hex }}
-                            />
-                          ) : (
-                            <span className="w-2 h-2 rounded-full border border-dashed border-dark-400 dark:border-dark-600 group-hover:border-foreground transition-colors" />
-                          )}
-                        </button>
-                      )}
-                    </TagColorPickerPopover>
-                    <span className="text-sm font-semibold text-foreground tracking-tight px-2 py-0.5 rounded-md group-hover:bg-dark-800/80 group-hover:text-foreground transition-colors truncate max-w-full">
+                  <div className="flex items-center gap-1.5 max-w-full">
+                    <span className="text-sm font-semibold text-foreground tracking-tight px-2 py-0.5 rounded-md group-hover:bg-dark-800/80 group-hover:text-white transition-colors truncate max-w-full">
                       {room.name}
                     </span>
                   </div>
@@ -380,7 +320,7 @@ export function Rooms() {
             onClick={() => handleOpenCreateModal()}
             className="flex flex-col items-center group cursor-pointer w-44 select-none p-2 rounded-2xl hover:bg-dark-900/30 transition-colors"
           >
-            <div className="w-36 h-34 rounded-2xl border-2 border-dashed border-dark-700/80 group-hover:border-dark-500 flex flex-col items-center justify-center transition-all bg-dark-900/10 group-hover:bg-dark-900/30 group-hover:scale-105">
+            <div className="w-40 h-32 rounded-2xl border-2 border-dashed border-dark-700/80 group-hover:border-dark-500 flex flex-col items-center justify-center transition-all bg-dark-900/10 group-hover:bg-dark-900/30 group-hover:scale-105">
               <PlusIcon className="w-7 h-7 text-dark-400 group-hover:text-foreground transition-colors stroke-[2]" />
             </div>
             <div className="mt-3.5 flex flex-col items-center text-center">
@@ -402,7 +342,6 @@ export function Rooms() {
               onNavigate={(id) => navigate(`/rooms/${id}`)}
               onAddSubRoom={(id) => handleOpenCreateModal(id)}
               onDelete={(room) => setRoomToDelete(room)}
-              onUpdateColor={handleUpdateRoomColor}
               isAdmin={isAdmin}
             />
           ))}
@@ -442,7 +381,6 @@ function RoomTreeItem({
   onNavigate,
   onAddSubRoom,
   onDelete,
-  onUpdateColor,
   isAdmin,
 }: {
   node: RoomTreeNode
@@ -450,12 +388,10 @@ function RoomTreeItem({
   onNavigate: (id: string) => void
   onAddSubRoom: (id: string) => void
   onDelete: (room: RoomTreeNode) => void
-  onUpdateColor: (roomId: string, color: string | null) => void
   isAdmin: boolean
 }) {
   const [isExpanded, setIsExpanded] = useState(true)
   const hasChildren = node.children && node.children.length > 0
-  const tag = getTagColor(node.color)
 
   return (
     <>
@@ -486,16 +422,7 @@ function RoomTreeItem({
           onClick={() => onNavigate(node.id)}
           className="flex items-center gap-3 flex-1 min-w-0 text-left cursor-pointer"
         >
-          <div className="relative flex items-center justify-center flex-shrink-0">
-            <FolderIcon className="h-5 w-5 text-dark-400 group-hover:text-foreground transition-colors" />
-            {tag && (
-              <span
-                className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-dark-900 ${tag.dotClass || ''}`}
-                style={{ backgroundColor: tag.hex }}
-                title={`${tag.name} tag`}
-              />
-            )}
-          </div>
+          <FolderIcon className="h-5 w-5 text-dark-400 group-hover:text-foreground transition-colors flex-shrink-0" />
           <span className="text-foreground font-medium text-sm truncate">{node.name}</span>
           {node.description && (
             <span className="hidden md:inline text-xs text-dark-400 truncate max-w-sm">
@@ -522,23 +449,6 @@ function RoomTreeItem({
 
         {/* Actions */}
         <div className="flex items-center gap-1 flex-shrink-0">
-          <TagColorPickerPopover
-            selectedColor={node.color}
-            onSelectColor={(color) => onUpdateColor(node.id, color)}
-            align="right"
-          >
-            {({ toggle }) => (
-              <button
-                type="button"
-                onClick={toggle}
-                className="p-1.5 text-dark-400 hover:text-foreground hover:bg-dark-800 rounded-lg transition-colors cursor-pointer"
-                title="Change tag color"
-                aria-label="Change tag color"
-              >
-                <TagIcon className="w-4 h-4" />
-              </button>
-            )}
-          </TagColorPickerPopover>
           <button
             type="button"
             onClick={() => onAddSubRoom(node.id)}
@@ -581,7 +491,6 @@ function RoomTreeItem({
               onNavigate={onNavigate}
               onAddSubRoom={onAddSubRoom}
               onDelete={onDelete}
-              onUpdateColor={onUpdateColor}
               isAdmin={isAdmin}
             />
           ))}

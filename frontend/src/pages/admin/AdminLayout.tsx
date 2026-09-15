@@ -37,14 +37,14 @@ const navGroups: NavGroup[] = [
   {
     label: 'Workspace',
     items: [
-      { id: 'rooms', label: 'Rooms', href: '/rooms', icon: FolderIcon, adminOnly: true },
+      { id: 'rooms', label: 'Rooms', href: '/settings/rooms', icon: FolderIcon, adminOnly: true },
       { id: 'integrations', label: 'Integrations', href: '/settings/integrations', icon: ArrowPathRoundedSquareIcon, adminOnly: true },
       { id: 'apps', label: 'Apps', href: '/settings/apps', icon: Squares2X2Icon, adminOnly: true },
       { id: 'activity', label: 'Activity', href: '/settings/activity', icon: ClockIcon, adminOnly: true },
     ],
   },
   {
-    label: 'General',
+    label: 'Account & Org',
     items: [
       { id: 'profile', label: 'Profile', href: '/settings/profile', icon: UserCircleIcon, adminOnly: false },
       { id: 'users', label: 'Users', href: '/settings/users', icon: UsersIcon, adminOnly: true },
@@ -74,46 +74,50 @@ export function SettingsLayout() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 max-w-7xl mx-auto pb-12">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Settings</h1>
-        <p className="text-dark-300 mt-1">Manage your organization, users, and settings</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground tracking-tight">Settings</h1>
+          <p className="text-dark-300 mt-1 text-sm">
+            Manage your organization workspace, team members, integrations, and preferences.
+          </p>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
         {/* Vertical nav */}
         <div className="lg:col-span-1">
-          <nav className="bg-dark-900 border border-dark-700 rounded-xl p-2">
+          <nav className="bg-dark-900 border border-dark-700 rounded-2xl p-2 shadow-sm">
             {navGroups.map((group, groupIndex) => {
               const visibleItems = group.items.filter((item) => isAdmin || !item.adminOnly)
               if (visibleItems.length === 0) return null
               return (
                 <div
                   key={groupIndex}
-                  className={groupIndex > 0 ? 'mt-3 pt-3 border-t border-dark-700' : ''}
+                  className={groupIndex > 0 ? 'mt-2 pt-2 border-t border-dark-800' : ''}
                 >
                   {group.label && (
-                    <div className="px-3 pb-1 text-xs font-semibold text-dark-500 uppercase tracking-wider">
+                    <div className="px-3 py-1.5 text-[11px] font-semibold text-dark-500 uppercase tracking-wider">
                       {group.label}
                     </div>
                   )}
-                  <div className="space-y-0.5">
+                  <div className="space-y-1">
                     {visibleItems.map((item) => (
                       <NavLink
                         key={item.id}
                         to={item.href}
                         end={item.end}
                         className={({ isActive }) =>
-                          `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium border-l-2 transition-colors ${
+                          `flex items-center gap-3 px-3 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all ${
                             isActive
-                              ? 'border-primary-500 bg-primary-500/10 text-primary-400'
-                              : 'border-transparent text-dark-300 hover:bg-dark-800 hover:text-foreground'
+                              ? 'bg-dark-800 text-foreground font-semibold shadow-sm border border-dark-700/60'
+                              : 'text-dark-400 hover:text-foreground hover:bg-dark-800/50'
                           }`
                         }
                       >
-                        <item.icon className="w-5 h-5 flex-shrink-0" />
-                        {item.label}
+                        <item.icon className="w-4 h-4 flex-shrink-0" />
+                        <span>{item.label}</span>
                       </NavLink>
                     ))}
                   </div>
@@ -121,13 +125,14 @@ export function SettingsLayout() {
               )
             })}
 
-            <div className="mt-3 pt-3 border-t border-dark-700">
+            <div className="mt-2 pt-2 border-t border-dark-800">
               <button
+                type="button"
                 onClick={handleLogout}
-                className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium border-l-2 border-transparent text-danger-400 hover:bg-danger-500/10 transition-colors"
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs sm:text-sm font-medium text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
               >
-                <ArrowRightOnRectangleIcon className="w-5 h-5 flex-shrink-0" />
-                Sign Out
+                <ArrowRightOnRectangleIcon className="w-4 h-4 flex-shrink-0" />
+                <span>Sign Out</span>
               </button>
             </div>
           </nav>

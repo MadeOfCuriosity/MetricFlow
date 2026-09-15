@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import {
-  FunnelIcon,
   SparklesIcon,
   ChartBarIcon,
-  ArrowPathIcon,
+  MagnifyingGlassIcon,
+  TagIcon,
 } from '@heroicons/react/24/outline'
 import { KPIList } from '../components/KPIList'
 import { KPIDetailModal } from '../components/KPIDetailModal'
@@ -45,6 +45,7 @@ export function KPIs() {
 
   const [kpis, setKpis] = useState<KPI[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [selectedKPI, setSelectedKPI] = useState<KPI | null>(null)
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
@@ -123,7 +124,7 @@ export function KPIs() {
       )
       setIsPresetModalOpen(false)
       await fetchKPIs()
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to add presets:', err)
       error('Failed to add presets', 'Please try again')
     } finally {
@@ -131,35 +132,57 @@ export function KPIs() {
     }
   }
 
-  const getCategoryCounts = () => {
+  const categoryCounts = useMemo(() => {
     const counts: Record<string, number> = { All: kpis.length }
     kpis.forEach((kpi) => {
       const category = kpi.category || 'Custom'
       counts[category] = (counts[category] || 0) + 1
     })
     return counts
-  }
+  }, [kpis])
 
-  const categoryCounts = getCategoryCounts()
+  // Filtered KPIs based on search and category
+  const filteredKPIs = useMemo(() => {
+    return kpis.filter((kpi) => {
+      const matchesSearch =
+        !searchQuery.trim() ||
+        kpi.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (kpi.description && kpi.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (kpi.formula && kpi.formula.toLowerCase().includes(searchQuery.toLowerCase()))
+
+      if (!matchesSearch) return false
+
+      if (selectedCategory && selectedCategory !== 'All') {
+        const cat = kpi.category || 'Custom'
+        return cat === selectedCategory
+      }
+
+      return true
+    })
+  }, [kpis, searchQuery, selectedCategory])
+
+  const totalKpisCount = kpis.length
+  const activeKpisCount = useMemo(() => kpis.filter((k) => k.is_active !== false).length, [kpis])
+  const presetKpisCount = useMemo(() => kpis.filter((k) => k.is_preset).length, [kpis])
+  const customKpisCount = totalKpisCount - presetKpisCount
 
   // Empty state component
   const EmptyState = () => (
-    <div className="bg-dark-900 border border-dark-700 rounded-xl p-12 text-center">
-      <ChartBarIcon className="w-16 h-16 text-dark-500 mx-auto mb-6" />
-      <h2 className="text-xl font-semibold text-foreground mb-2">No KPIs yet</h2>
-      <p className="text-dark-300 mb-8 max-w-md mx-auto">
-        Start tracking your business metrics by adding preset KPIs or creating custom ones
-        from within a room using the AI Builder.
-      </p>
-      <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-        <button
-          onClick={handleOpenPresetModal}
-          className="flex items-center gap-2 px-6 py-3 bg-dark-800 text-foreground rounded-lg hover:bg-dark-600 transition-colors"
-        >
-          <ArrowPathIcon className="w-5 h-5" />
-          Add Preset KPIs
-        </button>
+    <div className="flex flex-col items-center justify-center py-16 px-4">
+      <div className="w-16 h-16 rounded-2xl bg-dark-900 border border-dark-700 flex items-center justify-center mb-4">
+        <ChartBarIcon className="w-8 h-8 text-dark-400 stroke-[1.5]" />
       </div>
+      <h3 className="text-lg font-semibold text-foreground mb-1">No KPIs configured</h3>
+      <p className="text-sm text-dark-300 max-w-md text-center mb-6">
+        Start tracking your business metrics by adding preset industry KPIs or building custom formulas.
+      </p>
+      <button
+        onClick={handleOpenPresetModal}
+        className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-foreground text-dark-950 font-semibold hover:opacity-90 transition-opacity text-sm shadow-sm cursor-pointer"
+      >
+        <SparklesIcon className="w-4 h-4 stroke-[2.5]" />
+        <span>Add Preset KPIs</span>
+      </button>
     </div>
   )
 
@@ -168,12 +191,12 @@ export function KPIs() {
     <div className="space-y-6">
       <div className="flex gap-2 overflow-x-auto pb-2">
         {[1, 2, 3, 4, 5].map((i) => (
-          <Skeleton key={i} className="h-9 w-24 rounded-full flex-shrink-0" />
+          <Skeleton key={i} className="h-9 w-24 rounded-xl flex-shrink-0" />
         ))}
       </div>
-      <div className="space-y-4">
+      <div className="space-y-3">
         {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="bg-dark-900 border border-dark-700 rounded-xl p-4">
+          <div key={i} className="bg-dark-900 border border-dark-700 rounded-2xl p-5">
             <Skeleton className="h-5 w-48 mb-2" />
             <Skeleton className="h-4 w-32" />
           </div>
@@ -183,14 +206,104 @@ export function KPIs() {
   )
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 max-w-7xl mx-auto pb-12">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">KPIs</h1>
-          <p className="text-dark-300 mt-1">
-            Manage your key performance indicators
+          <h1 className="text-2xl font-bold text-foreground tracking-tight">KPIs</h1>
+          <p className="text-dark-300 mt-1 text-sm">
+            Manage your organization's key performance indicators, formulas, and metric targets.
           </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={handleOpenPresetModal}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-foreground text-dark-950 font-semibold hover:opacity-90 transition-opacity text-sm shadow-sm cursor-pointer"
+          >
+            <SparklesIcon className="w-4 h-4 stroke-[2.5]" />
+            <span>Add Preset KPIs</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Subtle KPI Summary Badges */}
+      <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
+        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-dark-900 border border-dark-700/70 text-xs">
+          <ChartBarIcon className="w-3.5 h-3.5 text-dark-400 stroke-[1.8]" />
+          <span className="text-dark-400">Total KPIs:</span>
+          <span className="font-semibold text-foreground">{totalKpisCount}</span>
+        </div>
+
+        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-dark-900 border border-dark-700/70 text-xs">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+          <span className="text-dark-400">Active:</span>
+          <span className="font-semibold text-foreground">{activeKpisCount}</span>
+        </div>
+
+        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-dark-900 border border-dark-700/70 text-xs">
+          <SparklesIcon className="w-3.5 h-3.5 text-dark-400 stroke-[1.8]" />
+          <span className="text-dark-400">Presets:</span>
+          <span className="font-semibold text-foreground">{presetKpisCount}</span>
+        </div>
+
+        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-dark-900 border border-dark-700/70 text-xs">
+          <TagIcon className="w-3.5 h-3.5 text-dark-400 stroke-[1.8]" />
+          <span className="text-dark-400">Custom:</span>
+          <span className="font-semibold text-foreground">{customKpisCount}</span>
+        </div>
+      </div>
+
+      {/* Toolbar: Search & Category Filter Segment */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+        {/* Search */}
+        <div className="relative flex-1 max-w-md">
+          <MagnifyingGlassIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-dark-400" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search KPIs by name, formula, or description..."
+            className="w-full pl-9 pr-4 py-2 bg-dark-900 border border-dark-700 rounded-xl text-sm text-foreground placeholder-dark-400 focus:outline-none focus:border-dark-500 transition-colors"
+          />
+        </div>
+
+        {/* Filter segment tabs */}
+        <div className="flex items-center gap-1.5 p-1 bg-dark-900 border border-dark-700 rounded-xl overflow-x-auto">
+          {CATEGORIES.map((category) => {
+            const count = categoryCounts[category] || 0
+            const isSelected =
+              (category === 'All' && !selectedCategory) ||
+              selectedCategory === category
+
+            if (category !== 'All' && count === 0) return null
+
+            return (
+              <button
+                key={category}
+                type="button"
+                onClick={() =>
+                  setSelectedCategory(category === 'All' ? null : category)
+                }
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-all whitespace-nowrap cursor-pointer ${
+                  isSelected
+                    ? 'bg-dark-800 text-foreground shadow-sm'
+                    : 'text-dark-400 hover:text-foreground'
+                }`}
+              >
+                <span>{category}</span>
+                <span
+                  className={`text-[10px] px-1.5 py-0.2 rounded-full ${
+                    isSelected
+                      ? 'bg-dark-700 text-foreground'
+                      : 'bg-dark-800/80 text-dark-400'
+                  }`}
+                >
+                  {count}
+                </span>
+              </button>
+            )
+          })}
         </div>
       </div>
 
@@ -200,68 +313,37 @@ export function KPIs() {
         <EmptyState />
       ) : (
         <>
-          {/* Category filter */}
-          <div className="flex items-center gap-2">
-            <FunnelIcon className="w-4 h-4 text-dark-400" />
-            <div className="flex gap-2 overflow-x-auto pb-2">
-              {CATEGORIES.map((category) => {
-                const count = categoryCounts[category] || 0
-                const isSelected =
-                  (category === 'All' && !selectedCategory) ||
-                  selectedCategory === category
-
-                if (category !== 'All' && count === 0) return null
-
-                return (
-                  <button
-                    key={category}
-                    onClick={() =>
-                      setSelectedCategory(category === 'All' ? null : category)
-                    }
-                    className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${
-                      isSelected
-                        ? 'border border-primary-500 text-foreground'
-                        : 'bg-dark-800 text-dark-300 hover:bg-dark-600 hover:text-foreground'
-                    }`}
-                  >
-                    {category}
-                    <span
-                      className={`text-xs ${
-                        isSelected ? 'text-primary-200' : 'text-dark-400'
-                      }`}
-                    >
-                      {count}
-                    </span>
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-
           {/* KPI List */}
           <KPIList
-            kpis={kpis}
+            kpis={filteredKPIs}
             selectedCategory={selectedCategory}
             onSelect={handleSelectKPI}
             onDelete={(kpi) => setKpiToDelete(kpi)}
             isDeleting={isDeleting}
           />
 
-          {/* Add preset KPIs option if some exist */}
-          {!kpis.some((k) => k.is_preset) && (
-            <div className="bg-dark-900/50 border border-dashed border-dark-600 rounded-xl p-6 text-center">
-              <p className="text-dark-300 mb-3">
-                Want to get started quickly?
-              </p>
-              <button
-                onClick={handleOpenPresetModal}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-dark-800 text-foreground rounded-lg hover:bg-dark-600 transition-colors"
-              >
-                <SparklesIcon className="w-4 h-4" />
-                Add Preset KPIs
-              </button>
-            </div>
-          )}
+          {/* Quick preset action card at bottom */}
+          <div className="pt-2">
+            <button
+              onClick={handleOpenPresetModal}
+              className="w-full group flex items-center justify-between p-4 rounded-2xl border border-dashed border-dark-700/80 hover:border-dark-500 bg-dark-900/20 hover:bg-dark-900/40 transition-all cursor-pointer text-left"
+            >
+              <div className="flex items-center gap-3.5">
+                <div className="w-10 h-10 rounded-xl bg-dark-800 border border-dark-700 flex items-center justify-center group-hover:scale-105 transition-transform flex-shrink-0">
+                  <SparklesIcon className="w-5 h-5 text-dark-300 group-hover:text-foreground" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-semibold text-foreground">Explore More KPI Presets</h4>
+                  <p className="text-xs text-dark-400 mt-0.5">
+                    Choose from standard business formulas across Sales, Marketing, Finance & Operations.
+                  </p>
+                </div>
+              </div>
+              <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-dark-800 border border-dark-700 text-xs font-medium text-foreground group-hover:bg-dark-700 transition-colors">
+                Browse Presets
+              </span>
+            </button>
+          </div>
         </>
       )}
 

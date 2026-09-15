@@ -24,11 +24,11 @@ import { adminService, AdminStats, ActivityEntry } from '../../services/admin'
 import { formatDistanceToNow } from 'date-fns'
 
 const ACTIVITY_ICONS: Record<string, string> = {
-  data_entry: 'bg-dark-800 text-foreground border border-dark-700',
-  user_joined: 'bg-success-500/15 text-success-400',
-  kpi_created: 'bg-warning-500/15 text-warning-400',
-  room_created: 'bg-dark-800 text-foreground border border-dark-700',
-  integration_synced: 'bg-dark-800 text-dark-300 border border-dark-700',
+  data_entry: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20',
+  user_joined: 'bg-purple-500/10 text-purple-400 border border-purple-500/20',
+  kpi_created: 'bg-amber-500/10 text-amber-400 border border-amber-500/20',
+  room_created: 'bg-blue-500/10 text-blue-400 border border-blue-500/20',
+  integration_synced: 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20',
 }
 
 export function AdminDashboard() {
@@ -73,17 +73,17 @@ export function AdminDashboard() {
           {[...Array(6)].map((_, i) => (
             <div
               key={i}
-              className="bg-dark-900 border border-dark-700 rounded-xl p-5 animate-pulse"
+              className="bg-dark-900 border border-dark-700 rounded-2xl p-5 animate-pulse"
             >
-              <div className="h-4 w-20 bg-dark-700 rounded mb-3" />
-              <div className="h-8 w-16 bg-dark-700 rounded" />
+              <div className="h-4 w-20 bg-dark-800 rounded mb-3" />
+              <div className="h-7 w-16 bg-dark-800 rounded" />
             </div>
           ))}
         </div>
         {/* Chart skeleton */}
-        <div className="bg-dark-900 border border-dark-700 rounded-xl p-6 animate-pulse">
-          <div className="h-4 w-40 bg-dark-700 rounded mb-4" />
-          <div className="h-48 bg-dark-700/50 rounded" />
+        <div className="bg-dark-900 border border-dark-700 rounded-2xl p-6 animate-pulse">
+          <div className="h-4 w-40 bg-dark-800 rounded mb-4" />
+          <div className="h-48 bg-dark-800/50 rounded" />
         </div>
       </div>
     )
@@ -94,42 +94,42 @@ export function AdminDashboard() {
       label: 'Total Users',
       value: stats?.total_users ?? 0,
       icon: UsersIcon,
-      color: 'bg-dark-800 text-foreground border border-dark-700',
+      color: 'text-primary-400 bg-primary-500/10 border border-primary-500/20',
       link: '/settings/users',
     },
     {
       label: 'Total KPIs',
       value: stats?.total_kpis ?? 0,
       icon: ChartBarIcon,
-      color: 'bg-success-500/15 text-success-400',
+      color: 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/20',
       link: '/kpis',
     },
     {
       label: 'Total Rooms',
       value: stats?.total_rooms ?? 0,
       icon: FolderIcon,
-      color: 'bg-dark-800 text-foreground border border-dark-700',
+      color: 'text-purple-400 bg-purple-500/10 border border-purple-500/20',
       link: '/settings/rooms',
     },
     {
       label: 'Active Integrations',
       value: stats?.active_integrations ?? 0,
       icon: ArrowPathRoundedSquareIcon,
-      color: 'bg-dark-800 text-dark-300 border border-dark-700',
+      color: 'text-cyan-400 bg-cyan-500/10 border border-cyan-500/20',
       link: '/settings/integrations',
     },
     {
       label: "Today's Entries",
       value: stats?.today_data_entries ?? 0,
       icon: CalendarDaysIcon,
-      color: 'bg-warning-500/15 text-warning-400',
+      color: 'text-amber-400 bg-amber-500/10 border border-amber-500/20',
       link: '/entries',
     },
     {
-      label: 'Total Entries',
+      label: 'Total Data Entries',
       value: stats?.total_data_entries ?? 0,
       icon: DocumentTextIcon,
-      color: 'bg-dark-500/30 text-dark-300',
+      color: 'text-dark-300 bg-dark-800 border border-dark-700',
       link: null,
     },
   ]
@@ -141,38 +141,47 @@ export function AdminDashboard() {
         {statCards.map((card) => (
           <button
             key={card.label}
+            type="button"
             onClick={() => card.link && navigate(card.link)}
-            className={`bg-dark-900 border border-dark-700 rounded-xl p-5 text-left transition-colors ${
-              card.link ? 'hover:border-dark-500 cursor-pointer' : 'cursor-default'
+            className={`bg-dark-900 border border-dark-700 rounded-2xl p-5 text-left transition-all group ${
+              card.link
+                ? 'hover:border-dark-500/80 cursor-pointer shadow-sm'
+                : 'cursor-default'
             }`}
           >
             <div className="flex items-center justify-between mb-3">
-              <span className="text-sm text-dark-300">{card.label}</span>
-              <div className={`p-2 rounded-lg ${card.color}`}>
-                <card.icon className="h-4 w-4" />
+              <span className="text-xs font-semibold text-dark-400 group-hover:text-dark-300 transition-colors">
+                {card.label}
+              </span>
+              <div className={`p-2 rounded-xl ${card.color}`}>
+                <card.icon className="h-4 w-4 stroke-[2]" />
               </div>
             </div>
-            <p className="text-2xl font-bold text-foreground">{card.value}</p>
+            <p className="text-2xl font-bold text-foreground tracking-tight">{card.value}</p>
           </button>
         ))}
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Completion Rate Chart */}
-        <div className="lg:col-span-2 bg-dark-900 border border-dark-700 rounded-xl p-6">
+        <div className="lg:col-span-2 bg-dark-900 border border-dark-700 rounded-2xl p-6 shadow-sm">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold text-foreground">
-              Data Entry Completion Rate
-            </h2>
-            <div className="flex gap-1 bg-dark-800 rounded-lg p-0.5">
+            <div>
+              <h2 className="text-sm font-bold text-foreground tracking-tight">
+                Data Entry Completion Rate
+              </h2>
+              <p className="text-[11px] text-dark-400 mt-0.5">Tracking submission compliance over time</p>
+            </div>
+            <div className="flex items-center p-1 bg-dark-950 border border-dark-800 rounded-xl">
               {([7, 30] as const).map((d) => (
                 <button
                   key={d}
+                  type="button"
                   onClick={() => setChartDays(d)}
-                  className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                  className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg transition-all cursor-pointer ${
                     chartDays === d
-                      ? 'bg-dark-600 text-foreground'
-                      : 'text-dark-400 hover:text-dark-200'
+                      ? 'bg-dark-800 text-foreground shadow-sm'
+                      : 'text-dark-400 hover:text-foreground'
                   }`}
                 >
                   {d}d
@@ -185,27 +194,28 @@ export function AdminDashboard() {
               <AreaChart data={chartData}>
                 <defs>
                   <linearGradient id="completionGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
+                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.25} />
                     <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#262626" />
                 <XAxis
                   dataKey="date"
-                  tick={{ fontSize: 11, fill: '#9ca3af' }}
+                  tick={{ fontSize: 10, fill: '#737373' }}
                   tickFormatter={(v: string) => v.slice(5)}
                 />
                 <YAxis
-                  tick={{ fontSize: 11, fill: '#9ca3af' }}
+                  tick={{ fontSize: 10, fill: '#737373' }}
                   domain={[0, 100]}
                   tickFormatter={(v: number) => `${v}%`}
                 />
                 <Tooltip
                   contentStyle={{
-                    backgroundColor: '#1f2937',
-                    border: '1px solid #374151',
-                    borderRadius: '8px',
-                    color: '#f9fafb',
+                    backgroundColor: '#171717',
+                    border: '1px solid #262626',
+                    borderRadius: '12px',
+                    color: '#f5f5f5',
+                    fontSize: '12px',
                   }}
                   formatter={(value: number) => [`${value}%`, 'Completion Rate']}
                   labelFormatter={(label: string) => label}
@@ -220,50 +230,53 @@ export function AdminDashboard() {
               </AreaChart>
             </ResponsiveContainer>
           ) : (
-            <div className="h-[220px] flex items-center justify-center text-dark-400 text-sm">
-              No data yet
+            <div className="h-[220px] flex items-center justify-center text-dark-400 text-xs">
+              No entry data recorded for this window
             </div>
           )}
         </div>
 
         {/* Quick Actions */}
-        <div className="bg-dark-900 border border-dark-700 rounded-xl p-6">
-          <h2 className="text-sm font-semibold text-foreground mb-4">Quick Actions</h2>
-          <div className="space-y-3">
+        <div className="bg-dark-900 border border-dark-700 rounded-2xl p-6 shadow-sm">
+          <h2 className="text-sm font-bold text-foreground tracking-tight mb-4">Quick Actions</h2>
+          <div className="space-y-2.5">
             <button
+              type="button"
               onClick={() => navigate('/settings/users')}
-              className="flex items-center gap-3 w-full p-3 bg-dark-800 hover:bg-dark-700 rounded-lg transition-colors text-left"
+              className="flex items-center gap-3 w-full p-3 bg-dark-950/40 hover:bg-dark-800/50 border border-dark-800 rounded-xl transition-all text-left cursor-pointer group"
             >
-              <div className="p-2 bg-primary-500/20 rounded-lg">
-                <UserPlusIcon className="h-4 w-4 text-primary-400" />
+              <div className="w-8 h-8 rounded-lg bg-primary-500/10 border border-primary-500/20 flex items-center justify-center group-hover:scale-105 transition-transform">
+                <UserPlusIcon className="h-4 w-4 text-primary-400 stroke-[2]" />
               </div>
               <div>
-                <p className="text-sm font-medium text-foreground">Invite User</p>
-                <p className="text-xs text-dark-400">Add a new team member</p>
+                <p className="text-xs font-semibold text-foreground">Invite User</p>
+                <p className="text-[11px] text-dark-400">Add a team member</p>
               </div>
             </button>
             <button
+              type="button"
               onClick={() => navigate('/settings/rooms')}
-              className="flex items-center gap-3 w-full p-3 bg-dark-800 hover:bg-dark-700 rounded-lg transition-colors text-left"
+              className="flex items-center gap-3 w-full p-3 bg-dark-950/40 hover:bg-dark-800/50 border border-dark-800 rounded-xl transition-all text-left cursor-pointer group"
             >
-              <div className="p-2 bg-dark-700 rounded-lg">
-                <PlusIcon className="h-4 w-4 text-foreground" />
+              <div className="w-8 h-8 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center group-hover:scale-105 transition-transform">
+                <PlusIcon className="h-4 w-4 text-purple-400 stroke-[2.5]" />
               </div>
               <div>
-                <p className="text-sm font-medium text-foreground">Create Room</p>
-                <p className="text-xs text-dark-400">Add a new department</p>
+                <p className="text-xs font-semibold text-foreground">Create Room</p>
+                <p className="text-[11px] text-dark-400">Add a department</p>
               </div>
             </button>
             <button
+              type="button"
               onClick={() => navigate('/kpis')}
-              className="flex items-center gap-3 w-full p-3 bg-dark-800 hover:bg-dark-700 rounded-lg transition-colors text-left"
+              className="flex items-center gap-3 w-full p-3 bg-dark-950/40 hover:bg-dark-800/50 border border-dark-800 rounded-xl transition-all text-left cursor-pointer group"
             >
-              <div className="p-2 bg-success-500/20 rounded-lg">
-                <ChartBarIcon className="h-4 w-4 text-success-400" />
+              <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center group-hover:scale-105 transition-transform">
+                <ChartBarIcon className="h-4 w-4 text-emerald-400 stroke-[2]" />
               </div>
               <div>
-                <p className="text-sm font-medium text-foreground">Create KPI</p>
-                <p className="text-xs text-dark-400">Define a new metric</p>
+                <p className="text-xs font-semibold text-foreground">Add KPI</p>
+                <p className="text-[11px] text-dark-400">Define a new metric</p>
               </div>
             </button>
           </div>
@@ -271,39 +284,43 @@ export function AdminDashboard() {
       </div>
 
       {/* Recent Activity */}
-      <div className="bg-dark-900 border border-dark-700 rounded-xl p-6">
+      <div className="bg-dark-900 border border-dark-700 rounded-2xl p-6 shadow-sm">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-sm font-semibold text-foreground">Recent Activity</h2>
+          <div>
+            <h2 className="text-sm font-bold text-foreground tracking-tight">Recent Activity</h2>
+            <p className="text-[11px] text-dark-400 mt-0.5">Audit log of key actions performed across the organization</p>
+          </div>
           <button
+            type="button"
             onClick={() => navigate('/settings/activity')}
-            className="text-xs text-primary-400 hover:text-primary-300 transition-colors"
+            className="text-xs font-medium text-dark-300 hover:text-foreground transition-colors cursor-pointer"
           >
-            View all
+            View all &rarr;
           </button>
         </div>
         {activities.length === 0 ? (
-          <p className="text-sm text-dark-400 text-center py-6">No recent activity</p>
+          <p className="text-xs text-dark-400 text-center py-6">No recent activity recorded</p>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-2">
             {activities.map((activity) => (
               <div
                 key={activity.id}
-                className="flex items-start gap-3 p-3 rounded-lg hover:bg-dark-800/50 transition-colors"
+                className="flex items-center gap-3 p-3 bg-dark-950/30 border border-dark-800/60 rounded-xl hover:bg-dark-800/30 transition-colors"
               >
                 <div
-                  className={`p-2 rounded-lg flex-shrink-0 ${
-                    ACTIVITY_ICONS[activity.type] || 'bg-dark-600 text-dark-300'
+                  className={`p-1.5 rounded-lg flex-shrink-0 ${
+                    ACTIVITY_ICONS[activity.type] || 'bg-dark-800 text-dark-300 border border-dark-700'
                   }`}
                 >
-                  <div className="h-3 w-3 rounded-full bg-current" />
+                  <div className="h-2 w-2 rounded-full bg-current" />
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-foreground">{activity.description}</p>
-                  <div className="flex items-center gap-2 mt-0.5">
+                <div className="flex-1 min-w-0 flex items-center justify-between gap-2">
+                  <p className="text-xs font-medium text-foreground truncate">{activity.description}</p>
+                  <div className="flex items-center gap-2 flex-shrink-0 text-[11px]">
                     {activity.user_name && (
-                      <span className="text-xs text-dark-400">{activity.user_name}</span>
+                      <span className="text-dark-400 font-medium">{activity.user_name}</span>
                     )}
-                    <span className="text-xs text-dark-500">
+                    <span className="text-dark-500">
                       {formatDistanceToNow(new Date(activity.timestamp), {
                         addSuffix: true,
                       })}

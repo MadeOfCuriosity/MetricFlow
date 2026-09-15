@@ -4,41 +4,50 @@ export function SettingsProfile() {
   const { user } = useAuth()
 
   return (
-    <div className="max-w-2xl bg-dark-900 border border-dark-700 rounded-xl p-6 space-y-6">
-      <h2 className="text-lg font-semibold text-foreground">Profile Settings</h2>
+    <div className="bg-dark-900 border border-dark-700 rounded-2xl p-6 sm:p-8 space-y-6 shadow-sm">
+      <div>
+        <h2 className="text-base font-bold text-foreground tracking-tight">Profile Settings</h2>
+        <p className="text-xs text-dark-300 mt-0.5">Manage your personal account details and display name.</p>
+      </div>
 
-      <div className="flex items-center gap-4">
-        <div className="w-16 h-16 bg-primary-500 rounded-full flex items-center justify-center text-white text-2xl font-bold">
+      <div className="flex items-center gap-4 p-4 bg-dark-950/40 border border-dark-800 rounded-2xl">
+        <div className="w-14 h-14 bg-dark-800 border border-dark-700 rounded-2xl flex items-center justify-center text-foreground text-xl font-bold">
           {user?.name?.charAt(0) || user?.email?.charAt(0) || 'U'}
         </div>
         <div>
-          <p className="text-foreground font-medium">{user?.name || 'User'}</p>
-          <p className="text-sm text-dark-300">{user?.email}</p>
+          <p className="text-sm font-semibold text-foreground">{user?.name || 'User'}</p>
+          <p className="text-xs text-dark-400 mt-0.5">{user?.email}</p>
+          <span className="inline-block mt-1.5 px-2 py-0.5 rounded-md bg-dark-800 border border-dark-700 text-[10px] font-semibold text-dark-300 uppercase tracking-wider">
+            {user?.role === 'admin' ? 'Organization Admin' : 'Room Admin'}
+          </span>
         </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-dark-300 mb-1">Full Name</label>
+          <label className="block text-xs font-semibold text-dark-300 mb-1.5">Full Name</label>
           <input
             type="text"
             defaultValue={user?.name || ''}
-            className="w-full px-4 py-2 bg-dark-800 border border-dark-600 rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary-500"
+            className="w-full px-3.5 py-2.5 bg-dark-950/50 border border-dark-700 rounded-xl text-sm text-foreground placeholder-dark-400 focus:outline-none focus:border-dark-500 transition-colors"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-dark-300 mb-1">Email</label>
+          <label className="block text-xs font-semibold text-dark-300 mb-1.5">Email Address</label>
           <input
             type="email"
             defaultValue={user?.email || ''}
             disabled
-            className="w-full px-4 py-2 bg-dark-800 border border-dark-600 rounded-lg text-dark-400 cursor-not-allowed"
+            className="w-full px-3.5 py-2.5 bg-dark-950/30 border border-dark-800 rounded-xl text-sm text-dark-400 cursor-not-allowed"
           />
         </div>
       </div>
 
-      <div className="pt-4 border-t border-dark-700">
-        <button className="px-4 py-2 border border-primary-500 bg-transparent text-foreground rounded-lg hover:bg-primary-500/10 transition-colors">
+      <div className="pt-4 border-t border-dark-800 flex justify-end">
+        <button
+          type="button"
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-foreground text-dark-950 font-semibold hover:opacity-90 transition-opacity text-sm shadow-sm cursor-pointer"
+        >
           Save Changes
         </button>
       </div>

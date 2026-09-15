@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Cog6ToothIcon, FolderIcon, ChevronDownIcon, HomeIcon } from '@heroicons/react/24/outline'
+import { Cog6ToothIcon, FolderIcon, ChevronDownIcon } from '@heroicons/react/24/outline'
 import { LiquidBridge } from './LiquidBridge'
 import { Sidebar } from './Sidebar'
 
@@ -12,9 +12,8 @@ export function SideDock({ sidebarOpen, onToggleSidebar }: SideDockProps) {
   const navigate = useNavigate()
   const location = useLocation()
 
-  const isSettingsPage = location.pathname.startsWith('/settings')
-  const bottomActionLabel = isSettingsPage ? 'Home' : 'Settings'
-  const bottomActionPath = isSettingsPage ? '/dashboard' : '/settings'
+  const isSettingsActive =
+    location.pathname.startsWith('/settings') && !location.pathname.startsWith('/settings/rooms')
 
   // When expanded, the dock itself has expanded into the sidebar panel
   if (sidebarOpen) {
@@ -38,16 +37,19 @@ export function SideDock({ sidebarOpen, onToggleSidebar }: SideDockProps) {
 
               <button
                 type="button"
-                onClick={() => navigate(bottomActionPath)}
-                className="p-2 rounded-full text-dark-300 hover:text-foreground hover:bg-dark-800 transition-all focus:outline-none"
-                title={bottomActionLabel}
-                aria-label={bottomActionLabel}
+                onClick={() => navigate('/settings')}
+                className={`p-2 rounded-full transition-all focus:outline-none ${
+                  isSettingsActive
+                    ? 'bg-foreground text-dark-950'
+                    : 'text-dark-300 hover:text-foreground hover:bg-dark-800'
+                }`}
+                title="Settings"
               >
-                {isSettingsPage ? (
-                  <HomeIcon className="w-4 h-4 stroke-[2]" />
-                ) : (
-                  <Cog6ToothIcon className="w-4 h-4 stroke-[2]" />
-                )}
+                <Cog6ToothIcon
+                  className={`w-4 h-4 ${
+                    isSettingsActive ? 'text-dark-950 stroke-[2.2]' : 'stroke-[2]'
+                  }`}
+                />
               </button>
             </div>
           }
@@ -61,7 +63,7 @@ export function SideDock({ sidebarOpen, onToggleSidebar }: SideDockProps) {
     <div className="fixed left-4 bottom-4 z-40 pointer-events-none">
       <nav
         aria-label="Sidebar Controls"
-        className="flex flex-col items-center pointer-events-auto filter drop-shadow-[0_8px_20px_rgba(0,0,0,0.35)] dark:drop-shadow-[0_12px_28px_rgba(0,0,0,0.85)]"
+        className="flex flex-col items-center pointer-events-auto filter drop-shadow-[0_1px_4px_rgba(0,0,0,0.06)] dark:drop-shadow-[0_2px_6px_rgba(0,0,0,0.3)]"
       >
         {/* Pod 1: Rooms Toggle (Top Cap) - Clicking this expands into the sidebar */}
         <button
@@ -84,25 +86,31 @@ export function SideDock({ sidebarOpen, onToggleSidebar }: SideDockProps) {
         {/* Vertical Liquid Bridge */}
         <LiquidBridge orientation="vertical" width={48} height={20} waistDepth={11} />
 
-        {/* Pod 2: Settings or Home (Bottom Cap) */}
+        {/* Pod 2: Settings (Bottom Cap) */}
         <button
           type="button"
-          onClick={() => navigate(bottomActionPath)}
+          onClick={() => navigate('/settings')}
           className="w-12 h-12 rounded-b-full border-b border-l border-r border-dark-700 bg-dark-900 flex-shrink-0 flex items-center justify-center relative group focus:outline-none cursor-pointer hover:bg-dark-850 transition-colors"
-          title={bottomActionLabel}
-          aria-label={bottomActionLabel}
+          title="Settings"
+          aria-label="Settings"
         >
           {/* Tooltip on right */}
           <div className="absolute left-full ml-3 top-1/2 -translate-y-1/2 px-2.5 py-1 text-[11px] font-medium text-foreground bg-dark-850/95 border border-dark-700 rounded-lg shadow-xl pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-150 whitespace-nowrap z-50">
-            {bottomActionLabel}
+            Settings
           </div>
 
-          <div className="w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 text-dark-300 group-hover:text-foreground group-hover:bg-dark-800/80">
-            {isSettingsPage ? (
-              <HomeIcon className="w-4 h-4 stroke-[2]" />
-            ) : (
-              <Cog6ToothIcon className="w-4 h-4 stroke-[2]" />
-            )}
+          <div
+            className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 ${
+              isSettingsActive
+                ? 'bg-foreground text-dark-950 shadow-sm'
+                : 'text-dark-300 group-hover:text-foreground group-hover:bg-dark-800/80'
+            }`}
+          >
+            <Cog6ToothIcon
+              className={`w-4 h-4 ${
+                isSettingsActive ? 'text-dark-950 stroke-[2.2]' : 'stroke-[2]'
+              }`}
+            />
           </div>
         </button>
       </nav>

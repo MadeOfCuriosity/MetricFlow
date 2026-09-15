@@ -99,8 +99,8 @@ export function CSVImportModal({ isOpen, onClose, onImported }: CSVImportModalPr
   const [dateFormat, setDateFormat] = useState<string>('')
   const [statementDate, setStatementDate] = useState<string>(new Date().toISOString().split('T')[0])
   const [aggregation, setAggregation] = useState<'sum' | 'avg' | 'min' | 'max' | 'count' | 'latest'>('sum')
-  const [fieldColumn] = useState<string>('')
-  const [valueColumn] = useState<string>('')
+  const [fieldColumn, setFieldColumn] = useState<string>('')
+  const [valueColumn, setValueColumn] = useState<string>('')
 
   // Column mappings: source_column -> { action: 'auto' | 'map' | 'create' | 'ignore', target_field_id, target_field_name }
   const [columnMappings, setColumnMappings] = useState<
@@ -266,7 +266,7 @@ export function CSVImportModal({ isOpen, onClose, onImported }: CSVImportModalPr
               source_column: col,
               target_field_id: matched ? matched.id : null,
               target_field_name: matched ? matched.name : col.replace(/_/g, ' '),
-              action: (matched ? 'map' : 'create') as 'map' | 'create',
+              action: (matched ? 'map' : 'create') as const,
             }
           })
 

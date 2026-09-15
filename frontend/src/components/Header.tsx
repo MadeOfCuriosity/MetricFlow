@@ -3,6 +3,8 @@ import { Menu, Transition, Dialog } from '@headlessui/react'
 import { useNavigate } from 'react-router-dom'
 import {
   MagnifyingGlassIcon,
+  SunIcon,
+  MoonIcon,
   UserCircleIcon,
   ArrowRightOnRectangleIcon,
   BuildingOfficeIcon,
@@ -22,33 +24,8 @@ import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
 import { LiquidBridge } from './LiquidBridge'
 
-export function MagicWandIcon({ className = 'w-4 h-4' }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-    >
-      <path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72Z" />
-      <path d="m14 7 3 3" />
-      <path d="M5 6v4" />
-      <path d="M19 14v4" />
-      <path d="M10 2v2" />
-      <path d="M7 8H3" />
-      <path d="M21 16h-4" />
-      <path d="M11 3H9" />
-    </svg>
-  )
-}
-
 interface HeaderProps {
   onMenuClick?: () => void
-  onToggleAIAgent?: () => void
-  isAIAgentOpen?: boolean
 }
 
 const settingsLinks = [
@@ -64,16 +41,16 @@ const searchItems = [
   { name: 'KPIs & Metrics', path: '/kpis', icon: ChartBarIcon, category: 'Navigation' },
   { name: 'Daily Data Entries', path: '/entries', icon: TableCellsIcon, category: 'Navigation' },
   { name: 'AI Insights', path: '/insights', icon: LightBulbIcon, category: 'Navigation' },
-  { name: 'Rooms', path: '/rooms', icon: FolderIcon, category: 'Navigation' },
+  { name: 'Room Management', path: '/settings/rooms', icon: FolderIcon, category: 'Admin' },
   { name: 'User Management', path: '/settings/users', icon: UsersIcon, category: 'Admin' },
   { name: 'Integrations', path: '/settings/integrations', icon: ArrowPathRoundedSquareIcon, category: 'Admin' },
   { name: 'Profile Settings', path: '/settings/profile', icon: UserCircleIcon, category: 'Settings' },
   { name: 'Appearance & Theme', path: '/settings/appearance', icon: SwatchIcon, category: 'Settings' },
 ]
 
-export function Header({ onMenuClick, onToggleAIAgent, isAIAgentOpen }: HeaderProps) {
+export function Header({ onMenuClick }: HeaderProps) {
   const { user, organization, logout, isAdmin } = useAuth()
-  const { resolvedTheme } = useTheme()
+  const { resolvedTheme, setTheme } = useTheme()
   const navigate = useNavigate()
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
@@ -146,7 +123,7 @@ export function Header({ onMenuClick, onToggleAIAgent, isAIAgentOpen }: HeaderPr
               className="text-sm font-semibold text-foreground tracking-tight hover:opacity-80 transition-opacity focus:outline-none truncate max-w-[150px] sm:max-w-[240px]"
               title={organization?.name ? `${organization.name} Dashboard` : 'Dashboard'}
             >
-              {organization?.name || 'Visualize'}
+              {organization?.name || 'MetricFlow'}
             </button>
           </div>
 
@@ -167,26 +144,18 @@ export function Header({ onMenuClick, onToggleAIAgent, isAIAgentOpen }: HeaderPr
           {/* Liquid Bridge 3 */}
           <LiquidBridge width={20} height={48} waistDepth={11} />
 
-          {/* Pod 4: Ask Visualize AI Agent Pod (Circle Node) */}
+          {/* Pod 4: Theme Toggle Pod (Circle Node) */}
           <button
-            type="button"
-            onClick={onToggleAIAgent}
+            onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
             className="h-12 w-12 border-t border-b border-dark-700 bg-dark-900 flex-shrink-0 flex items-center justify-center group cursor-pointer hover:bg-dark-850 transition-colors focus:outline-none"
-            title="Ask Visualize"
-            aria-label="Ask Visualize"
+            title={`Switch to ${resolvedTheme === 'dark' ? 'Light' : 'Dark'} mode`}
           >
-            <div
-              className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 ${
-                isAIAgentOpen
-                  ? 'bg-foreground text-dark-950 shadow-sm'
-                  : 'text-dark-300 group-hover:text-foreground group-hover:bg-dark-800'
-              }`}
-            >
-              <MagicWandIcon
-                className={`w-4 h-4 transition-transform duration-200 group-hover:rotate-12 ${
-                  isAIAgentOpen ? 'text-dark-950 stroke-[2.2]' : 'stroke-[2]'
-                }`}
-              />
+            <div className="w-8 h-8 rounded-full flex items-center justify-center group-hover:bg-dark-800 transition-colors">
+              {resolvedTheme === 'dark' ? (
+                <SunIcon className="w-4 h-4 text-dark-300 group-hover:text-foreground transition-transform group-hover:rotate-45 stroke-[2]" />
+              ) : (
+                <MoonIcon className="w-4 h-4 text-dark-300 group-hover:text-foreground transition-transform group-hover:-rotate-12 stroke-[2]" />
+              )}
             </div>
           </button>
 

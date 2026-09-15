@@ -95,7 +95,6 @@ class RoomService:
                     "id": room.id,
                     "name": room.name,
                     "description": room.description,
-                    "color": room.color,
                     "children": [],
                     "kpi_count": kpi_count,
                 })
@@ -114,7 +113,6 @@ class RoomService:
                 "id": room.id,
                 "name": room.name,
                 "description": room.description,
-                "color": room.color,
                 "parent_room_id": room.parent_room_id,
                 "children": [],
                 "kpi_count": kpi_count,
@@ -169,7 +167,6 @@ class RoomService:
             org_id=org_id,
             name=data.name,
             description=data.description,
-            color=data.color,
             parent_room_id=data.parent_room_id,
             created_by=user_id,
         )
@@ -185,12 +182,10 @@ class RoomService:
         data: RoomUpdateRequest,
     ) -> Room:
         """Update an existing room."""
-        if "name" in data.model_fields_set and data.name is not None:
+        if data.name is not None:
             room.name = data.name
-        if "description" in data.model_fields_set:
-            room.description = data.description.strip() if data.description and data.description.strip() else None
-        if "color" in data.model_fields_set:
-            room.color = data.color.strip() if data.color and data.color.strip() else None
+        if data.description is not None:
+            room.description = data.description
 
         db.commit()
         db.refresh(room)
@@ -222,7 +217,6 @@ class RoomService:
             "org_id": room.org_id,
             "name": room.name,
             "description": room.description,
-            "color": room.color,
             "parent_room_id": room.parent_room_id,
             "created_by": room.created_by,
             "created_at": room.created_at,
