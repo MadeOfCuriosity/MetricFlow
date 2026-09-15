@@ -13,10 +13,8 @@ import {
   ChevronLeftIcon,
   AdjustmentsHorizontalIcon,
   ExclamationTriangleIcon,
-  BellAlertIcon,
-  CircleStackIcon,
-  ChartBarSquareIcon,
   ArrowPathIcon,
+  Bars3BottomLeftIcon,
 } from '@heroicons/react/24/outline'
 import { ChatInterface } from './ChatInterface'
 import { useToast } from '../context/ToastContext'
@@ -509,26 +507,6 @@ export function KPICreationStudio({
     })
   }, [presets, selectedPresetCategory, presetSearch])
 
-  // Determine active formula for Studio preview
-  const activeStudioFormula = useMemo(() => {
-    if (activeMiddleTab === 'manual' && manualFormula.trim()) {
-      return manualFormula.trim()
-    }
-    const lastWithSuggestion = [...messages].reverse().find((m) => m.suggestion)
-    if (lastWithSuggestion?.suggestion?.formula) {
-      return lastWithSuggestion.suggestion.formula
-    }
-    return null
-  }, [activeMiddleTab, manualFormula, messages])
-
-  // Extract variables from formula for Studio sandbox
-  const studioVariables = useMemo(() => {
-    if (!activeStudioFormula) return ['revenue', 'cogs', 'expenses']
-    const matches = activeStudioFormula.match(/[a-zA-Z_][a-zA-Z0-9_]*/g) || []
-    const reserved = new Set(['sum', 'avg', 'count', 'min', 'max', 'if', 'then', 'else'])
-    const unique = Array.from(new Set(matches.filter((m) => !reserved.has(m.toLowerCase()))))
-    return unique.length > 0 ? unique : ['metric_a', 'metric_b']
-  }, [activeStudioFormula])
 
   return (
     <div className="flex-1 min-h-0 flex gap-3.5 overflow-hidden">
@@ -705,15 +683,14 @@ export function KPICreationStudio({
       {/* ========================================================================= */}
       {/* SECTION 2: CHAT & WORKSPACE (Middle Column) */}
       {/* ========================================================================= */}
-      <main className="flex-1 min-w-0 h-full flex flex-col rounded-2xl bg-dark-900 border border-dark-700 overflow-hidden shadow-sm">
-        {/* Middle Header Toolbar: 3 Tabs [AI, Manual, Presets] + Room Select + Rate Limit */}
-        <div className="p-3 border-b border-dark-700/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-dark-900/90 backdrop-blur-sm z-10">
-          {/* 3 Tabs: AI, Manual, Presets */}
-          <div className="flex items-center p-1 bg-dark-950 border border-dark-750 rounded-xl">
+      <main className="flex-1 min-w-0 h-full flex flex-col overflow-hidden relative">
+        {/* Floating Top Pill: 3 Tabs [AI, Manual, Presets] */}
+        <div className="flex items-center justify-center pt-1 pb-2 flex-shrink-0 z-20">
+          <div className="flex items-center p-1 bg-dark-900/95 border border-dark-750/90 rounded-2xl shadow-lg backdrop-blur-md">
             <button
               type="button"
               onClick={() => setActiveMiddleTab('ai')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+              className={`flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold rounded-xl transition-all cursor-pointer ${
                 activeMiddleTab === 'ai'
                   ? 'bg-dark-800 text-foreground shadow-sm'
                   : 'text-dark-400 hover:text-foreground'
@@ -725,7 +702,7 @@ export function KPICreationStudio({
             <button
               type="button"
               onClick={() => setActiveMiddleTab('manual')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+              className={`flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold rounded-xl transition-all cursor-pointer ${
                 activeMiddleTab === 'manual'
                   ? 'bg-dark-800 text-foreground shadow-sm'
                   : 'text-dark-400 hover:text-foreground'
@@ -737,7 +714,7 @@ export function KPICreationStudio({
             <button
               type="button"
               onClick={() => setActiveMiddleTab('presets')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+              className={`flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold rounded-xl transition-all cursor-pointer ${
                 activeMiddleTab === 'presets'
                   ? 'bg-dark-800 text-foreground shadow-sm'
                   : 'text-dark-400 hover:text-foreground'
@@ -747,39 +724,11 @@ export function KPICreationStudio({
               <span>Presets</span>
             </button>
           </div>
-
-          {/* Right Toolbar Controls: Room Assignment & Rate Limit Pill */}
-          <div className="flex items-center gap-2.5 flex-wrap">
-            {rooms.length > 0 && (
-              <div className="flex items-center gap-1.5 text-xs">
-                <span className="text-dark-400 hidden md:inline">Assign Room:</span>
-                <select
-                  value={selectedRoomId}
-                  onChange={(e) => setSelectedRoomId(e.target.value)}
-                  className="px-2.5 py-1.5 bg-dark-950 border border-dark-750 rounded-lg text-foreground text-xs focus:outline-none focus:border-dark-500 transition-colors cursor-pointer"
-                >
-                  <option value="">None (Global Org KPI)</option>
-                  {rooms.map((room) => (
-                    <option key={room.id} value={room.id}>
-                      {room.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            {rateLimitInfo && (
-              <span className="text-[11px] text-dark-300 bg-dark-950 border border-dark-750 px-2.5 py-1 rounded-lg">
-                <span className="font-semibold text-foreground">{rateLimitInfo.remaining}</span>
-                /{rateLimitInfo.limit} calls left
-              </span>
-            )}
-          </div>
         </div>
 
         {/* Rate limit warning if applicable */}
         {rateLimitError && (
-          <div className="px-4 py-2.5 bg-warning-500/10 border-b border-warning-500/20 flex items-center gap-2.5 text-xs text-warning-400">
+          <div className="mx-auto max-w-xl mb-2 px-4 py-2 bg-warning-500/10 border border-warning-500/20 rounded-xl flex items-center gap-2.5 text-xs text-warning-400 flex-shrink-0">
             <ExclamationTriangleIcon className="w-4 h-4 flex-shrink-0" />
             <span>{rateLimitError}</span>
           </div>
@@ -787,7 +736,7 @@ export function KPICreationStudio({
 
         {/* Success Banner if KPI created */}
         {lastCreatedKpi && (
-          <div className="px-4 py-2.5 bg-success-500/10 border-b border-success-500/20 flex items-center justify-between text-xs text-success-400 animate-in fade-in duration-150">
+          <div className="mx-auto max-w-xl mb-2 px-4 py-2 bg-success-500/10 border border-success-500/20 rounded-xl flex items-center justify-between text-xs text-success-400 flex-shrink-0 animate-in fade-in duration-150">
             <div className="flex items-center gap-2">
               <span className="w-1.5 h-1.5 rounded-full bg-success-400 animate-pulse" />
               <span>
@@ -816,14 +765,17 @@ export function KPICreationStudio({
               onAddKPI={handleAddKPIFromAi}
               isLoading={isLoading}
               isAddingKPI={isAddingKPI}
+              selectedRoomId={selectedRoomId}
+              onSelectRoomId={setSelectedRoomId}
+              rooms={rooms}
             />
           </div>
         )}
 
         {/* Tab 2: Manual Definition Form */}
         {activeMiddleTab === 'manual' && (
-          <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
-            <div className="max-w-2xl mx-auto space-y-6">
+          <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar flex flex-col items-center p-2 sm:p-4">
+            <div className="w-full max-w-2xl bg-dark-900 border border-dark-700 rounded-2xl p-6 shadow-sm space-y-6">
               <div>
                 <h2 className="text-base font-bold text-foreground">Manual KPI Definition</h2>
                 <p className="text-xs text-dark-300 mt-0.5">
@@ -1089,13 +1041,13 @@ export function KPICreationStudio({
       {isStudioOpen ? (
         <aside className="w-80 flex-shrink-0 h-full flex flex-col rounded-2xl bg-dark-900 border border-dark-700 overflow-hidden shadow-sm animate-in fade-in duration-150">
           {/* Header */}
-          <div className="p-3.5 border-b border-dark-700/80 flex items-center justify-between gap-2">
+          <div className="p-3.5 border-b border-dark-750 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-              <AdjustmentsHorizontalIcon className="w-4 h-4 text-primary-400" />
+              <Bars3BottomLeftIcon className="w-4 h-4 text-dark-400 stroke-[2]" />
               <span className="text-xs font-bold uppercase tracking-wider text-foreground">
                 Studio
               </span>
-              <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-primary-500/10 text-primary-400 border border-primary-500/20 font-medium">
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-dark-800 text-dark-300 border border-dark-700 font-medium">
                 Assigned Space
               </span>
             </div>
@@ -1109,124 +1061,15 @@ export function KPICreationStudio({
             </button>
           </div>
 
-          {/* Scrollable Studio Content / Preview Cards */}
-          <div className="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-3.5">
-            {/* Card 1: Formula Playground & Live Sandbox */}
-            <div className="p-3.5 rounded-xl border border-dark-750 bg-dark-950/60 space-y-2.5">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-foreground tracking-tight flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-primary-400" />
-                  Formula Sandbox
-                </span>
-                <span className="text-[10px] text-dark-400 uppercase tracking-wider">Live</span>
-              </div>
-
-              {activeStudioFormula ? (
-                <div className="space-y-2">
-                  <div className="p-2.5 rounded-lg bg-dark-900 border border-dark-750 font-mono text-xs text-primary-300 break-all">
-                    {activeStudioFormula}
-                  </div>
-                  <div className="flex items-center gap-1 flex-wrap">
-                    <span className="text-[10px] text-dark-400">Tokens:</span>
-                    {studioVariables.map((v) => (
-                      <span
-                        key={v}
-                        className="text-[10px] px-1.5 py-0.2 rounded bg-dark-800 border border-dark-700 text-dark-300 font-mono"
-                      >
-                        {v}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <div className="p-3 rounded-lg bg-dark-900 border border-dark-750 text-center">
-                  <p className="text-[11px] text-dark-400">
-                    Define a formula in AI or Manual tab to preview real-time evaluation.
-                  </p>
-                </div>
-              )}
+          {/* Clean Open Assigned Space matching mockup */}
+          <div className="flex-1 flex flex-col items-center justify-center p-6 text-center text-dark-400">
+            <div className="w-12 h-12 rounded-2xl bg-dark-950 border border-dark-800 flex items-center justify-center mb-3">
+              <AdjustmentsHorizontalIcon className="w-6 h-6 text-dark-500 stroke-[1.5]" />
             </div>
-
-            {/* Card 2: Targets & Alert Bands */}
-            <div className="p-3.5 rounded-xl border border-dark-750 bg-dark-950/60 space-y-2.5">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-foreground tracking-tight flex items-center gap-1.5">
-                  <BellAlertIcon className="w-3.5 h-3.5 text-warning-400" />
-                  Targets & Alert Bands
-                </span>
-                <span className="text-[9px] px-1.5 py-0.2 rounded bg-dark-800 text-dark-400">
-                  Preview
-                </span>
-              </div>
-
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between text-[11px]">
-                  <span className="text-emerald-400 font-medium">Target Zone</span>
-                  <span className="text-dark-300 font-mono">&gt;= 85%</span>
-                </div>
-                <div className="w-full bg-dark-800 h-1.5 rounded-full overflow-hidden flex">
-                  <div className="bg-emerald-400 h-full w-[60%]" />
-                  <div className="bg-warning-400 h-full w-[25%]" />
-                  <div className="bg-red-400 h-full w-[15%]" />
-                </div>
-                <p className="text-[10px] text-dark-400 leading-tight">
-                  Automated threshold triggers will monitor daily inputs and dispatch alerts.
-                </p>
-              </div>
-            </div>
-
-            {/* Card 3: Automated Data Feeds */}
-            <div className="p-3.5 rounded-xl border border-dark-750 bg-dark-950/60 space-y-2.5">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-foreground tracking-tight flex items-center gap-1.5">
-                  <CircleStackIcon className="w-3.5 h-3.5 text-sky-400" />
-                  Data Feed Sources
-                </span>
-                <span className="text-[9px] px-1.5 py-0.2 rounded bg-dark-800 text-dark-400">
-                  Connectors
-                </span>
-              </div>
-
-              <div className="grid grid-cols-2 gap-1.5">
-                <div className="p-2 rounded-lg bg-dark-900 border border-dark-750 text-[11px] text-dark-300 font-medium flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                  <span>Google Sheets</span>
-                </div>
-                <div className="p-2 rounded-lg bg-dark-900 border border-dark-750 text-[11px] text-dark-300 font-medium flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
-                  <span>Stripe</span>
-                </div>
-                <div className="p-2 rounded-lg bg-dark-900 border border-dark-750 text-[11px] text-dark-300 font-medium flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-sky-400" />
-                  <span>PostgreSQL</span>
-                </div>
-                <div className="p-2 rounded-lg bg-dark-900 border border-dark-750 text-[11px] text-dark-300 font-medium flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-                  <span>Webhook API</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Card 4: Predictive AI Forecasts */}
-            <div className="p-3.5 rounded-xl border border-dark-750 bg-dark-950/60 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-foreground tracking-tight flex items-center gap-1.5">
-                  <ChartBarSquareIcon className="w-3.5 h-3.5 text-primary-400" />
-                  Predictive Forecasts
-                </span>
-                <span className="text-[9px] px-1.5 py-0.2 rounded bg-dark-800 text-dark-400">
-                  Upcoming
-                </span>
-              </div>
-              <p className="text-[11px] text-dark-400 leading-relaxed">
-                MetricFlow AI will project rolling trend trajectories and highlight upcoming anomalies.
-              </p>
-            </div>
-          </div>
-
-          {/* Footer Note */}
-          <div className="p-2.5 border-t border-dark-800 text-[10px] text-dark-400 text-center leading-tight">
-            Space allocated for advanced calculation models, alert bands & feeds.
+            <p className="text-xs font-semibold text-dark-300">Studio Space Allocated</p>
+            <p className="text-[11px] text-dark-400 mt-1 max-w-[200px] leading-relaxed">
+              Advanced formula sandbox, alert bands & live data feeds will be built here.
+            </p>
           </div>
         </aside>
       ) : (

@@ -1,14 +1,18 @@
 import { useState, useRef, useEffect, useMemo } from 'react'
 import {
-  PaperAirplaneIcon,
   SparklesIcon,
   UserIcon,
+  PlusIcon,
+  ChevronRightIcon,
+  CheckIcon,
+  XMarkIcon,
 } from '@heroicons/react/24/outline'
 import { KPISuggestionCard } from './KPISuggestionCard'
+import type { Room } from '../types/room'
 
-type TimePeriod = 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'other'
+export type TimePeriod = 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'other'
 
-interface KPISuggestion {
+export interface KPISuggestion {
   name: string
   description?: string
   category: string
@@ -19,7 +23,7 @@ interface KPISuggestion {
   time_period?: TimePeriod
 }
 
-interface Message {
+export interface Message {
   id: string
   role: 'user' | 'assistant'
   content: string
@@ -27,12 +31,15 @@ interface Message {
   timestamp: Date
 }
 
-interface ChatInterfaceProps {
+export interface ChatInterfaceProps {
   messages: Message[]
   onSendMessage: (message: string) => void
   onAddKPI: (suggestion: KPISuggestion, dataFieldMappings: Record<string, string>) => void
   isLoading: boolean
   isAddingKPI: boolean
+  selectedRoomId?: string
+  onSelectRoomId?: (roomId: string) => void
+  rooms?: Room[]
 }
 
 /**
@@ -147,16 +154,31 @@ function detectQuickReplies(text: string): { label: string; value: string }[] {
   return []
 }
 
+const examplePrompts = [
+  'Customer retention rate',
+  'Sales conversion rate',
+  'Average order value',
+]
+
 export function ChatInterface({
   messages,
   onSendMessage,
   onAddKPI,
   isLoading,
   isAddingKPI,
+  selectedRoomId,
+  onSelectRoomId,
+  rooms = [],
 }: ChatInterfaceProps) {
   const [input, setInput] = useState('')
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const inputRef = useRef<HTMLInputElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  const selectedRoom = useMemo(() => {
+    return rooms.find((r) => r.id === selectedRoomId)
+  }, [rooms, selectedRoomId])
 
   const lastAssistantId = useMemo(() => {
     for (let i = messages.length - 1; i >= 0; i--) {
@@ -171,196 +193,314 @@ export function ChatInterface({
 
   useEffect(() => {
     if (!isLoading) {
-      inputRef.current?.focus()
+      textareaRef.current?.focus()
     }
   }, [isLoading])
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!input.trim() || isLoading) return
+  // Auto-resize textarea height
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto'
+      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 160)}px`
+    }
+  }, [input])
 
+  // Click outside to close options popover
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setIsMenuOpen(false)
+      }
+    }
+    if (isMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isMenuOpen])
+
+  const handleSend = () => {
+    if (!input.trim() || isLoading) return
     onSendMessage(input.trim())
     setInput('')
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto'
+    }
   }
 
-  const examplePrompts = [
-    { icon: '📈', label: 'Customer retention rate' },
-    { icon: '💰', label: 'Sales conversion rate' },
-    { icon: '⚡', label: 'Employee productivity' },
-    { icon: '🛒', label: 'Average order value' },
-  ]
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      handleSend()
+    }
+  }
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Messages area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center text-center px-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-primary-500/20 to-primary-500/5 rounded-2xl flex items-center justify-center mb-3 animate-float">
-              <SparklesIcon className="w-6 h-6 text-primary-400" />
-            </div>
-            <h2 className="text-lg font-bold text-foreground mb-1">
-              What do you want to track?
-            </h2>
-            <p className="text-dark-300 text-xs sm:text-sm mb-4 max-w-md leading-relaxed">
-              Describe a metric in plain English and I'll turn it into a KPI with
-              the right formula and inputs.
-            </p>
-            <div className="w-full max-w-md">
-              <p className="text-[11px] uppercase font-semibold tracking-wider text-dark-400 mb-2">
-                Quick starts
-              </p>
-              <div className="grid grid-cols-2 gap-2">
-                {examplePrompts.map((prompt) => (
-                  <button
-                    key={prompt.label}
-                    onClick={() => onSendMessage(prompt.label)}
-                    className="flex items-center gap-2 px-3 py-2.5 bg-dark-800 hover:bg-dark-700 hover:border-primary-500/40 border border-dark-600 rounded-xl text-xs sm:text-sm text-dark-200 transition-all text-left cursor-pointer"
-                  >
-                    <span className="text-sm">{prompt.icon}</span>
-                    <span className="truncate">{prompt.label}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        ) : (
-          <>
-            {messages.map((message) => {
-              const isLastAssistant =
-                message.role === 'assistant' && message.id === lastAssistantId
-              const quickReplies =
-                isLastAssistant && !message.suggestion && !isLoading
-                  ? detectQuickReplies(message.content)
-                  : []
+    <div className="flex-1 min-h-0 flex flex-col w-full h-full relative overflow-hidden">
+      {/* Messages area or top spacer */}
+      {messages.length === 0 ? (
+        <div className="flex-1 min-h-0" />
+      ) : (
+        <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4 space-y-4 custom-scrollbar">
+          {messages.map((message) => {
+            const isLastAssistant =
+              message.role === 'assistant' && message.id === lastAssistantId
+            const quickReplies =
+              isLastAssistant && !message.suggestion && !isLoading
+                ? detectQuickReplies(message.content)
+                : []
 
-              return (
+            return (
+              <div
+                key={message.id}
+                className={`flex gap-3 animate-fade-in-up ${
+                  message.role === 'user' ? 'justify-end' : 'justify-start'
+                }`}
+              >
+                {message.role === 'assistant' && (
+                  <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-primary-500/20 to-primary-500/5 rounded-lg flex items-center justify-center">
+                    <SparklesIcon className="w-4 h-4 text-primary-400" />
+                  </div>
+                )}
+
                 <div
-                  key={message.id}
-                  className={`flex gap-3 animate-fade-in-up ${
-                    message.role === 'user' ? 'justify-end' : 'justify-start'
+                  className={`max-w-[80%] ${
+                    message.role === 'user' ? 'order-1' : ''
                   }`}
                 >
-                  {message.role === 'assistant' && (
-                    <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-primary-500/20 to-primary-500/5 rounded-lg flex items-center justify-center">
-                      <SparklesIcon className="w-4 h-4 text-primary-400" />
-                    </div>
-                  )}
-
                   <div
-                    className={`max-w-[80%] ${
-                      message.role === 'user' ? 'order-1' : ''
+                    className={`rounded-2xl px-4 py-3 ${
+                      message.role === 'user'
+                        ? 'border border-primary-500 text-foreground'
+                        : 'bg-dark-800 text-dark-200'
                     }`}
                   >
-                    <div
-                      className={`rounded-2xl px-4 py-3 ${
-                        message.role === 'user'
-                          ? 'border border-primary-500 text-foreground'
-                          : 'bg-dark-800 text-dark-200'
-                      }`}
-                    >
-                      <MessageContent text={message.content} />
-                    </div>
-
-                    {/* Quick reply chips */}
-                    {quickReplies.length > 0 && (
-                      <div className="mt-3 flex flex-wrap gap-2 animate-fade-in">
-                        {quickReplies.map((chip) => (
-                          <button
-                            key={chip.value}
-                            onClick={() => onSendMessage(chip.value)}
-                            disabled={isLoading}
-                            className="px-3 py-1.5 text-sm rounded-full border border-primary-500/40 bg-primary-500/5 text-primary-300 hover:bg-primary-500/15 hover:border-primary-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            {chip.label}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* KPI Suggestion Card */}
-                    {message.suggestion && (
-                      <div className="mt-3">
-                        <KPISuggestionCard
-                          suggestion={message.suggestion}
-                          onAdd={(mappings) => onAddKPI(message.suggestion!, mappings)}
-                          isAdding={isAddingKPI}
-                        />
-                      </div>
-                    )}
-
-                    <p
-                      className={`text-xs text-dark-400 mt-1 ${
-                        message.role === 'user' ? 'text-right' : ''
-                      }`}
-                    >
-                      {message.timestamp.toLocaleTimeString([], {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </p>
+                    <MessageContent text={message.content} />
                   </div>
 
-                  {message.role === 'user' && (
-                    <div className="flex-shrink-0 w-8 h-8 bg-dark-600 rounded-lg flex items-center justify-center order-2">
-                      <UserIcon className="w-4 h-4 text-dark-300" />
+                  {/* Quick reply chips */}
+                  {quickReplies.length > 0 && (
+                    <div className="mt-3 flex flex-wrap gap-2 animate-fade-in">
+                      {quickReplies.map((chip) => (
+                        <button
+                          key={chip.value}
+                          onClick={() => onSendMessage(chip.value)}
+                          disabled={isLoading}
+                          className="px-3 py-1.5 text-sm rounded-full border border-primary-500/40 bg-primary-500/5 text-primary-300 hover:bg-primary-500/15 hover:border-primary-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                        >
+                          {chip.label}
+                        </button>
+                      ))}
                     </div>
                   )}
-                </div>
-              )
-            })}
 
-            {/* Loading indicator */}
-            {isLoading && (
-              <div className="flex gap-3 animate-fade-in">
-                <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-primary-500/20 to-primary-500/5 rounded-lg flex items-center justify-center">
-                  <SparklesIcon className="w-4 h-4 text-primary-400" />
+                  {/* KPI Suggestion Card */}
+                  {message.suggestion && (
+                    <div className="mt-3">
+                      <KPISuggestionCard
+                        suggestion={message.suggestion}
+                        onAdd={(mappings) => onAddKPI(message.suggestion!, mappings)}
+                        isAdding={isAddingKPI}
+                      />
+                    </div>
+                  )}
+
+                  <p
+                    className={`text-xs text-dark-400 mt-1 ${
+                      message.role === 'user' ? 'text-right' : ''
+                    }`}
+                  >
+                    {message.timestamp.toLocaleTimeString([], {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </p>
                 </div>
-                <div className="bg-dark-800 rounded-2xl px-4 py-3">
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-2 h-2 bg-primary-400 rounded-full animate-bounce" />
-                    <div
-                      className="w-2 h-2 bg-primary-400 rounded-full animate-bounce"
-                      style={{ animationDelay: '0.15s' }}
-                    />
-                    <div
-                      className="w-2 h-2 bg-primary-400 rounded-full animate-bounce"
-                      style={{ animationDelay: '0.3s' }}
-                    />
+
+                {message.role === 'user' && (
+                  <div className="flex-shrink-0 w-8 h-8 bg-dark-600 rounded-lg flex items-center justify-center order-2">
+                    <UserIcon className="w-4 h-4 text-dark-300" />
                   </div>
+                )}
+              </div>
+            )
+          })}
+
+          {/* Loading indicator */}
+          {isLoading && (
+            <div className="flex gap-3 animate-fade-in">
+              <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-primary-500/20 to-primary-500/5 rounded-lg flex items-center justify-center">
+                <SparklesIcon className="w-4 h-4 text-primary-400" />
+              </div>
+              <div className="bg-dark-800 rounded-2xl px-4 py-3">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2 h-2 bg-primary-400 rounded-full animate-bounce" />
+                  <div
+                    className="w-2 h-2 bg-primary-400 rounded-full animate-bounce"
+                    style={{ animationDelay: '0.15s' }}
+                  />
+                  <div
+                    className="w-2 h-2 bg-primary-400 rounded-full animate-bounce"
+                    style={{ animationDelay: '0.3s' }}
+                  />
                 </div>
               </div>
-            )}
+            </div>
+          )}
 
-            <div ref={messagesEndRef} />
-          </>
+          <div ref={messagesEndRef} />
+        </div>
+      )}
+
+      {/* Centered / Bottom Input Area */}
+      <div
+        className={`w-full max-w-2xl mx-auto px-4 flex-shrink-0 z-10 transition-all duration-300 ${
+          messages.length > 0 ? 'pb-2' : ''
+        }`}
+      >
+        {/* Floating Input Box Card */}
+        <div className="rounded-2xl bg-dark-900 border border-dark-700/80 shadow-2xl p-3.5 focus-within:border-dark-500 transition-colors">
+          <textarea
+            ref={textareaRef}
+            rows={1}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Describe what you wanna track"
+            disabled={isLoading}
+            className="w-full bg-transparent resize-none outline-none text-foreground placeholder-dark-400 text-sm py-1 px-1.5 font-normal leading-relaxed custom-scrollbar max-h-40"
+          />
+
+          <div className="flex items-center justify-between pt-2 px-0.5">
+            {/* Left: + Button with Room Assignment Popover */}
+            <div className="flex items-center gap-2 relative">
+              <button
+                type="button"
+                onClick={() => setIsMenuOpen((prev) => !prev)}
+                title="Options & Room Assignment"
+                className="w-7 h-7 rounded-lg text-dark-400 hover:text-foreground hover:bg-dark-800 flex items-center justify-center transition-colors cursor-pointer"
+              >
+                <PlusIcon className="w-4 h-4 stroke-[2.5]" />
+              </button>
+
+              {selectedRoom && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary-500/15 border border-primary-500/30 text-primary-300 text-[11px] font-medium animate-in fade-in">
+                  <span className="truncate max-w-[120px]">{selectedRoom.name}</span>
+                  <button
+                    type="button"
+                    onClick={() => onSelectRoomId?.('')}
+                    className="hover:text-foreground cursor-pointer"
+                  >
+                    <XMarkIcon className="w-3 h-3" />
+                  </button>
+                </span>
+              )}
+
+              {/* Popover Menu */}
+              {isMenuOpen && (
+                <div
+                  ref={menuRef}
+                  className="absolute bottom-full left-0 mb-2 w-64 rounded-xl bg-dark-900 border border-dark-700 shadow-2xl p-2 z-50 animate-in fade-in zoom-in-95 duration-150"
+                >
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-dark-400 px-2 py-1">
+                    Assign to Room
+                  </div>
+                  <div className="space-y-0.5 max-h-48 overflow-y-auto custom-scrollbar">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onSelectRoomId?.('')
+                        setIsMenuOpen(false)
+                      }}
+                      className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs transition-colors flex items-center justify-between cursor-pointer ${
+                        !selectedRoomId
+                          ? 'bg-dark-800 text-foreground font-semibold'
+                          : 'text-dark-300 hover:bg-dark-800/60 hover:text-foreground'
+                      }`}
+                    >
+                      <span>None (Global Org KPI)</span>
+                      {!selectedRoomId && <CheckIcon className="w-3.5 h-3.5 text-primary-400" />}
+                    </button>
+                    {rooms && rooms.length > 0 ? (
+                      rooms.map((r) => (
+                        <button
+                          key={r.id}
+                          type="button"
+                          onClick={() => {
+                            onSelectRoomId?.(r.id)
+                            setIsMenuOpen(false)
+                          }}
+                          className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs transition-colors flex items-center justify-between cursor-pointer ${
+                            selectedRoomId === r.id
+                              ? 'bg-dark-800 text-foreground font-semibold'
+                              : 'text-dark-300 hover:bg-dark-800/60 hover:text-foreground'
+                          }`}
+                        >
+                          <span className="truncate">{r.name}</span>
+                          {selectedRoomId === r.id && (
+                            <CheckIcon className="w-3.5 h-3.5 text-primary-400" />
+                          )}
+                        </button>
+                      ))
+                    ) : (
+                      <div className="px-2 py-1 text-[11px] text-dark-400">No rooms created yet</div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Right: Send Button > */}
+            <button
+              type="button"
+              onClick={handleSend}
+              disabled={!input.trim() || isLoading}
+              title="Send message"
+              className="w-8 h-8 rounded-xl bg-foreground text-dark-950 flex items-center justify-center hover:opacity-90 disabled:opacity-20 disabled:cursor-not-allowed transition-all cursor-pointer font-bold flex-shrink-0 shadow-sm"
+            >
+              <ChevronRightIcon className="w-4 h-4 stroke-[2.5]" />
+            </button>
+          </div>
+        </div>
+
+        {/* Suggestion Pills (visible in empty state when not typing) */}
+        {messages.length === 0 && (
+          <div
+            className={`transition-all duration-300 ease-out overflow-hidden ${
+              input.length > 0
+                ? 'max-h-0 opacity-0 -translate-y-2 pointer-events-none mt-0'
+                : 'max-h-20 opacity-100 translate-y-0 mt-3'
+            }`}
+          >
+            <div className="flex items-center justify-center gap-2 flex-wrap">
+              {examplePrompts.map((prompt) => (
+                <button
+                  key={prompt}
+                  type="button"
+                  onClick={() => onSendMessage(prompt)}
+                  className="px-4 py-2 rounded-xl bg-dark-900/90 hover:bg-dark-800 border border-dark-750/80 hover:border-dark-600 text-xs text-dark-300 hover:text-foreground transition-all cursor-pointer shadow-sm"
+                >
+                  {prompt}
+                </button>
+              ))}
+            </div>
+          </div>
         )}
       </div>
 
-      {/* Input area */}
-      <div className="border-t border-dark-750 p-3 sm:p-3.5 bg-dark-900 flex-shrink-0">
-        <form onSubmit={handleSubmit} className="flex gap-2.5">
-          <input
-            ref={inputRef}
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Describe what you want to track..."
-            disabled={isLoading}
-            className="flex-1 px-4 py-2.5 bg-dark-950 border border-dark-700 rounded-xl text-foreground text-sm placeholder-dark-400 focus:outline-none focus:border-dark-500 disabled:opacity-50 transition-colors"
-          />
-          <button
-            type="submit"
-            disabled={!input.trim() || isLoading}
-            className="px-4 py-2.5 border border-primary-500/50 bg-primary-500/10 text-primary-300 rounded-xl hover:bg-primary-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex-shrink-0"
-          >
-            <PaperAirplaneIcon className="w-4 h-4" />
-          </button>
-        </form>
-        <p className="text-[11px] text-dark-400 mt-1 text-center">
-          AI may make mistakes. Review suggested KPIs before adding.
-        </p>
-      </div>
+      {/* Bottom spacer for empty state: smoothly collapses to glide input down on typing */}
+      {messages.length === 0 && (
+        <div
+          style={{
+            flexGrow: input.length > 0 ? 0 : 1,
+            height: input.length > 0 ? '16px' : 'auto',
+            transition:
+              'flex-grow 350ms cubic-bezier(0.16, 1, 0.3, 1), height 350ms cubic-bezier(0.16, 1, 0.3, 1)',
+          }}
+          className="flex-shrink-0"
+        />
+      )}
     </div>
   )
 }
