@@ -254,11 +254,11 @@ export function KPIs() {
           <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">
             {activeTab === 'create' ? 'KPI Studio' : 'KPIs'}
           </h1>
-          <p className="text-dark-300 mt-0.5 text-xs sm:text-sm hidden sm:block">
-            {activeTab === 'create'
-              ? 'Multi-mode KPI creation studio: AI natural language builder, manual formulas, and industry presets.'
-              : "Manage your organization's key performance indicators, formulas, and metric targets."}
-          </p>
+          {activeTab === 'all' && (
+            <p className="text-dark-300 mt-0.5 text-xs sm:text-sm hidden sm:block">
+              Manage your organization's key performance indicators, formulas, and metric targets.
+            </p>
+          )}
         </div>
 
         {/* 2 Switches / Tabs: All KPIs and Create */}
