@@ -1,8 +1,15 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
-import { ArrowLeftIcon, ExclamationTriangleIcon, ArrowTopRightOnSquareIcon } from '@heroicons/react/24/outline'
+import {
+  ArrowLeftIcon,
+  ExclamationTriangleIcon,
+  ArrowTopRightOnSquareIcon,
+  SparklesIcon,
+  ArrowRightIcon,
+} from '@heroicons/react/24/outline'
 import { ChatInterface } from '../components/ChatInterface'
 import { useToast } from '../context/ToastContext'
+import { useRoom } from '../context/RoomContext'
 import api from '../services/api'
 import { roomsApi } from '../services/rooms'
 
@@ -32,10 +39,27 @@ interface ConversationMessage {
   content: string
 }
 
-export function AIBuilder() {
+export interface AIBuilderProps {
+  embedded?: boolean
+  roomId?: string
+  onKpiCreated?: (kpiName: string) => void
+  onViewAllKpis?: () => void
+}
+
+export function AIBuilder({
+  embedded = false,
+  roomId: propRoomId,
+  onKpiCreated,
+  onViewAllKpis,
+}: AIBuilderProps = {}) {
   const navigate = useNavigate()
-  const { roomId } = useParams<{ roomId: string }>()
+  const params = useParams<{ roomId: string }>()
+  const routeRoomId = params.roomId
+  const [selectedRoomId, setSelectedRoomId] = useState<string>(propRoomId || routeRoomId || '')
+  const effectiveRoomId = propRoomId || routeRoomId || selectedRoomId
+
   const { success, error: showError } = useToast()
+  const { rooms } = useRoom()
 
   const [messages, setMessages] = useState<Message[]>([])
   const [conversationHistory, setConversationHistory] = useState<ConversationMessage[]>([])
@@ -47,14 +71,19 @@ export function AIBuilder() {
   const [lastCreatedKpi, setLastCreatedKpi] = useState<string | null>(null)
 
   useEffect(() => {
-    if (roomId) {
-      roomsApi.getRoom(roomId).then((room) => {
-        setRoomName(room.name)
-      }).catch(() => {
-        setRoomName('Unknown Room')
-      })
+    if (effectiveRoomId) {
+      roomsApi
+        .getRoom(effectiveRoomId)
+        .then((room) => {
+          setRoomName(room.name)
+        })
+        .catch(() => {
+          setRoomName('')
+        })
+    } else {
+      setRoomName('')
     }
-  }, [roomId])
+  }, [effectiveRoomId])
 
   // Proactively check rate limit on mount
   useEffect(() => {
@@ -180,17 +209,20 @@ export function AIBuilder() {
         formula: suggestion.formula,
         time_period: suggestion.time_period || 'daily',
         data_field_mappings: Object.keys(dataFieldMappings).length > 0 ? dataFieldMappings : undefined,
-        room_id: roomId,
+        room_id: effectiveRoomId || undefined,
       })
 
-      success('KPI Created', `"${suggestion.name}" has been created and assigned to ${roomName}`)
+      const targetRoom = roomName || rooms.find((r) => r.id === effectiveRoomId)?.name
+      const locationText = targetRoom ? ` and assigned to ${targetRoom}` : ''
+      success('KPI Created', `"${suggestion.name}" has been created${locationText}`)
       setLastCreatedKpi(suggestion.name)
+      onKpiCreated?.(suggestion.name)
 
       // Add confirmation message
       const confirmMessage: Message = {
         id: Date.now().toString(),
         role: 'assistant',
-        content: `Great! I've added "${suggestion.name}" to ${roomName}. You can now start tracking this metric from the Data Entry page. Would you like to create another KPI?`,
+        content: `Great! I've added "${suggestion.name}"${locationText}. You can now start tracking this metric or view it in All KPIs. Would you like to create another KPI?`,
         timestamp: new Date(),
       }
       setMessages((prev) => [...prev, confirmMessage])
@@ -200,7 +232,7 @@ export function AIBuilder() {
       if (err.response?.data?.detail?.includes('already exists')) {
         showError('KPI Exists', 'A KPI with this name already exists')
       } else {
-        showError('Failed to Create', 'Could not create the KPI. Please try again.')
+        showError('Failed to Create', err.response?.data?.detail || 'Could not create the KPI. Please try again.')
       }
     } finally {
       setIsAddingKPI(false)
@@ -208,33 +240,69 @@ export function AIBuilder() {
   }
 
   return (
-    <div className="h-[calc(100vh-8rem)] flex flex-col">
+    <div className={embedded ? 'space-y-3' : 'h-[calc(100vh-8rem)] flex flex-col'}>
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => navigate(`/rooms/${roomId}`)}
-            className="p-2 text-dark-300 hover:text-foreground hover:bg-dark-800 rounded-lg transition-colors"
-          >
-            <ArrowLeftIcon className="w-5 h-5" />
-          </button>
-          <div>
-            <h1 className="text-xl font-bold text-foreground">AI KPI Builder</h1>
-            <p className="text-sm text-dark-300">
-              Create KPIs for {roomName || 'this room'}
-            </p>
+      {embedded ? (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-1">
+          <div className="flex items-center gap-2">
+            <SparklesIcon className="w-4 h-4 text-primary-400" />
+            <span className="text-sm font-semibold text-foreground">AI KPI Creation</span>
+            <span className="text-xs text-dark-400">— Natural language formula builder</span>
+          </div>
+
+          <div className="flex items-center gap-3 flex-wrap">
+            {rooms.length > 0 && (
+              <div className="flex items-center gap-2 text-xs">
+                <span className="text-dark-400">Assign to Room:</span>
+                <select
+                  value={selectedRoomId}
+                  onChange={(e) => setSelectedRoomId(e.target.value)}
+                  className="px-2.5 py-1.5 bg-dark-900 border border-dark-700 rounded-lg text-foreground text-xs focus:outline-none focus:border-dark-500 transition-colors cursor-pointer"
+                >
+                  <option value="">None (Global Organization KPI)</option>
+                  {rooms.map((room) => (
+                    <option key={room.id} value={room.id}>
+                      {room.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {rateLimitInfo && (
+              <span className="text-xs text-dark-400 bg-dark-900 border border-dark-700/80 px-2.5 py-1 rounded-lg">
+                {rateLimitInfo.remaining}/{rateLimitInfo.limit} calls left today
+              </span>
+            )}
           </div>
         </div>
-        {rateLimitInfo && (
-          <p className="text-xs text-dark-400">
-            {rateLimitInfo.remaining}/{rateLimitInfo.limit} AI calls remaining today
-          </p>
-        )}
-      </div>
+      ) : (
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => navigate(effectiveRoomId ? `/rooms/${effectiveRoomId}` : '/rooms')}
+              className="p-2 text-dark-300 hover:text-foreground hover:bg-dark-800 rounded-lg transition-colors cursor-pointer"
+            >
+              <ArrowLeftIcon className="w-5 h-5" />
+            </button>
+            <div>
+              <h1 className="text-xl font-bold text-foreground">AI KPI Builder</h1>
+              <p className="text-sm text-dark-300">
+                Create KPIs for {roomName || 'this room'}
+              </p>
+            </div>
+          </div>
+          {rateLimitInfo && (
+            <p className="text-xs text-dark-400">
+              {rateLimitInfo.remaining}/{rateLimitInfo.limit} AI calls remaining today
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Rate limit warning */}
       {rateLimitError && (
-        <div className="mb-4 flex items-center gap-3 p-4 bg-warning-500/10 border border-warning-500/20 rounded-xl">
+        <div className="flex items-center gap-3 p-4 bg-warning-500/10 border border-warning-500/20 rounded-2xl">
           <ExclamationTriangleIcon className="w-5 h-5 text-warning-400 flex-shrink-0" />
           <p className="text-sm text-warning-400">{rateLimitError}</p>
         </div>
@@ -242,18 +310,33 @@ export function AIBuilder() {
 
       {/* KPI created action banner */}
       {lastCreatedKpi && (
-        <div className="mb-4 flex items-center justify-between p-3 bg-success-500/10 border border-success-500/20 rounded-xl">
-          <p className="text-sm text-success-400">
-            "{lastCreatedKpi}" created successfully
-          </p>
+        <div className="flex items-center justify-between p-3.5 bg-success-500/10 border border-success-500/20 rounded-2xl animate-in fade-in duration-200">
+          <div className="flex items-center gap-2.5">
+            <span className="w-2 h-2 rounded-full bg-success-400" />
+            <p className="text-sm text-success-400 font-medium">
+              "{lastCreatedKpi}" created successfully
+            </p>
+          </div>
           <div className="flex items-center gap-3">
-            <Link
-              to={`/rooms/${roomId}`}
-              className="flex items-center gap-1.5 text-xs text-primary-400 hover:text-primary-300 transition-colors"
-            >
-              <ArrowTopRightOnSquareIcon className="w-3.5 h-3.5" />
-              View Room
-            </Link>
+            {embedded && onViewAllKpis && (
+              <button
+                type="button"
+                onClick={onViewAllKpis}
+                className="flex items-center gap-1.5 text-xs font-semibold text-primary-400 hover:text-primary-300 transition-colors cursor-pointer"
+              >
+                <span>View in All KPIs</span>
+                <ArrowRightIcon className="w-3.5 h-3.5" />
+              </button>
+            )}
+            {effectiveRoomId && (
+              <Link
+                to={`/rooms/${effectiveRoomId}`}
+                className="flex items-center gap-1.5 text-xs text-primary-400 hover:text-primary-300 transition-colors"
+              >
+                <ArrowTopRightOnSquareIcon className="w-3.5 h-3.5" />
+                View Room
+              </Link>
+            )}
             <Link
               to="/entries"
               className="flex items-center gap-1.5 text-xs text-primary-400 hover:text-primary-300 transition-colors"
@@ -266,7 +349,11 @@ export function AIBuilder() {
       )}
 
       {/* Chat interface */}
-      <div className="flex-1 bg-dark-900 border border-dark-700 rounded-xl overflow-hidden">
+      <div
+        className={`bg-dark-900 border border-dark-700 rounded-2xl overflow-hidden shadow-sm flex flex-col ${
+          embedded ? 'h-[560px]' : 'flex-1'
+        }`}
+      >
         <ChatInterface
           messages={messages}
           onSendMessage={sendMessage}

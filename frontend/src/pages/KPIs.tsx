@@ -1,17 +1,21 @@
 import { useState, useEffect, useMemo } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import {
   SparklesIcon,
   ChartBarIcon,
   MagnifyingGlassIcon,
   TagIcon,
+  PlusIcon,
 } from '@heroicons/react/24/outline'
 import { KPIList } from '../components/KPIList'
 import { KPIDetailModal } from '../components/KPIDetailModal'
 import { DeleteConfirmModal } from '../components/DeleteConfirmModal'
 import { PresetSelectionModal } from '../components/PresetSelectionModal'
 import { Skeleton } from '../components'
+import { SEOHead } from '../components/SEOHead'
 import { useToast } from '../context/ToastContext'
 import api from '../services/api'
+import { AIBuilder } from './AIBuilder'
 
 type TimePeriod = 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'other'
 
@@ -42,6 +46,20 @@ const CATEGORIES = ['All', 'Sales', 'Marketing', 'Operations', 'Finance', 'Custo
 
 export function KPIs() {
   const { success, error } = useToast()
+  const [searchParams, setSearchParams] = useSearchParams()
+
+  // Tab State: Synchronized with query param ?tab=all | ?tab=create
+  const initialTab = searchParams.get('tab') === 'create' ? 'create' : 'all'
+  const [activeTab, setActiveTab] = useState<'all' | 'create'>(initialTab)
+
+  const handleTabChange = (tab: 'all' | 'create') => {
+    setActiveTab(tab)
+    if (tab === 'create') {
+      setSearchParams({ tab: 'create' })
+    } else {
+      setSearchParams({})
+    }
+  }
 
   const [kpis, setKpis] = useState<KPI[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -132,6 +150,8 @@ export function KPIs() {
     }
   }
 
+
+
   const categoryCounts = useMemo(() => {
     const counts: Record<string, number> = { All: kpis.length }
     kpis.forEach((kpi) => {
@@ -166,7 +186,7 @@ export function KPIs() {
   const presetKpisCount = useMemo(() => kpis.filter((k) => k.is_preset).length, [kpis])
   const customKpisCount = totalKpisCount - presetKpisCount
 
-  // Empty state component
+  // Empty state component for All KPIs
   const EmptyState = () => (
     <div className="flex flex-col items-center justify-center py-16 px-4">
       <div className="w-16 h-16 rounded-2xl bg-dark-900 border border-dark-700 flex items-center justify-center mb-4">
@@ -174,15 +194,25 @@ export function KPIs() {
       </div>
       <h3 className="text-lg font-semibold text-foreground mb-1">No KPIs configured</h3>
       <p className="text-sm text-dark-300 max-w-md text-center mb-6">
-        Start tracking your business metrics by adding preset industry KPIs or building custom formulas.
+        Start tracking your business metrics with AI-generated custom formulas or standard industry presets.
       </p>
-      <button
-        onClick={handleOpenPresetModal}
-        className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-foreground text-dark-950 font-semibold hover:opacity-90 transition-opacity text-sm shadow-sm cursor-pointer"
-      >
-        <SparklesIcon className="w-4 h-4 stroke-[2.5]" />
-        <span>Add Preset KPIs</span>
-      </button>
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => handleTabChange('create')}
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-foreground text-dark-950 font-semibold hover:opacity-90 transition-opacity text-sm shadow-sm cursor-pointer"
+        >
+          <SparklesIcon className="w-4 h-4 stroke-[2.5]" />
+          <span>Create with AI</span>
+        </button>
+        <button
+          type="button"
+          onClick={handleOpenPresetModal}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-dark-800 hover:bg-dark-750 text-foreground font-medium text-sm border border-dark-700 transition-colors cursor-pointer"
+        >
+          <span>Add Presets</span>
+        </button>
+      </div>
     </div>
   )
 
@@ -207,7 +237,12 @@ export function KPIs() {
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto pb-12">
-      {/* Header */}
+      <SEOHead
+        title="KPIs & Metrics"
+        description="Manage key performance indicators, custom formulas, targets, and automated AI calculations."
+      />
+
+      {/* Header with 2 Switches / Tabs */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground tracking-tight">KPIs</h1>
@@ -215,136 +250,192 @@ export function KPIs() {
             Manage your organization's key performance indicators, formulas, and metric targets.
           </p>
         </div>
-        <div className="flex items-center gap-3">
+
+        {/* 2 Switches / Tabs: All KPIs and Create */}
+        <div className="flex items-center p-1 bg-dark-900 border border-dark-700 rounded-xl">
           <button
             type="button"
-            onClick={handleOpenPresetModal}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-foreground text-dark-950 font-semibold hover:opacity-90 transition-opacity text-sm shadow-sm cursor-pointer"
+            onClick={() => handleTabChange('all')}
+            className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition-all cursor-pointer ${
+              activeTab === 'all'
+                ? 'bg-dark-800 text-foreground shadow-sm'
+                : 'text-dark-400 hover:text-foreground'
+            }`}
           >
-            <SparklesIcon className="w-4 h-4 stroke-[2.5]" />
-            <span>Add Preset KPIs</span>
+            <ChartBarIcon className="w-4 h-4 stroke-[2]" />
+            <span>All KPIs</span>
+            <span
+              className={`text-[11px] px-1.5 py-0.2 rounded-full font-normal ${
+                activeTab === 'all'
+                  ? 'bg-dark-700 text-foreground'
+                  : 'bg-dark-800/80 text-dark-400'
+              }`}
+            >
+              {totalKpisCount}
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => handleTabChange('create')}
+            className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition-all cursor-pointer ${
+              activeTab === 'create'
+                ? 'bg-dark-800 text-foreground shadow-sm'
+                : 'text-dark-400 hover:text-foreground'
+            }`}
+          >
+            <SparklesIcon className="w-4 h-4 stroke-[2]" />
+            <span>Create</span>
           </button>
         </div>
       </div>
 
-      {/* Subtle KPI Summary Badges */}
-      <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
-        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-dark-900 border border-dark-700/70 text-xs">
-          <ChartBarIcon className="w-3.5 h-3.5 text-dark-400 stroke-[1.8]" />
-          <span className="text-dark-400">Total KPIs:</span>
-          <span className="font-semibold text-foreground">{totalKpisCount}</span>
-        </div>
+      {/* TAB 1: ALL KPIs (Everything previously there, minus 'Explore More KPI Presets') */}
+      {activeTab === 'all' && (
+        <div className="space-y-6 animate-in fade-in duration-150">
+          {/* Subtle KPI Summary Badges */}
+          <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-dark-900 border border-dark-700/70 text-xs">
+              <ChartBarIcon className="w-3.5 h-3.5 text-dark-400 stroke-[1.8]" />
+              <span className="text-dark-400">Total KPIs:</span>
+              <span className="font-semibold text-foreground">{totalKpisCount}</span>
+            </div>
 
-        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-dark-900 border border-dark-700/70 text-xs">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-          <span className="text-dark-400">Active:</span>
-          <span className="font-semibold text-foreground">{activeKpisCount}</span>
-        </div>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-dark-900 border border-dark-700/70 text-xs">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+              <span className="text-dark-400">Active:</span>
+              <span className="font-semibold text-foreground">{activeKpisCount}</span>
+            </div>
 
-        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-dark-900 border border-dark-700/70 text-xs">
-          <SparklesIcon className="w-3.5 h-3.5 text-dark-400 stroke-[1.8]" />
-          <span className="text-dark-400">Presets:</span>
-          <span className="font-semibold text-foreground">{presetKpisCount}</span>
-        </div>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-dark-900 border border-dark-700/70 text-xs">
+              <SparklesIcon className="w-3.5 h-3.5 text-dark-400 stroke-[1.8]" />
+              <span className="text-dark-400">Presets:</span>
+              <span className="font-semibold text-foreground">{presetKpisCount}</span>
+            </div>
 
-        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-dark-900 border border-dark-700/70 text-xs">
-          <TagIcon className="w-3.5 h-3.5 text-dark-400 stroke-[1.8]" />
-          <span className="text-dark-400">Custom:</span>
-          <span className="font-semibold text-foreground">{customKpisCount}</span>
-        </div>
-      </div>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-dark-900 border border-dark-700/70 text-xs">
+              <TagIcon className="w-3.5 h-3.5 text-dark-400 stroke-[1.8]" />
+              <span className="text-dark-400">Custom:</span>
+              <span className="font-semibold text-foreground">{customKpisCount}</span>
+            </div>
 
-      {/* Toolbar: Search & Category Filter Segment */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-        {/* Search */}
-        <div className="relative flex-1 max-w-md">
-          <MagnifyingGlassIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-dark-400" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search KPIs by name, formula, or description..."
-            className="w-full pl-9 pr-4 py-2 bg-dark-900 border border-dark-700 rounded-xl text-sm text-foreground placeholder-dark-400 focus:outline-none focus:border-dark-500 transition-colors"
-          />
-        </div>
-
-        {/* Filter segment tabs */}
-        <div className="flex items-center gap-1.5 p-1 bg-dark-900 border border-dark-700 rounded-xl overflow-x-auto">
-          {CATEGORIES.map((category) => {
-            const count = categoryCounts[category] || 0
-            const isSelected =
-              (category === 'All' && !selectedCategory) ||
-              selectedCategory === category
-
-            if (category !== 'All' && count === 0) return null
-
-            return (
-              <button
-                key={category}
-                type="button"
-                onClick={() =>
-                  setSelectedCategory(category === 'All' ? null : category)
-                }
-                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-all whitespace-nowrap cursor-pointer ${
-                  isSelected
-                    ? 'bg-dark-800 text-foreground shadow-sm'
-                    : 'text-dark-400 hover:text-foreground'
-                }`}
-              >
-                <span>{category}</span>
-                <span
-                  className={`text-[10px] px-1.5 py-0.2 rounded-full ${
-                    isSelected
-                      ? 'bg-dark-700 text-foreground'
-                      : 'bg-dark-800/80 text-dark-400'
-                  }`}
-                >
-                  {count}
-                </span>
-              </button>
-            )
-          })}
-        </div>
-      </div>
-
-      {isLoading ? (
-        <LoadingSkeleton />
-      ) : kpis.length === 0 ? (
-        <EmptyState />
-      ) : (
-        <>
-          {/* KPI List */}
-          <KPIList
-            kpis={filteredKPIs}
-            selectedCategory={selectedCategory}
-            onSelect={handleSelectKPI}
-            onDelete={(kpi) => setKpiToDelete(kpi)}
-            isDeleting={isDeleting}
-          />
-
-          {/* Quick preset action card at bottom */}
-          <div className="pt-2">
+            {/* Quick Link to Create tab */}
             <button
-              onClick={handleOpenPresetModal}
-              className="w-full group flex items-center justify-between p-4 rounded-2xl border border-dashed border-dark-700/80 hover:border-dark-500 bg-dark-900/20 hover:bg-dark-900/40 transition-all cursor-pointer text-left"
+              type="button"
+              onClick={() => handleTabChange('create')}
+              className="ml-auto hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-foreground text-dark-950 font-semibold text-xs hover:opacity-90 transition-opacity cursor-pointer"
             >
-              <div className="flex items-center gap-3.5">
-                <div className="w-10 h-10 rounded-xl bg-dark-800 border border-dark-700 flex items-center justify-center group-hover:scale-105 transition-transform flex-shrink-0">
-                  <SparklesIcon className="w-5 h-5 text-dark-300 group-hover:text-foreground" />
+              <PlusIcon className="w-3.5 h-3.5 stroke-[2.5]" />
+              <span>Create KPI</span>
+            </button>
+          </div>
+
+          {/* Toolbar: Search & Category Filter Segment */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+            {/* Search */}
+            <div className="relative flex-1 max-w-md">
+              <MagnifyingGlassIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-dark-400" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search KPIs by name, formula, or description..."
+                className="w-full pl-9 pr-4 py-2 bg-dark-900 border border-dark-700 rounded-xl text-sm text-foreground placeholder-dark-400 focus:outline-none focus:border-dark-500 transition-colors"
+              />
+            </div>
+
+            {/* Filter segment tabs */}
+            <div className="flex items-center gap-1.5 p-1 bg-dark-900 border border-dark-700 rounded-xl overflow-x-auto">
+              {CATEGORIES.map((category) => {
+                const count = categoryCounts[category] || 0
+                const isSelected =
+                  (category === 'All' && !selectedCategory) ||
+                  selectedCategory === category
+
+                if (category !== 'All' && count === 0) return null
+
+                return (
+                  <button
+                    key={category}
+                    type="button"
+                    onClick={() =>
+                      setSelectedCategory(category === 'All' ? null : category)
+                    }
+                    className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-all whitespace-nowrap cursor-pointer ${
+                      isSelected
+                        ? 'bg-dark-800 text-foreground shadow-sm'
+                        : 'text-dark-400 hover:text-foreground'
+                    }`}
+                  >
+                    <span>{category}</span>
+                    <span
+                      className={`text-[10px] px-1.5 py-0.2 rounded-full ${
+                        isSelected
+                          ? 'bg-dark-700 text-foreground'
+                          : 'bg-dark-800/80 text-dark-400'
+                      }`}
+                    >
+                      {count}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Main KPI Content Area (NO Explore More KPI Presets card here) */}
+          {isLoading ? (
+            <LoadingSkeleton />
+          ) : kpis.length === 0 ? (
+            <EmptyState />
+          ) : (
+            <KPIList
+              kpis={filteredKPIs}
+              selectedCategory={selectedCategory}
+              onSelect={handleSelectKPI}
+              onDelete={(kpi) => setKpiToDelete(kpi)}
+              isDeleting={isDeleting}
+            />
+          )}
+        </div>
+      )}
+
+      {/* TAB 2: CREATE (AI KPI Creation things + Explore More KPI Presets) */}
+      {activeTab === 'create' && (
+        <div className="space-y-6 animate-in fade-in duration-150">
+          {/* 1. Explore More KPI Presets Glassmorphic Banner Card */}
+          <div className="rounded-2xl border border-dark-700 bg-gradient-to-r from-dark-900 via-dark-850 to-dark-900 p-5 shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-start sm:items-center gap-3.5">
+                <div className="w-11 h-11 rounded-xl bg-primary-500/10 border border-primary-500/20 flex items-center justify-center flex-shrink-0">
+                  <SparklesIcon className="w-6 h-6 text-primary-400" />
                 </div>
                 <div>
-                  <h4 className="text-sm font-semibold text-foreground">Explore More KPI Presets</h4>
-                  <p className="text-xs text-dark-400 mt-0.5">
-                    Choose from standard business formulas across Sales, Marketing, Finance & Operations.
+                  <h3 className="text-base font-semibold text-foreground tracking-tight">
+                    Explore More KPI Presets
+                  </h3>
+                  <p className="text-xs text-dark-300 mt-0.5 max-w-xl leading-relaxed">
+                    Instantly import pre-built, industry-standard formulas across Sales, Marketing, Finance & Operations with zero configuration needed.
                   </p>
                 </div>
               </div>
-              <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-dark-800 border border-dark-700 text-xs font-medium text-foreground group-hover:bg-dark-700 transition-colors">
-                Browse Presets
-              </span>
-            </button>
+              <button
+                type="button"
+                onClick={handleOpenPresetModal}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-foreground text-dark-950 font-semibold hover:opacity-90 transition-opacity text-sm shadow-sm cursor-pointer flex-shrink-0"
+              >
+                <SparklesIcon className="w-4 h-4 stroke-[2.5]" />
+                <span>Browse Presets</span>
+              </button>
+            </div>
           </div>
-        </>
+
+          {/* 2. AI KPI Creation */}
+          <AIBuilder
+            embedded
+            onKpiCreated={() => fetchKPIs()}
+            onViewAllKpis={() => handleTabChange('all')}
+          />
+        </div>
       )}
 
       {/* Detail Modal */}
