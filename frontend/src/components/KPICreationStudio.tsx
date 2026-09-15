@@ -80,14 +80,6 @@ const STORAGE_KEY = 'metricflow_kpi_studio_history_v1'
 
 const PRESET_CATEGORIES = ['All', 'Sales', 'Marketing', 'Operations', 'Finance']
 
-const PROMPT_SUGGESTIONS = [
-  'Customer Churn Rate',
-  'Gross Profit Margin',
-  'Net Revenue Retention (NRR)',
-  'Lead-to-Opportunity Ratio',
-  'Customer Acquisition Cost (CAC)',
-]
-
 export interface KPICreationStudioProps {
   onKpiCreated?: (kpiName: string) => void
   onViewAllKpis?: () => void
@@ -539,7 +531,7 @@ export function KPICreationStudio({
   }, [activeStudioFormula])
 
   return (
-    <div className="h-[calc(100vh-13.5rem)] min-h-[540px] flex gap-3.5 overflow-hidden">
+    <div className="flex-1 min-h-0 flex gap-3.5 overflow-hidden">
       {/* ========================================================================= */}
       {/* SECTION 1: HISTORY (Left Column, Collapsible) */}
       {/* ========================================================================= */}
@@ -817,7 +809,7 @@ export function KPICreationStudio({
 
         {/* Tab 1: AI Chat View */}
         {activeMiddleTab === 'ai' && (
-          <div className="flex-1 overflow-hidden flex flex-col">
+          <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
             <ChatInterface
               messages={messages}
               onSendMessage={handleSendMessage}
@@ -825,25 +817,6 @@ export function KPICreationStudio({
               isLoading={isLoading}
               isAddingKPI={isAddingKPI}
             />
-
-            {/* Quick Prompt Pills at Bottom if chat is empty */}
-            {messages.length === 0 && (
-              <div className="px-4 pb-3 flex items-center gap-1.5 overflow-x-auto">
-                <span className="text-[10px] text-dark-400 font-semibold uppercase tracking-wider flex-shrink-0">
-                  Try:
-                </span>
-                {PROMPT_SUGGESTIONS.map((suggestion) => (
-                  <button
-                    key={suggestion}
-                    type="button"
-                    onClick={() => handleSendMessage(`Create a KPI formula for ${suggestion}`)}
-                    className="text-xs px-2.5 py-1 rounded-full bg-dark-950 border border-dark-750 text-dark-300 hover:text-foreground hover:border-dark-600 transition-colors whitespace-nowrap cursor-pointer flex-shrink-0"
-                  >
-                    {suggestion}
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
         )}
 

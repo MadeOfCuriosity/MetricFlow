@@ -239,7 +239,7 @@ export function KPIs() {
     <div
       className={`mx-auto transition-all ${
         activeTab === 'create'
-          ? 'space-y-3 max-w-[1600px] h-[calc(100vh-10rem)] min-h-[560px] flex flex-col overflow-hidden'
+          ? 'w-full max-w-[1650px] flex-1 min-h-0 flex flex-col gap-3 overflow-hidden'
           : 'space-y-8 max-w-7xl pb-12'
       }`}
     >

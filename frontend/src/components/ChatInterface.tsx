@@ -196,18 +196,18 @@ export function ChatInterface({
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-center px-4">
-            <div className="w-16 h-16 bg-gradient-to-br from-primary-500/20 to-primary-500/5 rounded-2xl flex items-center justify-center mb-6 animate-float">
-              <SparklesIcon className="w-8 h-8 text-primary-400" />
+            <div className="w-12 h-12 bg-gradient-to-br from-primary-500/20 to-primary-500/5 rounded-2xl flex items-center justify-center mb-3 animate-float">
+              <SparklesIcon className="w-6 h-6 text-primary-400" />
             </div>
-            <h2 className="text-xl font-semibold text-foreground mb-2">
+            <h2 className="text-lg font-bold text-foreground mb-1">
               What do you want to track?
             </h2>
-            <p className="text-dark-300 mb-8 max-w-md">
+            <p className="text-dark-300 text-xs sm:text-sm mb-4 max-w-md leading-relaxed">
               Describe a metric in plain English and I'll turn it into a KPI with
               the right formula and inputs.
             </p>
             <div className="w-full max-w-md">
-              <p className="text-xs uppercase tracking-wider text-dark-400 mb-3">
+              <p className="text-[11px] uppercase font-semibold tracking-wider text-dark-400 mb-2">
                 Quick starts
               </p>
               <div className="grid grid-cols-2 gap-2">
@@ -215,9 +215,9 @@ export function ChatInterface({
                   <button
                     key={prompt.label}
                     onClick={() => onSendMessage(prompt.label)}
-                    className="flex items-center gap-2 px-3 py-3 bg-dark-800 hover:bg-dark-700 hover:border-primary-500/40 border border-dark-600 rounded-xl text-sm text-dark-200 transition-all text-left"
+                    className="flex items-center gap-2 px-3 py-2.5 bg-dark-800 hover:bg-dark-700 hover:border-primary-500/40 border border-dark-600 rounded-xl text-xs sm:text-sm text-dark-200 transition-all text-left cursor-pointer"
                   >
-                    <span className="text-base">{prompt.icon}</span>
+                    <span className="text-sm">{prompt.icon}</span>
                     <span className="truncate">{prompt.label}</span>
                   </button>
                 ))}
@@ -338,8 +338,8 @@ export function ChatInterface({
       </div>
 
       {/* Input area */}
-      <div className="border-t border-dark-700 p-4">
-        <form onSubmit={handleSubmit} className="flex gap-3">
+      <div className="border-t border-dark-750 p-3 sm:p-3.5 bg-dark-900 flex-shrink-0">
+        <form onSubmit={handleSubmit} className="flex gap-2.5">
           <input
             ref={inputRef}
             type="text"
@@ -347,17 +347,17 @@ export function ChatInterface({
             onChange={(e) => setInput(e.target.value)}
             placeholder="Describe what you want to track..."
             disabled={isLoading}
-            className="flex-1 px-4 py-3 bg-dark-800 border border-dark-600 rounded-xl text-foreground placeholder-dark-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50"
+            className="flex-1 px-4 py-2.5 bg-dark-950 border border-dark-700 rounded-xl text-foreground text-sm placeholder-dark-400 focus:outline-none focus:border-dark-500 disabled:opacity-50 transition-colors"
           />
           <button
             type="submit"
             disabled={!input.trim() || isLoading}
-            className="px-4 py-3 border border-primary-500 bg-transparent text-foreground rounded-xl hover:bg-primary-500/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2.5 border border-primary-500/50 bg-primary-500/10 text-primary-300 rounded-xl hover:bg-primary-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex-shrink-0"
           >
-            <PaperAirplaneIcon className="w-5 h-5" />
+            <PaperAirplaneIcon className="w-4 h-4" />
           </button>
         </form>
-        <p className="text-xs text-dark-400 mt-2 text-center">
+        <p className="text-[11px] text-dark-400 mt-1 text-center">
           AI may make mistakes. Review suggested KPIs before adding.
         </p>
       </div>

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Outlet } from 'react-router-dom'
+import { Outlet, useLocation } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
 import { AppDock } from './AppDock'
 import { Header } from './Header'
@@ -12,6 +12,13 @@ import { XMarkIcon } from '@heroicons/react/24/outline'
 export function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [isAIAgentOpen, setIsAIAgentOpen] = useState(false)
+  const location = useLocation()
+
+  // Detect full-screen zero-scroll modes (like KPI Studio create tab or AI builder)
+  const searchParams = new URLSearchParams(location.search)
+  const isZeroScroll =
+    (location.pathname === '/kpis' && searchParams.get('tab') === 'create') ||
+    location.pathname.includes('/ai-builder')
 
   return (
     <div className="flex h-screen bg-dark-950">
@@ -49,7 +56,13 @@ export function Layout() {
           isAIAgentOpen={isAIAgentOpen}
         />
 
-        <main className="flex-1 overflow-y-auto bg-dark-950 p-6 pb-28">
+        <main
+          className={`flex-1 bg-dark-950 transition-all ${
+            isZeroScroll
+              ? 'overflow-hidden p-4 pb-20 flex flex-col'
+              : 'overflow-y-auto p-6 pb-28'
+          }`}
+        >
           <InAppNotifications />
           <Outlet />
         </main>
