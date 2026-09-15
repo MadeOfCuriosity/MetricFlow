@@ -59,7 +59,7 @@ export function Layout() {
         <main
           className={`flex-1 bg-dark-950 transition-all ${
             isZeroScroll
-              ? 'overflow-hidden p-4 pb-20 flex flex-col'
+              ? 'overflow-hidden p-4 pb-[4.5rem] flex flex-col'
               : 'overflow-y-auto p-6 pb-28'
           }`}
         >

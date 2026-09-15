@@ -236,13 +236,13 @@ export function ChatInterface({
     }
   }
 
+  const isInputActive = messages.length > 0 || input.trim().length > 0
+
   return (
-    <div className="flex-1 min-h-0 flex flex-col w-full h-full relative overflow-hidden">
-      {/* Messages area or top spacer */}
-      {messages.length === 0 ? (
-        <div className="flex-1 min-h-0" />
-      ) : (
-        <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4 space-y-4 custom-scrollbar">
+    <div className="flex-1 min-h-0 flex flex-col justify-end w-full h-full relative overflow-hidden pb-1">
+      {/* Messages area */}
+      {messages.length > 0 && (
+        <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4 space-y-4 custom-scrollbar mb-2">
           {messages.map((message) => {
             const isLastAssistant =
               message.role === 'assistant' && message.id === lastAssistantId
@@ -353,11 +353,13 @@ export function ChatInterface({
         </div>
       )}
 
-      {/* Centered / Bottom Input Area */}
+      {/* Centered / Docked Input Card & Suggestion Pills */}
       <div
-        className={`w-full max-w-2xl mx-auto px-4 flex-shrink-0 z-10 transition-all duration-300 ${
-          messages.length > 0 ? 'pb-2' : ''
-        }`}
+        className="w-full max-w-2xl mx-auto px-4 flex-shrink-0 z-10"
+        style={{
+          transform: isInputActive ? 'translateY(0)' : 'translateY(-27vh)',
+          transition: 'transform 450ms cubic-bezier(0.16, 1, 0.3, 1)',
+        }}
       >
         {/* Floating Input Box Card */}
         <div className="rounded-2xl bg-dark-900 border border-dark-700/80 shadow-2xl p-3.5 focus-within:border-dark-500 transition-colors">
@@ -468,7 +470,7 @@ export function ChatInterface({
         {messages.length === 0 && (
           <div
             className={`transition-all duration-300 ease-out overflow-hidden ${
-              input.length > 0
+              isInputActive
                 ? 'max-h-0 opacity-0 -translate-y-2 pointer-events-none mt-0'
                 : 'max-h-20 opacity-100 translate-y-0 mt-3'
             }`}
@@ -488,19 +490,6 @@ export function ChatInterface({
           </div>
         )}
       </div>
-
-      {/* Bottom spacer for empty state: smoothly collapses to glide input down on typing */}
-      {messages.length === 0 && (
-        <div
-          style={{
-            flexGrow: input.length > 0 ? 0 : 1,
-            height: input.length > 0 ? '16px' : 'auto',
-            transition:
-              'flex-grow 350ms cubic-bezier(0.16, 1, 0.3, 1), height 350ms cubic-bezier(0.16, 1, 0.3, 1)',
-          }}
-          className="flex-shrink-0"
-        />
-      )}
     </div>
   )
 }
