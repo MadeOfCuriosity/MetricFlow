@@ -333,8 +333,11 @@ export function RoomDashboard() {
                 return (
                   <button
                     type="button"
-                    onClick={toggle}
-                    className="relative p-1 rounded-full hover:bg-dark-800 transition-all cursor-pointer group flex items-center justify-center"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      toggle(e)
+                    }}
+                    className="relative p-1.5 rounded-full hover:bg-dark-800 transition-all cursor-pointer group flex items-center justify-center"
                     title={tag ? `Tag: ${tag.name} (Click to change)` : 'Add macOS tag color'}
                     aria-label="Change room tag color"
                   >
@@ -357,6 +360,24 @@ export function RoomDashboard() {
             </TagColorPickerPopover>
 
             <h1 className="text-2xl font-bold text-foreground">{dashboardData.room.name}</h1>
+
+            {(() => {
+              const currentTag = getTagColor(dashboardData.room.color)
+              if (!currentTag) return null
+              return (
+                <span
+                  className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium tracking-wide shadow-xs"
+                  style={{
+                    backgroundColor: currentTag.ambientGlow,
+                    color: currentTag.hex,
+                    border: `1px solid ${currentTag.hex}40`,
+                  }}
+                >
+                  <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: currentTag.hex }} />
+                  <span>{currentTag.name}</span>
+                </span>
+              )
+            })()}
 
             {isAdmin && (
               <button

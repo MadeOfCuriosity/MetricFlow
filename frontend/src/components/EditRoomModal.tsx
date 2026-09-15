@@ -80,34 +80,35 @@ export function EditRoomModal({ isOpen, onClose, room, onUpdated }: EditRoomModa
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
-              <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-xl bg-dark-800 p-6 shadow-xl transition-all">
+              <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-dark-900 border border-dark-700 p-6 shadow-2xl transition-all">
                 <div className="flex items-center justify-between mb-4">
-                  <Dialog.Title className="text-lg font-semibold text-foreground">
+                  <Dialog.Title className="text-lg font-semibold text-foreground tracking-tight">
                     Edit Room
                   </Dialog.Title>
                   <button
+                    type="button"
                     onClick={onClose}
-                    className="text-dark-300 hover:text-foreground transition-colors"
+                    className="p-1 rounded-lg text-dark-400 hover:text-foreground hover:bg-dark-800 transition-colors"
                   >
                     <XMarkIcon className="h-5 w-5" />
                   </button>
                 </div>
 
                 {/* Live Glassmorphic Folder Preview with Color */}
-                <div className="flex flex-col items-center justify-center py-3 px-4 mb-4 rounded-xl bg-dark-900/60 border border-dark-700/60">
+                <div className="flex flex-col items-center justify-center py-4 px-4 mb-5 rounded-2xl bg-dark-950/50 border border-dark-800/80 relative overflow-hidden">
                   <GlassmorphicFolder
                     color={selectedColor}
-                    className="w-26 h-24"
+                    className="w-28 h-26"
                     isHovered={true}
                   />
-                  <span className="text-[11px] text-dark-400 mt-1 font-medium capitalize">
+                  <span className="text-[11px] text-dark-300 mt-2 font-medium capitalize">
                     {selectedColor ? `${selectedColor} tag folder` : 'Default obsidian folder'}
                   </span>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                   {error && (
-                    <div className="p-3 bg-danger-500/10 border border-danger-500/20 rounded-lg text-danger-400 text-sm">
+                    <div className="p-3 bg-danger-500/10 border border-danger-500/20 rounded-xl text-danger-400 text-sm">
                       {error}
                     </div>
                   )}
@@ -121,7 +122,7 @@ export function EditRoomModal({ isOpen, onClose, room, onUpdated }: EditRoomModa
                       id="edit-name"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      className="w-full px-3 py-2 bg-dark-700 border border-dark-600 rounded-lg text-foreground placeholder-dark-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      className="w-full px-3.5 py-2.5 bg-dark-800 border border-dark-700 rounded-xl text-foreground placeholder-dark-400 focus:outline-none focus:border-dark-500 transition-colors text-sm"
                       required
                       minLength={2}
                       maxLength={255}
@@ -138,14 +139,14 @@ export function EditRoomModal({ isOpen, onClose, room, onUpdated }: EditRoomModa
                         <button
                           type="button"
                           onClick={() => setSelectedColor(null)}
-                          className="text-xs text-dark-400 hover:text-dark-200 transition-colors cursor-pointer"
+                          className="text-xs text-dark-400 hover:text-danger-400 transition-colors cursor-pointer"
                         >
                           Clear
                         </button>
                       )}
                     </div>
 
-                    <div className="flex items-center justify-between px-3 py-2.5 bg-dark-700/70 border border-dark-600 rounded-lg">
+                    <div className="flex items-center justify-between px-3 py-2 bg-dark-800/90 border border-dark-700 rounded-xl">
                       {/* Clear / None button */}
                       <button
                         type="button"
@@ -153,14 +154,14 @@ export function EditRoomModal({ isOpen, onClose, room, onUpdated }: EditRoomModa
                         title="None"
                         className={`w-6 h-6 rounded-full flex items-center justify-center border transition-all cursor-pointer ${
                           !selectedColor
-                            ? 'border-foreground/90 bg-dark-600 text-foreground scale-110 shadow-xs'
-                            : 'border-dark-500 bg-dark-800 text-dark-400 hover:border-dark-400 hover:text-dark-200'
+                            ? 'border-foreground/90 bg-dark-700 text-foreground scale-110 shadow-xs'
+                            : 'border-dark-700 bg-dark-900 text-dark-400 hover:border-dark-500 hover:text-dark-200'
                         }`}
                       >
                         <span className="text-[10px] leading-none">✕</span>
                       </button>
 
-                      <div className="h-4 w-px bg-dark-600 mx-1" />
+                      <div className="h-4 w-px bg-dark-700 mx-1" />
 
                       {/* 7 macOS Colors */}
                       {MAC_TAG_COLORS.map((tag) => {
@@ -173,7 +174,7 @@ export function EditRoomModal({ isOpen, onClose, room, onUpdated }: EditRoomModa
                             title={tag.name}
                             className={`relative w-6 h-6 rounded-full transition-all cursor-pointer flex items-center justify-center ${
                               isSelected
-                                ? 'ring-2 ring-offset-2 ring-offset-dark-800 ring-foreground scale-115'
+                                ? 'ring-2 ring-offset-2 ring-offset-dark-900 ring-foreground scale-115'
                                 : 'hover:scale-110 opacity-85 hover:opacity-100'
                             }`}
                             style={{
@@ -188,7 +189,7 @@ export function EditRoomModal({ isOpen, onClose, room, onUpdated }: EditRoomModa
                         )
                       })}
 
-                      <div className="h-4 w-px bg-dark-600 mx-1" />
+                      <div className="h-4 w-px bg-dark-700 mx-1" />
 
                       {/* Simple Native Color Picker */}
                       {(() => {
@@ -198,8 +199,8 @@ export function EditRoomModal({ isOpen, onClose, room, onUpdated }: EditRoomModa
                             title={isCustom ? `Custom: ${selectedColor}` : 'Custom color picker'}
                             className={`relative w-6 h-6 rounded-full transition-all cursor-pointer flex items-center justify-center overflow-hidden border ${
                               isCustom
-                                ? 'ring-2 ring-offset-2 ring-offset-dark-800 ring-foreground scale-115 border-foreground shadow-md'
-                                : 'border-dark-500 hover:border-dark-300 hover:scale-110 opacity-90 hover:opacity-100'
+                                ? 'ring-2 ring-offset-2 ring-offset-dark-900 ring-foreground scale-115 border-foreground shadow-md'
+                                : 'border-dark-600 hover:border-dark-400 hover:scale-110 opacity-90 hover:opacity-100'
                             }`}
                             style={
                               isCustom
@@ -237,22 +238,22 @@ export function EditRoomModal({ isOpen, onClose, room, onUpdated }: EditRoomModa
                       onChange={(e) => setDescription(e.target.value)}
                       placeholder="Optional description for this room"
                       rows={3}
-                      className="w-full px-3 py-2 bg-dark-700 border border-dark-600 rounded-lg text-foreground placeholder-dark-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
+                      className="w-full px-3.5 py-2.5 bg-dark-800 border border-dark-700 rounded-xl text-foreground placeholder-dark-400 focus:outline-none focus:border-dark-500 transition-colors text-sm resize-none"
                     />
                   </div>
 
-                  <div className="flex justify-end gap-3 pt-4">
+                  <div className="flex justify-end gap-2.5 pt-4">
                     <button
                       type="button"
                       onClick={onClose}
-                      className="px-4 py-2 text-sm font-medium text-dark-200 hover:text-foreground transition-colors"
+                      className="px-4 py-2 text-sm font-medium text-dark-300 hover:text-foreground transition-colors cursor-pointer"
                     >
                       Cancel
                     </button>
                     <button
                       type="submit"
                       disabled={isSubmitting || !name.trim()}
-                      className="px-4 py-2 text-sm font-medium text-foreground border border-primary-500 bg-transparent hover:bg-primary-500/10 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      className="px-4 py-2.5 rounded-xl bg-foreground text-dark-950 font-semibold hover:opacity-90 transition-opacity text-sm shadow-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {isSubmitting ? 'Saving...' : 'Save Changes'}
                     </button>

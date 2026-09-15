@@ -10,7 +10,7 @@ interface RoomContextType {
   isLoading: boolean
   error: string | null
   selectRoom: (room: Room | null) => void
-  fetchRooms: () => Promise<void>
+  fetchRooms: (silent?: boolean) => Promise<void>
   fetchRoomTree: () => Promise<void>
   createRoom: (data: CreateRoomData) => Promise<Room>
   updateRoom: (roomId: string, data: UpdateRoomData) => Promise<Room>
@@ -31,10 +31,10 @@ export function RoomProvider({ children }: RoomProviderProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchRooms = useCallback(async () => {
+  const fetchRooms = useCallback(async (silent = false) => {
     if (!isAuthenticated) return
 
-    setIsLoading(true)
+    if (!silent) setIsLoading(true)
     setError(null)
     try {
       const response = await roomsApi.getRooms()
@@ -43,7 +43,7 @@ export function RoomProvider({ children }: RoomProviderProps) {
       console.error('Failed to fetch rooms:', err)
       setError('Failed to load rooms')
     } finally {
-      setIsLoading(false)
+      if (!silent) setIsLoading(false)
     }
   }, [isAuthenticated])
 
@@ -76,14 +76,27 @@ export function RoomProvider({ children }: RoomProviderProps) {
   }, [fetchRooms, fetchRoomTree])
 
   const updateRoom = useCallback(async (roomId: string, data: UpdateRoomData): Promise<Room> => {
-    const updatedRoom = await roomsApi.updateRoom(roomId, data)
-    // Refresh room list and tree
-    await Promise.all([fetchRooms(), fetchRoomTree()])
-    // Update selected room if it was the one updated
+    // Optimistic local update to eliminate UI flicker / full-page loading jumps
+    setRooms((prev) =>
+      prev.map((r) => (r.id === roomId ? { ...r, ...data } : r))
+    )
     if (selectedRoom?.id === roomId) {
-      setSelectedRoom(updatedRoom)
+      setSelectedRoom((prev) => (prev ? { ...prev, ...data } : null))
     }
-    return updatedRoom
+
+    try {
+      const updatedRoom = await roomsApi.updateRoom(roomId, data)
+      // Silently refresh room list and tree without full-page spinner
+      await Promise.all([fetchRooms(true), fetchRoomTree()])
+      if (selectedRoom?.id === roomId) {
+        setSelectedRoom(updatedRoom)
+      }
+      return updatedRoom
+    } catch (err) {
+      // Revert optimistic update on failure
+      fetchRooms(true)
+      throw err
+    }
   }, [fetchRooms, fetchRoomTree, selectedRoom])
 
   const deleteRoom = useCallback(async (roomId: string): Promise<void> => {

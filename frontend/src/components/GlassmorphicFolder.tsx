@@ -139,9 +139,9 @@ export function GlassmorphicFolder({
             ) : (
               tag ? (
                 <>
-                  <stop offset="0%" stopColor="#2c2e37" />
-                  <stop offset="50%" stopColor="#1e2026" />
-                  <stop offset="100%" stopColor="#121316" />
+                  <stop offset="0%" stopColor={tag.glassTintTop} stopOpacity="0.85" />
+                  <stop offset="45%" stopColor={tag.glassTintBottom} stopOpacity="0.75" />
+                  <stop offset="100%" stopColor="#121316" stopOpacity="0.95" />
                 </>
               ) : (
                 <>
@@ -162,8 +162,8 @@ export function GlassmorphicFolder({
               </>
             ) : (
               <>
-                <stop offset="0%" stopColor={tag ? tag.glassRim : '#525562'} stopOpacity={tag ? 0.60 : 0.80} />
-                <stop offset="100%" stopColor="#1e2026" stopOpacity="0.40" />
+                <stop offset="0%" stopColor={tag ? tag.glassRim : '#525562'} stopOpacity={tag ? 0.90 : 0.80} />
+                <stop offset="100%" stopColor={tag ? tag.hex : '#1e2026'} stopOpacity={tag ? 0.50 : 0.40} />
               </>
             )}
           </linearGradient>
@@ -205,9 +205,9 @@ export function GlassmorphicFolder({
             ) : (
               tag ? (
                 <>
-                  <stop offset="0%" stopColor={tag.glassTintTop} stopOpacity="0.60" />
-                  <stop offset="45%" stopColor={tag.glassTintBottom} stopOpacity="0.46" />
-                  <stop offset="100%" stopColor={tag.hex} stopOpacity="0.52" />
+                  <stop offset="0%" stopColor={tag.glassTintTop} stopOpacity="0.78" />
+                  <stop offset="45%" stopColor={tag.glassTintBottom} stopOpacity="0.62" />
+                  <stop offset="100%" stopColor={tag.hex} stopOpacity="0.68" />
                 </>
               ) : (
                 <>
@@ -238,9 +238,9 @@ export function GlassmorphicFolder({
             ) : (
               tag ? (
                 <>
-                  <stop offset="0%" stopColor={tag.glassRim} stopOpacity="0.42" />
-                  <stop offset="50%" stopColor={tag.hex} stopOpacity="0.22" />
-                  <stop offset="100%" stopColor="#ffffff" stopOpacity="0.08" />
+                  <stop offset="0%" stopColor={tag.glassRim} stopOpacity="0.75" />
+                  <stop offset="50%" stopColor={tag.hex} stopOpacity="0.38" />
+                  <stop offset="100%" stopColor="#ffffff" stopOpacity="0.15" />
                 </>
               ) : (
                 <>
@@ -319,9 +319,9 @@ export function GlassmorphicFolder({
           <circle
             cx="116"
             cy="40"
-            r="30"
+            r="32"
             fill={isLight ? tag.lightTintTop : tag.hex}
-            opacity={isLight ? 0.28 : 0.18}
+            opacity={isLight ? 0.36 : 0.30}
             filter={`url(#${paperBlurId})`}
           />
         )}
@@ -358,15 +358,37 @@ export function GlassmorphicFolder({
           <ellipse
             cx="100"
             cy="90"
-            rx="50"
+            rx="52"
             ry="40"
             fill={isLight ? tag.lightTintTop : tag.hex}
-            opacity={isLight ? 0.22 : 0.16}
+            opacity={isLight ? 0.28 : 0.24}
             filter={`url(#${paperBlurId})`}
             clipPath={`url(#${frontFlapClipId})`}
           />
         )}
+
+        {/* Specular Highlight along top tab edge contour */}
+        <path
+          d="M 18 60 C 22 50 27 49 34 49 L 68 49 C 75 49 83 54.5 89 59.5 C 94 63.5 100 67 108 67 L 134 67 C 143 67 148 71 150 78"
+          stroke={tag ? tag.glassRim : (isLight ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 255, 255, 0.45)')}
+          strokeWidth="1.2"
+          strokeLinecap="round"
+          fill="none"
+        />
       </svg>
+
+      {/* Ambient Radiant Glow behind folder if tag present */}
+      {tag && (
+        <div
+          className="absolute inset-1 rounded-3xl pointer-events-none transition-all duration-300 -z-10"
+          style={{
+            background: isLight ? tag.lightGlow : tag.ambientGlow,
+            filter: 'blur(16px)',
+            opacity: isHovered ? 0.95 : 0.65,
+            transform: isHovered ? 'scale(1.06)' : 'scale(1)',
+          }}
+        />
+      )}
     </div>
   )
 }

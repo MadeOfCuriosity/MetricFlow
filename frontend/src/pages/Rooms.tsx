@@ -34,6 +34,7 @@ export function Rooms() {
 
   const [searchQuery, setSearchQuery] = useState('')
   const [filterType, setFilterType] = useState<'all' | 'top' | 'with-kpis'>('all')
+  const [selectedTagFilter, setSelectedTagFilter] = useState<string | null>(null)
   const [viewMode, setViewMode] = useState<'desktop' | 'tree'>('desktop')
   const [hoveredRoomId, setHoveredRoomId] = useState<string | null>(null)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
@@ -50,6 +51,18 @@ export function Rooms() {
     [rooms]
   )
 
+  // Tag color counts for filter pills
+  const tagCounts = useMemo(() => {
+    const counts: Record<string, number> = {}
+    rooms.forEach((r) => {
+      if (r.color) {
+        counts[r.color] = (counts[r.color] || 0) + 1
+      }
+    })
+    return counts
+  }, [rooms])
+  const totalTaggedCount = useMemo(() => Object.values(tagCounts).reduce((a, b) => a + b, 0), [tagCounts])
+
   // Filtered rooms for desktop icons grid
   const filteredRooms = useMemo(() => {
     return rooms.filter((room) => {
@@ -62,9 +75,13 @@ export function Rooms() {
 
       if (filterType === 'top') return !room.parent_room_id
       if (filterType === 'with-kpis') return (room.kpi_count || 0) > 0
+
+      // Color tag filter
+      if (selectedTagFilter && room.color !== selectedTagFilter) return false
+
       return true
     })
-  }, [rooms, searchQuery, filterType])
+  }, [rooms, searchQuery, filterType, selectedTagFilter])
 
   const handleRoomCreated = (roomId: string) => {
     setIsCreateModalOpen(false)
@@ -242,6 +259,64 @@ export function Rooms() {
         </div>
       </div>
 
+      {/* Color Tag Filter Strip (if any rooms are tagged) */}
+      {totalTaggedCount > 0 && (
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
+          <span className="text-[11px] font-semibold text-dark-400 uppercase tracking-wider mr-1 flex items-center gap-1">
+            <TagIcon className="w-3 h-3" />
+            Tags:
+          </span>
+          <button
+            type="button"
+            onClick={() => setSelectedTagFilter(null)}
+            className={`px-2.5 py-1 rounded-lg font-medium transition-all cursor-pointer flex items-center gap-1.5 ${
+              selectedTagFilter === null
+                ? 'bg-foreground text-dark-950 shadow-xs font-semibold'
+                : 'bg-dark-900 border border-dark-700/80 text-dark-300 hover:text-foreground hover:border-dark-600'
+            }`}
+          >
+            <span>All</span>
+            <span
+              className={`text-[10px] px-1 py-0.2 rounded-full ${
+                selectedTagFilter === null ? 'bg-dark-950/20 text-dark-950' : 'bg-dark-800 text-dark-400'
+              }`}
+            >
+              {rooms.length}
+            </span>
+          </button>
+
+          {Object.entries(tagCounts).map(([colorId, count]) => {
+            const tagDef = getTagColor(colorId)
+            const isSelected = selectedTagFilter === colorId
+            return (
+              <button
+                key={colorId}
+                type="button"
+                onClick={() => setSelectedTagFilter(isSelected ? null : colorId)}
+                className={`px-2.5 py-1 rounded-lg font-medium transition-all cursor-pointer flex items-center gap-1.5 ${
+                  isSelected
+                    ? 'bg-dark-800 border text-foreground shadow-xs'
+                    : 'bg-dark-900 border border-dark-700/80 text-dark-300 hover:text-foreground hover:border-dark-600'
+                }`}
+                style={isSelected ? { borderColor: tagDef?.hex || 'currentColor' } : undefined}
+              >
+                <span
+                  className="w-2 h-2 rounded-full flex-shrink-0"
+                  style={{
+                    backgroundColor: tagDef?.hex || colorId,
+                    boxShadow: isSelected ? `0 0 8px ${tagDef?.ambientGlow || tagDef?.hex}` : undefined,
+                  }}
+                />
+                <span className="capitalize">{tagDef?.name || colorId}</span>
+                <span className="text-[10px] px-1 py-0.2 rounded-full bg-dark-800 text-dark-400">
+                  {count}
+                </span>
+              </button>
+            )
+          })}
+        </div>
+      )}
+
       {/* Main Content Area */}
       {isLoading ? (
         <div className="flex items-center justify-center py-24">
@@ -290,7 +365,10 @@ export function Rooms() {
                     {({ toggle }) => (
                       <button
                         type="button"
-                        onClick={toggle}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          toggle(e)
+                        }}
                         className="p-1 text-dark-400 hover:text-foreground rounded hover:bg-dark-800 transition-colors cursor-pointer"
                         title="Set tag color"
                         aria-label="Set tag color"
@@ -347,17 +425,23 @@ export function Rooms() {
                       {({ toggle }) => (
                         <button
                           type="button"
-                          onClick={toggle}
-                          className="flex items-center justify-center p-0.5 rounded-full hover:bg-dark-800 transition-all cursor-pointer"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            toggle(e)
+                          }}
+                          className="flex items-center justify-center p-1 -m-0.5 rounded-full hover:bg-dark-800 transition-all cursor-pointer"
                           title={tag ? `Tag: ${tag.name} (Click to change)` : 'Add tag color'}
                         >
                           {tag ? (
                             <span
-                              className={`w-2 h-2 rounded-full flex-shrink-0 ${tag.dotClass || ''} hover:scale-125 transition-transform`}
-                              style={{ backgroundColor: tag.hex }}
+                              className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${tag.dotClass || ''} hover:scale-125 transition-transform`}
+                              style={{
+                                backgroundColor: tag.hex,
+                                boxShadow: `0 0 6px ${tag.ambientGlow}`,
+                              }}
                             />
                           ) : (
-                            <span className="w-2 h-2 rounded-full border border-dashed border-dark-400 dark:border-dark-600 group-hover:border-foreground transition-colors" />
+                            <span className="w-2.5 h-2.5 rounded-full border border-dashed border-dark-400 dark:border-dark-600 group-hover:border-foreground transition-colors" />
                           )}
                         </button>
                       )}
