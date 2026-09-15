@@ -16,38 +16,38 @@ const TYPE_CONFIG: Record<
 > = {
   data_entry: {
     icon: DocumentTextIcon,
-    bg: 'bg-primary-500/20',
-    text: 'text-primary-400',
+    bg: 'bg-emerald-500/10 border-emerald-500/20',
+    text: 'text-emerald-400',
     label: 'Data Entry',
   },
   user_joined: {
     icon: UserIcon,
-    bg: 'bg-success-500/20',
-    text: 'text-success-400',
+    bg: 'bg-purple-500/10 border-purple-500/20',
+    text: 'text-purple-400',
     label: 'User',
   },
   kpi_created: {
     icon: ChartBarIcon,
-    bg: 'bg-warning-500/20',
-    text: 'text-warning-400',
+    bg: 'bg-amber-500/10 border-amber-500/20',
+    text: 'text-amber-400',
     label: 'KPI',
   },
   room_created: {
     icon: FolderIcon,
-    bg: 'bg-purple-500/20',
-    text: 'text-purple-400',
+    bg: 'bg-blue-500/10 border-blue-500/20',
+    text: 'text-blue-400',
     label: 'Room',
   },
   integration_synced: {
     icon: ArrowPathIcon,
-    bg: 'bg-sky-500/20',
-    text: 'text-sky-400',
+    bg: 'bg-cyan-500/10 border-cyan-500/20',
+    text: 'text-cyan-400',
     label: 'Integration',
   },
 }
 
 const FILTER_OPTIONS = [
-  { value: 'all', label: 'All' },
+  { value: 'all', label: 'All Activity' },
   { value: 'data_entry', label: 'Data Entries' },
   { value: 'user_joined', label: 'Users' },
   { value: 'kpi_created', label: 'KPIs' },
@@ -102,17 +102,18 @@ export function AdminActivity() {
   const hasMore = offset < total
 
   return (
-    <div className="space-y-4">
-      {/* Filter bar */}
-      <div className="flex gap-2 overflow-x-auto pb-1">
+    <div className="space-y-6">
+      {/* Filter segment control */}
+      <div className="flex items-center gap-1.5 p-1 bg-dark-900 border border-dark-700 rounded-xl overflow-x-auto">
         {FILTER_OPTIONS.map((opt) => (
           <button
             key={opt.value}
+            type="button"
             onClick={() => setFilter(opt.value)}
-            className={`px-3 py-1.5 text-sm font-medium rounded-lg whitespace-nowrap transition-colors ${
+            className={`px-3 py-1.5 text-xs font-semibold rounded-lg whitespace-nowrap transition-all cursor-pointer ${
               filter === opt.value
-                ? 'bg-primary-500/20 text-primary-400'
-                : 'text-dark-400 hover:text-foreground hover:bg-dark-800'
+                ? 'bg-dark-800 text-foreground shadow-sm'
+                : 'text-dark-400 hover:text-foreground'
             }`}
           >
             {opt.label}
@@ -121,17 +122,17 @@ export function AdminActivity() {
       </div>
 
       {/* Activity List */}
-      <div className="bg-dark-900 border border-dark-700 rounded-xl overflow-hidden">
+      <div className="bg-dark-900 border border-dark-700 rounded-2xl overflow-hidden shadow-sm">
         {isLoading ? (
-          <div className="p-8 text-center text-dark-300">Loading activity...</div>
+          <div className="p-12 text-center text-xs text-dark-400">Loading activity log...</div>
         ) : filteredActivities.length === 0 ? (
-          <div className="p-8 text-center text-dark-400">
+          <div className="p-12 text-center text-dark-400 text-xs">
             {filter === 'all'
-              ? 'No activity yet'
-              : 'No activity matches this filter'}
+              ? 'No activity recorded yet.'
+              : 'No activity matches this filter criteria.'}
           </div>
         ) : (
-          <div className="divide-y divide-dark-700">
+          <div className="divide-y divide-dark-800">
             {filteredActivities.map((activity) => {
               const config = TYPE_CONFIG[activity.type] || TYPE_CONFIG.data_entry
               const Icon = config.icon
@@ -139,30 +140,32 @@ export function AdminActivity() {
               return (
                 <div
                   key={activity.id}
-                  className="flex items-start gap-4 px-5 py-4 hover:bg-dark-800/30 transition-colors"
+                  className="flex items-center justify-between gap-4 px-5 py-4 hover:bg-dark-800/40 transition-colors"
                 >
-                  <div
-                    className={`p-2 rounded-lg flex-shrink-0 ${config.bg}`}
-                  >
-                    <Icon className={`h-4 w-4 ${config.text}`} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-foreground">{activity.description}</p>
-                    <div className="flex items-center gap-3 mt-1">
-                      {activity.user_name && (
-                        <span className="text-xs text-dark-400">
-                          {activity.user_name}
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <div
+                      className={`p-2 rounded-xl flex-shrink-0 border ${config.bg}`}
+                    >
+                      <Icon className={`h-4 w-4 stroke-[2] ${config.text}`} />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold text-foreground truncate">{activity.description}</p>
+                      <div className="flex items-center gap-2 mt-0.5 text-[11px]">
+                        {activity.user_name && (
+                          <span className="text-dark-400 font-medium">
+                            {activity.user_name}
+                          </span>
+                        )}
+                        <span className="text-dark-500">
+                          {formatDistanceToNow(new Date(activity.timestamp), {
+                            addSuffix: true,
+                          })}
                         </span>
-                      )}
-                      <span className="text-xs text-dark-500">
-                        {formatDistanceToNow(new Date(activity.timestamp), {
-                          addSuffix: true,
-                        })}
-                      </span>
+                      </div>
                     </div>
                   </div>
                   <span
-                    className={`px-2 py-0.5 text-xs font-medium rounded-full flex-shrink-0 ${config.bg} ${config.text}`}
+                    className={`px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider rounded-md border flex-shrink-0 ${config.bg} ${config.text}`}
                   >
                     {config.label}
                   </span>
@@ -174,13 +177,14 @@ export function AdminActivity() {
 
         {/* Load more */}
         {hasMore && !isLoading && (
-          <div className="p-4 text-center border-t border-dark-700">
+          <div className="p-4 text-center border-t border-dark-800 bg-dark-950/30">
             <button
+              type="button"
               onClick={() => loadActivities(false)}
               disabled={isLoadingMore}
-              className="text-sm text-primary-400 hover:text-primary-300 disabled:opacity-50 transition-colors"
+              className="px-4 py-2 text-xs font-semibold text-dark-300 hover:text-foreground bg-dark-800 border border-dark-700 rounded-xl transition-colors disabled:opacity-50 cursor-pointer"
             >
-              {isLoadingMore ? 'Loading...' : 'Load more'}
+              {isLoadingMore ? 'Loading...' : 'Load more activity'}
             </button>
           </div>
         )}

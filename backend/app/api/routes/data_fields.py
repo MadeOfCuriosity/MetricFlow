@@ -1,7 +1,7 @@
 from typing import Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status, UploadFile, File, Form
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db, get_current_user_org, check_room_access
@@ -11,6 +11,9 @@ from app.schemas.data_fields import (
     DataFieldUpdateRequest,
     DataFieldResponse,
     DataFieldListResponse,
+    CSVAnalysisResponse,
+    CSVImportResponse,
+    CSVColumnMappingConfig,
 )
 from app.schemas.kpi import KPIResponse
 from app.services.data_field_service import DataFieldService
@@ -192,3 +195,52 @@ def get_data_field_kpis(
             kpis.append(KPIResponse.model_validate(kpi))
 
     return {"kpis": kpis, "total": len(kpis)}
+
+
+@router.post("/analyze-csv", response_model=CSVAnalysisResponse)
+@router.post("/fields/analyze-csv", response_model=CSVAnalysisResponse)
+async def analyze_csv_alias(
+    file: UploadFile = File(...),
+    sheet_name: Optional[str] = Form(None),
+    user_org: tuple[User, Organization] = Depends(get_current_user_org),
+    db: Session = Depends(get_db),
+):
+    from app.services.universal_csv_importer import UniversalCSVImporter
+    _, org = user_org
+    contents = await file.read()
+    return UniversalCSVImporter.analyze_file(
+        contents=contents,
+        filename=file.filename,
+        org=org,
+        db=db,
+        sheet_name=sheet_name,
+    )
+
+
+@router.post("/import-csv", response_model=CSVImportResponse)
+@router.post("/fields/import-csv", response_model=CSVImportResponse)
+async def import_csv_alias(
+    file: UploadFile = File(...),
+    mapping_config: Optional[str] = Form(None),
+    user_org: tuple[User, Organization] = Depends(get_current_user_org),
+    db: Session = Depends(get_db),
+):
+    from app.services.universal_csv_importer import UniversalCSVImporter
+    import json
+    user, org = user_org
+    contents = await file.read()
+    config = None
+    if mapping_config:
+        try:
+            config_dict = json.loads(mapping_config)
+            config = CSVColumnMappingConfig(**config_dict)
+        except Exception:
+            pass
+    return UniversalCSVImporter.import_file(
+        contents=contents,
+        filename=file.filename,
+        user=user,
+        org=org,
+        db=db,
+        config=config,
+    )

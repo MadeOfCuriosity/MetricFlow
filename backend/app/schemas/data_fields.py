@@ -148,6 +148,53 @@ class SheetViewResponse(BaseModel):
 
 # --- CSV Import Schemas ---
 
+from enum import Enum
+
+
+class CSVLayoutType(str, Enum):
+    MATRIX = "matrix"
+    COLUMNAR = "columnar"
+    LONG = "long"
+    TRANSACTIONAL = "transactional"
+    STATEMENT = "statement"
+
+
+class CSVFieldMapping(BaseModel):
+    source_column: str
+    target_field_id: Optional[str] = None
+    target_field_name: Optional[str] = None
+    action: str = "auto"  # "auto", "map", "create", "ignore"
+
+
+class CSVColumnMappingConfig(BaseModel):
+    layout: CSVLayoutType = CSVLayoutType.COLUMNAR
+    date_column: Optional[str] = None
+    room_column: Optional[str] = None
+    field_column: Optional[str] = None
+    value_column: Optional[str] = None
+    date_format: Optional[str] = None
+    statement_date: Optional[str] = None  # For financial statements / single-period P&L (YYYY-MM-DD)
+    sheet_name: Optional[str] = None  # For multi-sheet Excel workbooks
+    aggregation: Optional[str] = "sum"  # "sum", "avg", "min", "max", "count", "latest"
+    field_mappings: Optional[list[CSVFieldMapping]] = None
+
+
+class CSVAnalysisResponse(BaseModel):
+    detected_layout: CSVLayoutType
+    delimiter: str = ","
+    total_rows: int
+    headers: list[str]
+    preview_rows: list[list[str]]
+    suggested_date_column: Optional[str] = None
+    suggested_room_column: Optional[str] = None
+    suggested_statement_date: Optional[str] = None
+    suggested_field_mappings: list[CSVFieldMapping] = []
+    unmatched_columns: list[str] = []
+    sheets: list[str] = []  # List of sheet names if Excel file
+    selected_sheet: Optional[str] = None
+
+
+
 class CSVImportResponse(BaseModel):
     rows_processed: int
     entries_created: int
@@ -155,3 +202,4 @@ class CSVImportResponse(BaseModel):
     kpis_recalculated: int
     errors: list[dict]
     unmatched_columns: list[str]
+

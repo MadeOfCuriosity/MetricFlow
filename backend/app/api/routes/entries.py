@@ -5,7 +5,8 @@ from datetime import date
 from typing import Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
+import json
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
@@ -23,7 +24,11 @@ from app.schemas.entries import (
 from app.schemas.data_fields import (
     CreateFieldEntriesRequest,
     CreateFieldEntriesResponse,
+    CSVAnalysisResponse,
+    CSVColumnMappingConfig,
+    CSVFieldMapping,
     CSVImportResponse,
+    CSVLayoutType,
     FieldEntryInput,
     FieldEntryResponse,
     RoomFieldGroup,
@@ -34,6 +39,8 @@ from app.schemas.data_fields import (
     SheetViewResponse,
 )
 from app.services.entry_service import EntryService
+from app.services.universal_csv_importer import UniversalCSVImporter
+
 
 
 router = APIRouter(prefix="/entries", tags=["Data Entries"])
@@ -395,198 +402,106 @@ def get_sheet_view(
     )
 
 
-@router.post("/fields/import-csv", response_model=CSVImportResponse)
-async def import_csv_field_entries(
+@router.post("/fields/analyze-csv", response_model=CSVAnalysisResponse)
+async def analyze_csv_file(
     file: UploadFile = File(...),
+    sheet_name: Optional[str] = Form(None),
     user_org: tuple[User, Organization] = Depends(get_current_user_org),
     db: Session = Depends(get_db),
 ):
     """
-    Import data field entries from a CSV file.
-
-    Format:
-        field,2026-01-15,2026-01-16,2026-01-17
-        revenue,15000,18500,20000
-        deals_closed,5,7,3
-
-    Fields are matched by variable_name or display name (case-insensitive).
-    If a field doesn't exist yet, it is automatically created.
-    Fields are NOT auto-assigned to rooms — assign rooms manually after import.
+    Analyze an uploaded CSV or Excel file, auto-detect layout (columnar, matrix, long, transactional, financial statement),
+    delimiters, sheets, date formats, and suggest optimal column-to-DataField mappings.
     """
     user, org = user_org
 
-    # Validate file type
-    if file.content_type and file.content_type not in (
-        "text/csv",
-        "application/vnd.ms-excel",
-        "application/octet-stream",
+    # Lenient file validation: accept .csv, .xlsx, .xls, .txt, .tsv
+    if file.filename and not any(
+        file.filename.lower().endswith(ext)
+        for ext in (".csv", ".xlsx", ".xls", ".xlsm", ".txt", ".tsv", ".dat")
     ):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="File must be a CSV",
-        )
+        if file.content_type and not any(
+            allowed in file.content_type.lower()
+            for allowed in ("csv", "text", "excel", "spreadsheet", "octet-stream", "plain")
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="File must be a CSV or Excel file",
+            )
 
-    # Read and decode file
     try:
         contents = await file.read()
-        text = contents.decode("utf-8-sig")  # Handle BOM
-    except UnicodeDecodeError:
+    except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="File must be UTF-8 encoded",
+            detail=f"Failed to read file: {str(e)}",
         )
 
-    # Parse CSV
-    reader = csv.reader(io.StringIO(text))
-    rows = [row for row in reader if any(cell.strip() for cell in row)]
-
-    if len(rows) < 2:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="CSV must have a header row and at least one data row",
-        )
-
-    # Parse header: first cell should be "field", rest are dates
-    header = [h.strip() for h in rows[0]]
-
-    if not header or header[0].lower() not in ("field", "field_name", "name", "data_field"):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="First column header must be 'field'. Format: field,2026-01-15,2026-01-16,...",
-        )
-
-    # Detect optional room column
-    has_room_column = (
-        len(header) > 1 and header[1].lower() in ("room", "room_name")
+    return UniversalCSVImporter.analyze_file(
+        contents=contents,
+        filename=file.filename,
+        org=org,
+        db=db,
+        sheet_name=sheet_name,
     )
-    date_start_col = 2 if has_room_column else 1
 
-    # Parse date columns
-    date_columns: list[tuple[int, date]] = []
-    invalid_date_headers: list[str] = []
 
-    for col_idx, header_val in enumerate(header[date_start_col:], start=date_start_col):
-        if not header_val:
-            continue
+@router.post("/fields/import-csv", response_model=CSVImportResponse)
+async def import_csv_field_entries(
+    file: UploadFile = File(...),
+    mapping_config: Optional[str] = Form(None),
+    user_org: tuple[User, Organization] = Depends(get_current_user_org),
+    db: Session = Depends(get_db),
+):
+    """
+    Import data field entries from any CSV or Excel file across all layouts (statement, matrix, columnar, long, transactional).
+    Supports optional column mapping configuration JSON or full auto-detection.
+    """
+    user, org = user_org
+
+    # Lenient file validation
+    if file.filename and not any(
+        file.filename.lower().endswith(ext)
+        for ext in (".csv", ".xlsx", ".xls", ".xlsm", ".txt", ".tsv", ".dat")
+    ):
+        if file.content_type and not any(
+            allowed in file.content_type.lower()
+            for allowed in ("csv", "text", "excel", "spreadsheet", "octet-stream", "plain")
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="File must be a CSV or Excel file",
+            )
+
+    try:
+        contents = await file.read()
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Failed to read file: {str(e)}",
+        )
+
+    config_obj: Optional[CSVColumnMappingConfig] = None
+    if mapping_config:
         try:
-            parsed_date = date.fromisoformat(header_val)
-            date_columns.append((col_idx, parsed_date))
-        except ValueError:
-            invalid_date_headers.append(header_val)
+            config_data = json.loads(mapping_config)
+            config_obj = CSVColumnMappingConfig(**config_data)
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid mapping configuration: {str(e)}",
+            )
 
-    if not date_columns:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"No valid date columns found. Column headers after 'field' must be dates (YYYY-MM-DD). Got: {header[date_start_col:]}",
-        )
-
-    # Build room lookup map (only when room column is present)
-    room_name_map: dict[str, Room] = {}
-    if has_room_column:
-        org_rooms = db.query(Room).filter(Room.org_id == org.id).all()
-        room_name_map = {r.name.lower(): r for r in org_rooms}
-
-    # Build field lookup maps (variable_names are org-unique with M2M)
-    org_fields = db.query(DataField).filter(DataField.org_id == org.id).all()
-    var_map = {f.variable_name: f for f in org_fields}
-    name_map = {f.name.lower(): f for f in org_fields}
-
-    # Process data rows (each row = one data field)
-    rows_processed = 0
-    total_entries_created = 0
-    total_kpis_recalculated = 0
-    unmatched_rows: list[str] = []
-    fields_created: list[str] = []
-    errors: list[dict] = []
-
-    # Collect entries grouped by date for batch processing
-    date_entries: dict[date, list[FieldEntryInput]] = {}
-
-    for row_num, row in enumerate(rows[1:], start=2):
-        if not row or not row[0].strip():
-            errors.append({"row": row_num, "error": "Empty field name"})
-            continue
-
-        field_name = row[0].strip()
-        rows_processed += 1
-
-        # Room resolution (only when room column present)
-        target_room: Optional[Room] = None
-        if has_room_column:
-            room_cell = row[1].strip() if len(row) > 1 else ""
-            if not room_cell:
-                errors.append({"row": row_num, "error": "Empty room name"})
-                continue
-            target_room = room_name_map.get(room_cell.lower())
-            if target_room is None:
-                errors.append({"row": row_num, "error": f"Room not found: '{room_cell}'"})
-                continue
-
-        # Match field name to a DataField (org-unique variable_names)
-        field_obj = var_map.get(field_name) or name_map.get(field_name.lower())
-        if not field_obj:
-            # Auto-create the DataField
-            # Build a safe variable_name from the field name
-            safe_var = field_name.strip().lower().replace(" ", "_").replace("-", "_")
-            # Ensure it doesn't collide with an existing variable_name
-            if safe_var in var_map:
-                field_obj = var_map[safe_var]
-            else:
-                display_name = field_name.strip().replace("_", " ").title()
-                field_obj = DataField(
-                    org_id=org.id,
-                    name=display_name,
-                    variable_name=safe_var,
-                    entry_interval="daily",
-                    created_by=user.id,
-                )
-                db.add(field_obj)
-                db.flush()
-                # Add to lookup maps so subsequent rows can find it
-                var_map[safe_var] = field_obj
-                name_map[display_name.lower()] = field_obj
-                fields_created.append(display_name)
-
-        # Read values for each date column
-        for col_idx, entry_date in date_columns:
-            if col_idx >= len(row):
-                continue
-            raw_value = row[col_idx].strip()
-            if not raw_value:
-                continue
-            try:
-                value = float(raw_value.replace(",", ""))
-            except ValueError:
-                errors.append({"row": row_num, "error": f"Invalid number '{raw_value}' for date {entry_date.isoformat()}"})
-                continue
-
-            if entry_date not in date_entries:
-                date_entries[entry_date] = []
-            date_entries[entry_date].append(FieldEntryInput(data_field_id=field_obj.id, value=value))
-
-    # Submit entries grouped by date
-    for entry_date in sorted(date_entries.keys()):
-        field_entries = date_entries[entry_date]
-        created, kpis_recalc, batch_errors = EntryService.create_field_entries(
-            db=db,
-            org_id=org.id,
-            user_id=user.id,
-            entry_date=entry_date,
-            field_entries=field_entries,
-        )
-        total_entries_created += len(created)
-        total_kpis_recalculated += kpis_recalc
-        for err in batch_errors:
-            errors.append({"row": 0, "error": f"{entry_date.isoformat()}: {err.get('error', 'Unknown error')}"})
-
-    return CSVImportResponse(
-        rows_processed=rows_processed,
-        entries_created=total_entries_created,
-        fields_created=fields_created,
-        kpis_recalculated=total_kpis_recalculated,
-        errors=errors,
-        unmatched_columns=invalid_date_headers,
+    return UniversalCSVImporter.import_file(
+        contents=contents,
+        filename=file.filename,
+        user=user,
+        org=org,
+        db=db,
+        config=config_obj,
     )
+
+
 
 
 @router.get("/fields/csv-template")

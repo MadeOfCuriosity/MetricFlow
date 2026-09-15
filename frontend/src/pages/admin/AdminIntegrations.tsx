@@ -8,6 +8,10 @@ import {
   CheckCircleIcon,
   ExclamationCircleIcon,
   XCircleIcon,
+  XMarkIcon,
+  PencilIcon,
+  ArrowPathRoundedSquareIcon,
+  ExclamationTriangleIcon,
 } from '@heroicons/react/24/outline'
 import { useToast } from '../../context/ToastContext'
 import { IntegrationSetupModal } from '../../components/IntegrationSetupModal'
@@ -24,53 +28,57 @@ const PROVIDERS: Record<
   google_sheets: {
     name: 'Google Sheets',
     color: '#0F9D58',
-    description: 'Import data from Google Spreadsheets',
+    description: 'Import metric data from Google Spreadsheets in real time',
   },
   zoho_crm: {
     name: 'Zoho CRM',
     color: '#E42527',
-    description: 'Sync leads, deals, and contacts',
+    description: 'Sync customer leads, pipeline deals, and accounts',
   },
   zoho_books: {
     name: 'Zoho Books',
     color: '#4BC882',
-    description: 'Sync invoices and expenses',
+    description: 'Sync financial invoices, expenses, and revenue',
   },
   zoho_sheet: {
     name: 'Zoho Sheet',
     color: '#17B26A',
-    description: 'Import from Zoho spreadsheets',
+    description: 'Import worksheets and rows from Zoho cloud sheets',
   },
   leadsquared: {
     name: 'LeadSquared',
     color: '#FF6B35',
-    description: 'Pull lead and activity data',
+    description: 'Pull sales lead stages and activity milestones',
   },
 }
 
 const STATUS_CONFIG: Record<
   string,
-  { icon: typeof CheckCircleIcon; className: string; label: string }
+  { icon: typeof CheckCircleIcon; className: string; label: string; badge: string }
 > = {
   connected: {
     icon: CheckCircleIcon,
-    className: 'text-success-400',
+    className: 'text-emerald-400',
     label: 'Connected',
+    badge: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
   },
   error: {
     icon: ExclamationCircleIcon,
-    className: 'text-danger-400',
+    className: 'text-rose-400',
     label: 'Error',
+    badge: 'bg-rose-500/10 text-rose-400 border-rose-500/20',
   },
   disconnected: {
     icon: XCircleIcon,
     className: 'text-dark-400',
     label: 'Disconnected',
+    badge: 'bg-dark-800 text-dark-400 border-dark-700',
   },
   pending_auth: {
     icon: ClockIcon,
-    className: 'text-warning-400',
+    className: 'text-amber-400',
     label: 'Pending Auth',
+    badge: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
   },
 }
 
@@ -98,7 +106,7 @@ export function AdminIntegrations() {
     } finally {
       setIsLoading(false)
     }
-  }, [])
+  }, [showError])
 
   useEffect(() => {
     fetchIntegrations()
@@ -107,18 +115,19 @@ export function AdminIntegrations() {
   const handleSync = async (integration: Integration) => {
     setSyncingIds((prev) => new Set(prev).add(integration.id))
     try {
-      const log = await integrationsApi.triggerSync(integration.id)
-      if (log.status === 'success') {
-        success('Sync Complete', log.summary || `Synced ${log.rows_written} values.`)
-      } else if (log.status === 'partial') {
-        success('Sync Partial', log.summary || `Synced with ${log.errors_count} errors.`)
+      const resp = await integrationsApi.triggerSync(integration.id)
+      if (resp.status === 'success') {
+        success(
+          'Sync Completed',
+          `${resp.rows_written} records synced for ${integration.display_name}.`
+        )
       } else {
-        showError(log.summary || 'Sync failed.')
+        showError('Sync Warning', resp.summary || 'Sync completed with warnings')
       }
       fetchIntegrations()
     } catch (err: unknown) {
       const error = err as { response?: { data?: { detail?: string } } }
-      showError(error.response?.data?.detail || 'Sync failed')
+      showError('Sync Failed', error.response?.data?.detail || 'Failed to trigger sync')
     } finally {
       setSyncingIds((prev) => {
         const next = new Set(prev)
@@ -155,9 +164,8 @@ export function AdminIntegrations() {
     fetchIntegrations()
   }
 
-  const connectedCount = integrations.filter(
-    (i) => i.status === 'connected'
-  ).length
+  const connectedCount = integrations.filter((i) => i.status === 'connected').length
+  const errorCount = integrations.filter((i) => i.status === 'error').length
 
   const handleChooseProvider = (providerId: string) => {
     setIsPickerOpen(false)
@@ -167,185 +175,191 @@ export function AdminIntegrations() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div />
+      {/* Header & Badges */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-dark-900 border border-dark-700/70 text-xs">
+            <ArrowPathRoundedSquareIcon className="w-3.5 h-3.5 text-dark-400 stroke-[1.8]" />
+            <span className="text-dark-400">Total:</span>
+            <span className="font-semibold text-foreground">{integrations.length}</span>
+          </div>
+
+          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-dark-900 border border-dark-700/70 text-xs">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+            <span className="text-dark-400">Connected:</span>
+            <span className="font-semibold text-foreground">{connectedCount}</span>
+          </div>
+
+          {errorCount > 0 && (
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-xs text-rose-400">
+              <ExclamationTriangleIcon className="w-3.5 h-3.5" />
+              <span>{errorCount} Error{errorCount > 1 ? 's' : ''}</span>
+            </div>
+          )}
+        </div>
+
         <button
+          type="button"
           onClick={() => setIsPickerOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-500 transition-colors text-sm font-medium"
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-foreground text-dark-950 font-semibold hover:opacity-90 transition-opacity text-sm shadow-sm cursor-pointer self-start sm:self-auto"
         >
-          <PlusIcon className="w-4 h-4" />
-          Add Integration
+          <PlusIcon className="w-4 h-4 stroke-[2.5]" />
+          <span>Add Integration</span>
         </button>
       </div>
 
-      {/* Summary stats */}
-      <div className="grid grid-cols-3 gap-4">
-        <div className="bg-dark-900 border border-dark-700 rounded-xl p-4">
-          <p className="text-sm text-dark-400">Total Integrations</p>
-          <p className="text-xl font-bold text-foreground mt-1">{integrations.length}</p>
-        </div>
-        <div className="bg-dark-900 border border-dark-700 rounded-xl p-4">
-          <p className="text-sm text-dark-400">Connected</p>
-          <p className="text-xl font-bold text-success-400 mt-1">{connectedCount}</p>
-        </div>
-        <div className="bg-dark-900 border border-dark-700 rounded-xl p-4">
-          <p className="text-sm text-dark-400">Errors</p>
-          <p className="text-xl font-bold text-danger-400 mt-1">
-            {integrations.filter((i) => i.status === 'error').length}
-          </p>
-        </div>
-      </div>
-
       {/* Integrations Table */}
-      <div className="bg-dark-900 border border-dark-700 rounded-xl overflow-hidden">
+      <div className="bg-dark-900 border border-dark-700 rounded-2xl overflow-hidden shadow-sm">
         {isLoading ? (
-          <div className="p-8 text-center text-dark-300">Loading integrations...</div>
+          <div className="p-12 text-center text-xs text-dark-400">Loading integrations...</div>
         ) : integrations.length === 0 ? (
-          <div className="p-8 text-center text-dark-300">
-            <ArrowPathIcon className="w-12 h-12 mx-auto mb-4 text-dark-500" />
-            <p>No integrations configured yet.</p>
+          <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+            <div className="w-14 h-14 rounded-2xl bg-dark-800 border border-dark-700 flex items-center justify-center mb-3">
+              <ArrowPathRoundedSquareIcon className="w-7 h-7 text-dark-400 stroke-[1.5]" />
+            </div>
+            <p className="text-sm font-semibold text-foreground">No integrations configured yet</p>
+            <p className="text-xs text-dark-400 mt-1 mb-5">Connect Google Sheets, Zoho CRM, or LeadSquared to automate data sync.</p>
             <button
+              type="button"
               onClick={() => setIsPickerOpen(true)}
-              className="mt-3 text-sm text-primary-400 hover:text-primary-300"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-foreground text-dark-950 font-semibold text-xs hover:opacity-90 transition-opacity shadow-sm cursor-pointer"
             >
-              Set up your first integration
+              <PlusIcon className="w-4 h-4 stroke-[2.5]" />
+              <span>Connect First Integration</span>
             </button>
           </div>
         ) : (
-          <table className="w-full">
-            <thead className="bg-dark-800/50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-dark-300 uppercase tracking-wider">
-                  Integration
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-dark-300 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-dark-300 uppercase tracking-wider hidden md:table-cell">
-                  Schedule
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-dark-300 uppercase tracking-wider hidden lg:table-cell">
-                  Last Sync
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-dark-300 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-dark-700">
-              {integrations.map((integration) => {
-                const provider = PROVIDERS[integration.provider]
-                const statusCfg = STATUS_CONFIG[integration.status] || STATUS_CONFIG.disconnected
-                const StatusIcon = statusCfg.icon
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="border-b border-dark-700 bg-dark-950/40 text-[11px] font-semibold text-dark-400 uppercase tracking-wider">
+                  <th className="px-5 py-3.5">Integration</th>
+                  <th className="px-4 py-3.5">Status</th>
+                  <th className="px-4 py-3.5 hidden md:table-cell">Schedule</th>
+                  <th className="px-4 py-3.5 hidden lg:table-cell">Last Sync</th>
+                  <th className="px-5 py-3.5 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-dark-800 text-sm">
+                {integrations.map((integration) => {
+                  const provider = PROVIDERS[integration.provider]
+                  const statusCfg = STATUS_CONFIG[integration.status] || STATUS_CONFIG.disconnected
 
-                return (
-                  <tr
-                    key={integration.id}
-                    className="hover:bg-dark-800/30 transition-colors"
-                  >
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div
-                          className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
-                          style={{
-                            backgroundColor: provider?.color || '#6b7280',
-                          }}
-                        >
-                          {(provider?.name || integration.provider)
-                            .charAt(0)
-                            .toUpperCase()}
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-foreground font-medium truncate">
-                            {integration.display_name}
-                          </p>
-                          <p className="text-xs text-dark-400">
-                            {provider?.name || integration.provider}
-                          </p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-1.5">
-                        <StatusIcon className={`h-4 w-4 ${statusCfg.className}`} />
-                        <span className={`text-sm ${statusCfg.className}`}>
-                          {statusCfg.label}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 hidden md:table-cell">
-                      <span className="text-sm text-dark-300 capitalize">
-                        {integration.sync_schedule === 'manual'
-                          ? 'Manual'
-                          : `Every ${integration.sync_schedule}`}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 hidden lg:table-cell">
-                      <span className="text-sm text-dark-400">
-                        {integration.last_synced_at
-                          ? formatDistanceToNow(
-                              new Date(integration.last_synced_at),
-                              { addSuffix: true }
-                            )
-                          : 'Never'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        {integration.status === 'connected' && (
-                          <button
-                            onClick={() => handleSync(integration)}
-                            disabled={syncingIds.has(integration.id)}
-                            className="p-2 text-dark-300 hover:text-primary-400 hover:bg-primary-500/10 rounded-lg transition-colors disabled:opacity-50"
-                            title="Sync now"
+                  return (
+                    <tr
+                      key={integration.id}
+                      className="hover:bg-dark-800/40 transition-colors group"
+                    >
+                      <td className="px-5 py-3.5">
+                        <div className="flex items-center gap-3">
+                          <div
+                            className="w-8 h-8 rounded-xl flex items-center justify-center text-white text-xs font-bold flex-shrink-0 shadow-sm"
+                            style={{
+                              backgroundColor: provider?.color || '#6b7280',
+                            }}
                           >
-                            <ArrowPathIcon
-                              className={`w-4 h-4 ${
-                                syncingIds.has(integration.id)
-                                  ? 'animate-spin'
-                                  : ''
-                              }`}
-                            />
+                            {(provider?.name || integration.provider)
+                              .charAt(0)
+                              .toUpperCase()}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold text-foreground truncate group-hover:text-primary-400 transition-colors">
+                              {integration.display_name}
+                            </p>
+                            <p className="text-xs text-dark-400">
+                              {provider?.name || integration.provider}
+                            </p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3.5">
+                        <span
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wider border ${statusCfg.badge}`}
+                        >
+                          <statusCfg.icon className="w-3 h-3" />
+                          <span>{statusCfg.label}</span>
+                        </span>
+                      </td>
+                      <td className="px-4 py-3.5 hidden md:table-cell">
+                        <span className="text-xs text-dark-300 capitalize font-medium">
+                          {integration.sync_schedule === 'manual'
+                            ? 'Manual'
+                            : `Every ${integration.sync_schedule}`}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3.5 hidden lg:table-cell">
+                        <span className="text-xs text-dark-400">
+                          {integration.last_synced_at
+                            ? formatDistanceToNow(
+                                new Date(integration.last_synced_at),
+                                { addSuffix: true }
+                              )
+                            : 'Never'}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3.5 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          {integration.status === 'connected' && (
+                            <button
+                              type="button"
+                              onClick={() => handleSync(integration)}
+                              disabled={syncingIds.has(integration.id)}
+                              className="p-1.5 text-dark-400 hover:text-foreground hover:bg-dark-800 rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
+                              title="Sync now"
+                            >
+                              <ArrowPathIcon
+                                className={`w-4 h-4 ${
+                                  syncingIds.has(integration.id) ? 'animate-spin' : ''
+                                }`}
+                              />
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => setHistoryIntegration(integration)}
+                            className="p-1.5 text-dark-400 hover:text-foreground hover:bg-dark-800 rounded-lg transition-colors cursor-pointer"
+                            title="View sync history"
+                          >
+                            <ClockIcon className="w-4 h-4" />
                           </button>
-                        )}
-                        <button
-                          onClick={() => setHistoryIntegration(integration)}
-                          className="p-2 text-dark-300 hover:text-foreground hover:bg-dark-600 rounded-lg transition-colors"
-                          title="Sync history"
-                        >
-                          <ClockIcon className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => {
-                            setSetupProvider(integration.provider)
-                            setEditIntegration(integration)
-                            setIsSetupOpen(true)
-                          }}
-                          className="px-2 py-1 text-xs text-primary-400 hover:text-primary-300 transition-colors"
-                        >
-                          Manage
-                        </button>
-                        <button
-                          onClick={() => setDeleteIntegration(integration)}
-                          className="p-2 text-dark-300 hover:text-danger-400 hover:bg-danger-500/10 rounded-lg transition-colors"
-                          title="Disconnect"
-                        >
-                          <TrashIcon className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditIntegration(integration)
+                              setSetupProvider(integration.provider)
+                              setIsSetupOpen(true)
+                            }}
+                            className="p-1.5 text-dark-400 hover:text-foreground hover:bg-dark-800 rounded-lg transition-colors cursor-pointer"
+                            title="Edit settings"
+                          >
+                            <PencilIcon className="w-4 h-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setDeleteIntegration(integration)}
+                            className="p-1.5 text-dark-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer"
+                            title="Disconnect"
+                          >
+                            <TrashIcon className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 
-      {/* Provider Picker */}
+      {/* Provider Picker Modal */}
       <Transition appear show={isPickerOpen} as={Fragment}>
-        <Dialog as="div" className="relative z-50" onClose={() => setIsPickerOpen(false)}>
+        <Dialog
+          as="div"
+          className="relative z-50"
+          onClose={() => setIsPickerOpen(false)}
+        >
           <Transition.Child
             as={Fragment}
             enter="ease-out duration-300"
@@ -355,7 +369,7 @@ export function AdminIntegrations() {
             leaveFrom="opacity-100"
             leaveTo="opacity-0"
           >
-            <div className="fixed inset-0 bg-black/60" />
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" />
           </Transition.Child>
 
           <div className="fixed inset-0 overflow-y-auto">
@@ -369,40 +383,42 @@ export function AdminIntegrations() {
                 leaveFrom="opacity-100 scale-100"
                 leaveTo="opacity-0 scale-95"
               >
-                <Dialog.Panel className="w-full max-w-lg bg-dark-900 border border-dark-700 rounded-2xl shadow-xl p-6">
-                  <Dialog.Title className="text-lg font-semibold text-foreground">
-                    Choose an integration
-                  </Dialog.Title>
-                  <p className="text-sm text-dark-400 mt-1 mb-4">
-                    Pick a source to pull data from.
-                  </p>
-                  <div className="space-y-2">
-                    {Object.entries(PROVIDERS).map(([id, provider]) => (
-                      <button
-                        key={id}
-                        onClick={() => handleChooseProvider(id)}
-                        className="w-full flex items-center gap-3 p-3 bg-dark-800 border border-dark-600 rounded-lg hover:border-primary-500 transition-colors text-left"
-                      >
-                        <div
-                          className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
-                          style={{ backgroundColor: provider.color }}
-                        >
-                          {provider.name.charAt(0).toUpperCase()}
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-foreground font-medium">{provider.name}</p>
-                          <p className="text-xs text-dark-400">{provider.description}</p>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                  <div className="flex justify-end mt-6">
+                <Dialog.Panel className="w-full max-w-lg transform overflow-hidden rounded-2xl bg-dark-900 border border-dark-700 p-6 shadow-2xl transition-all">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <Dialog.Title className="text-base font-bold text-foreground tracking-tight">
+                        Choose Integration Provider
+                      </Dialog.Title>
+                      <p className="text-xs text-dark-400 mt-0.5">Select a data source to connect with your rooms</p>
+                    </div>
                     <button
                       onClick={() => setIsPickerOpen(false)}
-                      className="px-4 py-2 text-dark-300 hover:text-foreground transition-colors"
+                      className="text-dark-400 hover:text-foreground transition-colors cursor-pointer"
                     >
-                      Cancel
+                      <XMarkIcon className="h-5 w-5" />
                     </button>
+                  </div>
+
+                  <div className="space-y-2.5">
+                    {Object.entries(PROVIDERS).map(([key, provider]) => (
+                      <button
+                        key={key}
+                        onClick={() => handleChooseProvider(key)}
+                        className="flex items-center gap-3.5 w-full p-3.5 bg-dark-950/40 hover:bg-dark-800/40 border border-dark-800 rounded-2xl transition-all text-left cursor-pointer group"
+                      >
+                        <div
+                          className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold flex-shrink-0 group-hover:scale-105 transition-transform"
+                          style={{ backgroundColor: provider.color }}
+                        >
+                          {provider.name.charAt(0)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold text-foreground group-hover:text-primary-400 transition-colors">{provider.name}</p>
+                          <p className="text-[11px] text-dark-400 mt-0.5">{provider.description}</p>
+                        </div>
+                        <span className="text-xs text-dark-400 group-hover:text-foreground transition-colors">Connect &rarr;</span>
+                      </button>
+                    ))}
                   </div>
                 </Dialog.Panel>
               </Transition.Child>
@@ -411,38 +427,40 @@ export function AdminIntegrations() {
         </Dialog>
       </Transition>
 
-      {/* Setup Modal */}
-      <IntegrationSetupModal
-        isOpen={isSetupOpen}
-        onClose={() => {
-          setIsSetupOpen(false)
-          setSetupProvider(null)
-          setEditIntegration(null)
-        }}
-        onComplete={handleSetupComplete}
-        provider={setupProvider}
-        editIntegration={editIntegration}
-      />
-
-      {/* Sync History Modal */}
-      {historyIntegration && (
-        <SyncHistoryModal
-          isOpen={!!historyIntegration}
-          onClose={() => setHistoryIntegration(null)}
-          integrationId={historyIntegration.id}
-          integrationName={historyIntegration.display_name}
+      {/* Setup / Edit Modal */}
+      {isSetupOpen && setupProvider && (
+        <IntegrationSetupModal
+          isOpen={isSetupOpen}
+          provider={setupProvider}
+          editIntegration={editIntegration}
+          onClose={() => {
+            setIsSetupOpen(false)
+            setSetupProvider(null)
+            setEditIntegration(null)
+          }}
+          onComplete={handleSetupComplete}
         />
       )}
 
-      {/* Delete Confirmation */}
+      {/* History Modal */}
+      {historyIntegration && (
+        <SyncHistoryModal
+          isOpen={!!historyIntegration}
+          integrationId={historyIntegration.id}
+          integrationName={historyIntegration.display_name}
+          onClose={() => setHistoryIntegration(null)}
+        />
+      )}
+
+      {/* Disconnect Confirmation */}
       {deleteIntegration && (
         <DeleteConfirmModal
           isOpen={!!deleteIntegration}
-          onClose={() => setDeleteIntegration(null)}
-          onConfirm={handleDelete}
           title="Disconnect Integration"
-          message={`Are you sure you want to disconnect "${deleteIntegration.display_name}"? This will remove all field mappings and stop scheduled syncs.`}
+          message={`Are you sure you want to disconnect "${deleteIntegration.display_name}"? Scheduled syncs will stop running.`}
           isDeleting={isDeleting}
+          onConfirm={handleDelete}
+          onClose={() => setDeleteIntegration(null)}
         />
       )}
     </div>
