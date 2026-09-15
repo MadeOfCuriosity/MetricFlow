@@ -15,6 +15,7 @@ import { CreateRoomModal } from '../../components/CreateRoomModal'
 import { DeleteConfirmModal } from '../../components/DeleteConfirmModal'
 import { RoomTreeNode } from '../../types/room'
 import { roomsApi } from '../../services/rooms'
+import { getTagColor } from '../../constants/tagColors'
 
 export function AdminRooms() {
   const { roomTree, isLoading, fetchRooms, fetchRoomTree } = useRoom()
@@ -53,43 +54,55 @@ export function AdminRooms() {
 
   return (
     <div className="space-y-4">
-      {/* Toolbar */}
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-dark-300">
-          {totalRooms} room{totalRooms !== 1 ? 's' : ''} in your organization
-        </p>
+      {/* Toolbar & Badges */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-dark-900 border border-dark-700/70 text-xs">
+            <FolderIcon className="w-3.5 h-3.5 text-dark-400 stroke-[1.8]" />
+            <span className="text-dark-400">Total Rooms:</span>
+            <span className="font-semibold text-foreground">{totalRooms}</span>
+          </div>
+
+          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-dark-900 border border-dark-700/70 text-xs">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+            <span className="text-dark-400">Top-level:</span>
+            <span className="font-semibold text-foreground">{roomTree.length}</span>
+          </div>
+        </div>
+
         <button
+          type="button"
           onClick={() => setIsCreateModalOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 border border-primary-500 bg-transparent text-foreground rounded-lg hover:bg-primary-500/10 transition-colors text-sm"
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-foreground text-dark-950 font-semibold hover:opacity-90 transition-opacity text-sm shadow-sm cursor-pointer self-start sm:self-auto"
         >
-          <PlusIcon className="w-4 h-4" />
-          Create Room
+          <PlusIcon className="w-4 h-4 stroke-[2.5]" />
+          <span>Create Room</span>
         </button>
       </div>
 
       {/* Room Tree */}
-      <div className="bg-dark-900 border border-dark-700 rounded-xl overflow-hidden">
+      <div className="bg-dark-900 border border-dark-700 rounded-2xl overflow-hidden shadow-sm">
         {isLoading ? (
-          <div className="p-8 text-center text-dark-300">Loading rooms...</div>
+          <div className="p-8 text-center text-xs text-dark-400">Loading rooms...</div>
         ) : roomTree.length === 0 ? (
           <div className="p-12 flex flex-col items-center justify-center text-center">
             <div
               onClick={() => setIsCreateModalOpen(true)}
               className="flex flex-col items-center group cursor-pointer select-none p-4 rounded-2xl hover:bg-dark-800/40 transition-all"
             >
-              <div className="w-40 h-32 rounded-2xl border-2 border-dashed border-dark-700 group-hover:border-dark-500 bg-dark-800/20 group-hover:bg-dark-800/60 transition-all flex items-center justify-center group-hover:scale-105 duration-200">
+              <div className="w-36 h-28 rounded-2xl border-2 border-dashed border-dark-700 group-hover:border-dark-500 bg-dark-800/20 group-hover:bg-dark-800/60 transition-all flex items-center justify-center group-hover:scale-105 duration-200">
                 <PlusIcon className="w-8 h-8 text-dark-400 group-hover:text-foreground transition-colors stroke-[1.5]" />
               </div>
               <div className="mt-3.5 flex flex-col items-center text-center">
                 <span className="text-sm font-semibold text-foreground tracking-tight group-hover:text-white transition-colors">
                   New Room
                 </span>
-                <span className="text-xs text-dark-400 mt-0.5">Click to create</span>
+                <span className="text-xs text-dark-400 mt-0.5">Click to create your first room</span>
               </div>
             </div>
           </div>
         ) : (
-          <div className="divide-y divide-dark-700">
+          <div className="divide-y divide-dark-800">
             {roomTree.map((room) => (
               <RoomRow
                 key={room.id}
@@ -168,9 +181,17 @@ function RoomRow({
         {/* Room info */}
         <button
           onClick={() => onNavigate(room.id)}
-          className="flex items-center gap-3 flex-1 min-w-0 text-left"
+          className="flex items-center gap-3 flex-1 min-w-0 text-left cursor-pointer"
         >
-          <FolderIcon className="h-5 w-5 text-dark-400 flex-shrink-0" />
+          <div className="relative flex items-center justify-center">
+            <FolderIcon className="h-5 w-5 text-dark-400 flex-shrink-0" />
+            {room.color && (
+              <span
+                className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-dark-900"
+                style={{ backgroundColor: getTagColor(room.color)?.hex || room.color }}
+              />
+            )}
+          </div>
           <span className="text-foreground font-medium truncate">{room.name}</span>
         </button>
 

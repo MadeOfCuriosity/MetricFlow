@@ -133,29 +133,29 @@ export function DataEntryForm({ rooms, onSubmit, isSubmitting }: DataEntryFormPr
         const allDone = roomCompleted === roomTotal
 
         return (
-          <div key={roomKey}>
+          <div key={roomKey} className="space-y-3">
             {/* Room header */}
             <button
               type="button"
               onClick={() => toggleRoom(room.room_id)}
-              className="w-full flex items-center justify-between mb-3 group"
+              className="w-full flex items-center justify-between px-4 py-3 bg-dark-900 border border-dark-700 hover:border-dark-600 rounded-2xl transition-colors cursor-pointer group shadow-xs"
             >
-              <div className="flex items-center gap-2">
-                <FolderIcon className="w-4 h-4 text-dark-400" />
-                <span className="text-sm font-medium text-foreground">
+              <div className="flex items-center gap-2.5">
+                <FolderIcon className="w-4 h-4 text-dark-400 group-hover:text-foreground transition-colors stroke-[2]" />
+                <span className="text-sm font-semibold text-foreground tracking-tight">
                   {room.room_name}
                 </span>
-                <span className="text-xs text-dark-400">
-                  ({roomCompleted}/{roomTotal})
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-dark-800 text-[11px] font-medium text-dark-400">
+                  {roomCompleted}/{roomTotal}
                 </span>
                 {allDone && (
-                  <CheckCircleIcon className="w-4 h-4 text-success-400" />
+                  <CheckCircleIcon className="w-4 h-4 text-emerald-400 flex-shrink-0" />
                 )}
               </div>
               {isExpanded ? (
-                <ChevronUpIcon className="w-4 h-4 text-dark-300" />
+                <ChevronUpIcon className="w-4 h-4 text-dark-400 group-hover:text-foreground transition-colors" />
               ) : (
-                <ChevronDownIcon className="w-4 h-4 text-dark-300" />
+                <ChevronDownIcon className="w-4 h-4 text-dark-400 group-hover:text-foreground transition-colors" />
               )}
             </button>
 
@@ -169,20 +169,20 @@ export function DataEntryForm({ rooms, onSubmit, isSubmitting }: DataEntryFormPr
                   return (
                     <div
                       key={field.data_field_id}
-                      className={`bg-dark-900 border rounded-xl p-4 transition-colors ${
+                      className={`bg-dark-900 border rounded-2xl p-4 transition-all duration-150 shadow-xs ${
                         field.has_entry_today
-                          ? 'border-success-500/20'
+                          ? 'border-emerald-500/30'
                           : hasValue
-                          ? 'border-primary-500/20'
-                          : 'border-dark-700'
+                          ? 'border-primary-500/30'
+                          : 'border-dark-700 hover:border-dark-600'
                       }`}
                     >
-                      <div className="flex items-center justify-between mb-2">
-                        <label className="block text-sm font-medium text-foreground">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="block text-sm font-semibold text-foreground truncate">
                           {field.data_field_name}
                         </label>
                         {field.has_entry_today && (
-                          <CheckCircleIcon className="w-4 h-4 text-success-400 flex-shrink-0" />
+                          <CheckCircleIcon className="w-4 h-4 text-emerald-400 flex-shrink-0" />
                         )}
                       </div>
                       {field.unit && (
@@ -197,18 +197,18 @@ export function DataEntryForm({ rooms, onSubmit, isSubmitting }: DataEntryFormPr
                             handleValueChange(field.data_field_id, e.target.value)
                           }
                           placeholder="0"
-                          className={`w-full px-3 py-2 bg-dark-800 border rounded-lg text-foreground placeholder-dark-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors ${
-                            hasError ? 'border-danger-500' : 'border-dark-600'
+                          className={`w-full px-3.5 py-2 bg-dark-800/80 border rounded-xl text-sm font-medium text-foreground placeholder-dark-500 focus:outline-none focus:border-dark-500 transition-colors ${
+                            hasError ? 'border-rose-500' : 'border-dark-700'
                           }`}
                         />
                         {hasError && (
                           <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                            <ExclamationCircleIcon className="w-5 h-5 text-danger-500" />
+                            <ExclamationCircleIcon className="w-4 h-4 text-rose-400" />
                           </div>
                         )}
                       </div>
                       {hasError && (
-                        <p className="text-xs text-danger-400 mt-1">
+                        <p className="text-xs text-rose-400 mt-1 font-medium">
                           {errors[field.data_field_id]}
                         </p>
                       )}
@@ -223,9 +223,9 @@ export function DataEntryForm({ rooms, onSubmit, isSubmitting }: DataEntryFormPr
 
       {/* Empty submit warning */}
       {emptySubmitWarning && (
-        <div className="flex items-center gap-2 p-3 bg-warning-500/10 border border-warning-500/20 rounded-lg">
-          <ExclamationCircleIcon className="w-5 h-5 text-warning-400 flex-shrink-0" />
-          <p className="text-sm text-warning-400">
+        <div className="flex items-center gap-2 p-3.5 bg-amber-500/10 border border-amber-500/20 rounded-2xl">
+          <ExclamationCircleIcon className="w-5 h-5 text-amber-400 flex-shrink-0" />
+          <p className="text-xs text-amber-400 font-medium">
             Please enter at least one value before saving.
           </p>
         </div>
@@ -233,31 +233,31 @@ export function DataEntryForm({ rooms, onSubmit, isSubmitting }: DataEntryFormPr
 
       {/* Validation error summary */}
       {Object.keys(errors).length > 0 && (
-        <div className="flex items-center gap-2 p-3 bg-danger-500/10 border border-danger-500/20 rounded-lg">
-          <ExclamationCircleIcon className="w-5 h-5 text-danger-400 flex-shrink-0" />
-          <p className="text-sm text-danger-400">
+        <div className="flex items-center gap-2 p-3.5 bg-rose-500/10 border border-rose-500/20 rounded-2xl">
+          <ExclamationCircleIcon className="w-5 h-5 text-rose-400 flex-shrink-0" />
+          <p className="text-xs text-rose-400 font-medium">
             {Object.keys(errors).length} field{Object.keys(errors).length > 1 ? 's have' : ' has'} invalid values. Please fix the errors above.
           </p>
         </div>
       )}
 
       {/* Submit button */}
-      <div className="flex items-center justify-between pt-4 border-t border-dark-700">
-        <p className="text-sm text-dark-400">
-          {completedFields} of {totalFields} fields completed
+      <div className="flex items-center justify-between pt-4 border-t border-dark-700/80">
+        <p className="text-xs text-dark-400">
+          <span className="font-semibold text-foreground">{completedFields}</span> of {totalFields} fields completed
         </p>
         <button
           type="submit"
           disabled={isSubmitting}
-          className="px-6 py-2 border border-primary-500 bg-transparent text-foreground rounded-lg hover:bg-primary-500/10 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:ring-offset-dark-950 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="px-6 py-2.5 bg-foreground text-dark-950 font-semibold rounded-xl hover:opacity-90 transition-opacity text-sm shadow-sm cursor-pointer disabled:opacity-50"
         >
           {isSubmitting ? (
             <div className="flex items-center gap-2">
-              <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-foreground"></div>
-              Saving...
+              <div className="animate-spin rounded-full h-4 w-4 border-2 border-dark-950/30 border-t-dark-950"></div>
+              <span>Saving...</span>
             </div>
           ) : (
-            'Save entries'
+            'Save Entries'
           )}
         </button>
       </div>
