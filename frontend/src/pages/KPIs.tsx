@@ -15,7 +15,7 @@ import { Skeleton } from '../components'
 import { SEOHead } from '../components/SEOHead'
 import { useToast } from '../context/ToastContext'
 import api from '../services/api'
-import { AIBuilder } from './AIBuilder'
+import { KPICreationStudio } from '../components/KPICreationStudio'
 
 type TimePeriod = 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'other'
 
@@ -236,27 +236,37 @@ export function KPIs() {
   )
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto pb-12">
+    <div
+      className={`mx-auto transition-all ${
+        activeTab === 'create'
+          ? 'space-y-3 max-w-[1600px] h-[calc(100vh-10rem)] min-h-[560px] flex flex-col overflow-hidden'
+          : 'space-y-8 max-w-7xl pb-12'
+      }`}
+    >
       <SEOHead
         title="KPIs & Metrics"
         description="Manage key performance indicators, custom formulas, targets, and automated AI calculations."
       />
 
       {/* Header with 2 Switches / Tabs */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 flex-shrink-0">
         <div>
-          <h1 className="text-2xl font-bold text-foreground tracking-tight">KPIs</h1>
-          <p className="text-dark-300 mt-1 text-sm">
-            Manage your organization's key performance indicators, formulas, and metric targets.
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">
+            {activeTab === 'create' ? 'KPI Studio' : 'KPIs'}
+          </h1>
+          <p className="text-dark-300 mt-0.5 text-xs sm:text-sm hidden sm:block">
+            {activeTab === 'create'
+              ? 'Multi-mode KPI creation studio: AI natural language builder, manual formulas, and industry presets.'
+              : "Manage your organization's key performance indicators, formulas, and metric targets."}
           </p>
         </div>
 
         {/* 2 Switches / Tabs: All KPIs and Create */}
-        <div className="flex items-center p-1 bg-dark-900 border border-dark-700 rounded-xl">
+        <div className="flex items-center p-1 bg-dark-900 border border-dark-700 rounded-xl flex-shrink-0">
           <button
             type="button"
             onClick={() => handleTabChange('all')}
-            className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition-all cursor-pointer ${
+            className={`flex items-center gap-2 px-3.5 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all cursor-pointer ${
               activeTab === 'all'
                 ? 'bg-dark-800 text-foreground shadow-sm'
                 : 'text-dark-400 hover:text-foreground'
@@ -277,7 +287,7 @@ export function KPIs() {
           <button
             type="button"
             onClick={() => handleTabChange('create')}
-            className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition-all cursor-pointer ${
+            className={`flex items-center gap-2 px-3.5 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all cursor-pointer ${
               activeTab === 'create'
                 ? 'bg-dark-800 text-foreground shadow-sm'
                 : 'text-dark-400 hover:text-foreground'
@@ -399,39 +409,10 @@ export function KPIs() {
         </div>
       )}
 
-      {/* TAB 2: CREATE (AI KPI Creation things + Explore More KPI Presets) */}
+      {/* TAB 2: CREATE (3-Section NotebookLM Studio Workspace) */}
       {activeTab === 'create' && (
-        <div className="space-y-6 animate-in fade-in duration-150">
-          {/* 1. Explore More KPI Presets Glassmorphic Banner Card */}
-          <div className="rounded-2xl border border-dark-700 bg-gradient-to-r from-dark-900 via-dark-850 to-dark-900 p-5 shadow-sm">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="flex items-start sm:items-center gap-3.5">
-                <div className="w-11 h-11 rounded-xl bg-primary-500/10 border border-primary-500/20 flex items-center justify-center flex-shrink-0">
-                  <SparklesIcon className="w-6 h-6 text-primary-400" />
-                </div>
-                <div>
-                  <h3 className="text-base font-semibold text-foreground tracking-tight">
-                    Explore More KPI Presets
-                  </h3>
-                  <p className="text-xs text-dark-300 mt-0.5 max-w-xl leading-relaxed">
-                    Instantly import pre-built, industry-standard formulas across Sales, Marketing, Finance & Operations with zero configuration needed.
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={handleOpenPresetModal}
-                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-foreground text-dark-950 font-semibold hover:opacity-90 transition-opacity text-sm shadow-sm cursor-pointer flex-shrink-0"
-              >
-                <SparklesIcon className="w-4 h-4 stroke-[2.5]" />
-                <span>Browse Presets</span>
-              </button>
-            </div>
-          </div>
-
-          {/* 2. AI KPI Creation */}
-          <AIBuilder
-            embedded
+        <div className="flex-1 min-h-0 animate-in fade-in duration-150">
+          <KPICreationStudio
             onKpiCreated={() => fetchKPIs()}
             onViewAllKpis={() => handleTabChange('all')}
           />
