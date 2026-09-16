@@ -61,6 +61,9 @@ function App() {
           <Route path="/landing" element={<Landing />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/signin" element={<Login />} />
+          <Route path="/get-started" element={<Register />} />
+          <Route path="/showcase" element={<Landing initialView="showcase" />} />
           <Route path="/google-setup" element={<GoogleOrgSetup />} />
           <Route path="/privacy" element={<Privacy />} />
 

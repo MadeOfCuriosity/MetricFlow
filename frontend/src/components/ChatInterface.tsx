@@ -239,9 +239,9 @@ export function ChatInterface({
   const isInputActive = messages.length > 0 || input.trim().length > 0
 
   return (
-    <div className="flex-1 min-h-0 flex flex-col justify-end w-full h-full relative overflow-hidden pb-1">
+    <div className="flex-1 min-h-0 flex flex-col w-full h-full relative pb-1">
       {/* Messages area */}
-      {messages.length > 0 && (
+      {messages.length > 0 ? (
         <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4 space-y-4 custom-scrollbar mb-2">
           {messages.map((message) => {
             const isLastAssistant =
@@ -351,30 +351,34 @@ export function ChatInterface({
 
           <div ref={messagesEndRef} />
         </div>
+      ) : (
+        <div className="flex-1 min-h-0" />
       )}
 
       {/* Centered / Docked Input Card & Suggestion Pills */}
-      <div
-        className="w-full max-w-2xl mx-auto px-4 flex-shrink-0 z-10"
-        style={{
-          transform: isInputActive ? 'translateY(0)' : 'translateY(-27vh)',
-          transition: 'transform 450ms cubic-bezier(0.16, 1, 0.3, 1)',
-        }}
-      >
+      <div className="w-full max-w-2xl mx-auto px-4 flex-shrink-0 z-10">
         {/* Floating Input Box Card */}
-        <div className="rounded-2xl bg-dark-900 border border-dark-800 shadow-2xl p-3.5 transition-colors">
-          <textarea
-            ref={textareaRef}
-            rows={1}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Describe what you wanna track"
-            disabled={isLoading}
-            className="w-full bg-transparent resize-none outline-none focus:outline-none ring-0 focus:ring-0 focus-visible:ring-0 focus-visible:outline-none border-0 focus:border-0 shadow-none text-foreground placeholder-dark-400 text-sm py-1 px-1.5 font-normal leading-relaxed custom-scrollbar max-h-40"
-          />
+        <div className="rounded-2xl bg-dark-900 border border-dark-800 shadow-2xl p-3 transition-colors">
+          {/* Inner Input Area (subtly darker recessed surface, zero active border) */}
+          <div className="rounded-xl bg-dark-950/30 px-3 py-2.5 transition-colors">
+            <textarea
+              ref={textareaRef}
+              rows={1}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Describe what you wanna track"
+              disabled={isLoading}
+              style={{
+                border: 'none',
+                outline: 'none',
+                boxShadow: 'none',
+              }}
+              className="w-full bg-transparent resize-none !outline-none !border-none !ring-0 !shadow-none focus:!ring-0 focus:!outline-none focus:!border-none focus-visible:!ring-0 focus-visible:!outline-none text-foreground placeholder-dark-400 text-sm py-0.5 font-normal leading-relaxed custom-scrollbar max-h-40"
+            />
+          </div>
 
-          <div className="flex items-center justify-between pt-2 px-0.5">
+          <div className="flex items-center justify-between pt-2.5 px-0.5">
             {/* Left: + Button with Room Assignment Popover */}
             <div className="flex items-center gap-2 relative">
               <button
@@ -490,6 +494,17 @@ export function ChatInterface({
           </div>
         )}
       </div>
+
+      {/* Dynamic bottom spacer for smooth glide on typing in empty state */}
+      {messages.length === 0 && (
+        <div
+          style={{
+            height: isInputActive ? '0px' : '26vh',
+            transition: 'height 400ms cubic-bezier(0.16, 1, 0.3, 1)',
+          }}
+          className="flex-shrink-0 overflow-hidden"
+        />
+      )}
     </div>
   )
 }

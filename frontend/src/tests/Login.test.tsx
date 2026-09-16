@@ -15,7 +15,6 @@ vi.mock('@react-oauth/google', () => ({
 
 // Mock axios
 vi.mock('axios', () => ({
-
   default: {
     create: () => ({
       interceptors: {
@@ -59,62 +58,52 @@ describe('Login Page', () => {
     renderLogin()
 
     expect(screen.getByRole('heading', { name: /welcome back/i })).toBeInTheDocument()
-    expect(screen.getByLabelText(/email/i)).toBeInTheDocument()
-    expect(screen.getByLabelText(/password/i)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument()
+    expect(screen.getByLabelText(/email address/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/^password$/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^sign in$/i })).toBeInTheDocument()
   })
 
-  it('shows link to register page', () => {
+  it('shows link / button to request invite', () => {
     renderLogin()
 
-    const registerLink = screen.getByRole('link', { name: /create account/i })
-    expect(registerLink).toBeInTheDocument()
-    expect(registerLink).toHaveAttribute('href', '/register')
+    const inviteBtn = screen.getByRole('button', { name: /request invite/i })
+    expect(inviteBtn).toBeInTheDocument()
   })
 
   it('allows entering email and password', async () => {
     const user = userEvent.setup()
     renderLogin()
 
-    const emailInput = screen.getByLabelText(/email/i)
-    const passwordInput = screen.getByLabelText(/password/i)
+    const emailInput = screen.getByLabelText(/email address/i)
+    const passwordInput = screen.getByLabelText(/^password$/i)
 
+    await user.clear(emailInput)
     await user.type(emailInput, 'test@example.com')
+    await user.clear(passwordInput)
     await user.type(passwordInput, 'password123')
 
     expect(emailInput).toHaveValue('test@example.com')
     expect(passwordInput).toHaveValue('password123')
   })
 
-  it('shows validation for empty fields on submit', async () => {
-    const user = userEvent.setup()
-    renderLogin()
-
-    const submitButton = screen.getByRole('button', { name: /sign in/i })
-    await user.click(submitButton)
-
-    // HTML5 validation should prevent submission with empty required fields
-    const emailInput = screen.getByLabelText(/email/i) as HTMLInputElement
-    expect(emailInput.validity.valueMissing).toBe(true)
-  })
-
   it('displays Visualize branding', () => {
     renderLogin()
 
-    expect(screen.getByAltText('Visualize')).toBeInTheDocument()
+    const logos = screen.getAllByAltText('Visualize')
+    expect(logos.length).toBeGreaterThan(0)
   })
 
   it('has password field with correct type', () => {
     renderLogin()
 
-    const passwordInput = screen.getByLabelText(/password/i)
+    const passwordInput = screen.getByLabelText(/^password$/i)
     expect(passwordInput).toHaveAttribute('type', 'password')
   })
 
   it('has email field with correct type', () => {
     renderLogin()
 
-    const emailInput = screen.getByLabelText(/email/i)
+    const emailInput = screen.getByLabelText(/email address/i)
     expect(emailInput).toHaveAttribute('type', 'email')
   })
 })

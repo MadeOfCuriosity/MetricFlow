@@ -1,7 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
 import {
-  SparklesIcon,
-  PencilSquareIcon,
   BookmarkSquareIcon,
   ClockIcon,
   PlusIcon,
@@ -509,12 +507,12 @@ export function KPICreationStudio({
 
 
   return (
-    <div className="flex-1 min-h-0 flex gap-3.5 overflow-hidden">
+    <div className="flex-1 min-h-0 h-full flex items-stretch gap-3.5 overflow-hidden">
       {/* ========================================================================= */}
       {/* SECTION 1: HISTORY (Left Column, Collapsible) */}
       {/* ========================================================================= */}
       {isHistoryOpen ? (
-        <aside className="w-72 flex-shrink-0 h-full flex flex-col rounded-2xl bg-dark-900 border border-dark-700 overflow-hidden shadow-sm animate-in fade-in duration-150">
+        <aside className="w-72 flex-shrink-0 h-full self-stretch flex flex-col rounded-2xl bg-dark-900 border border-dark-700 overflow-hidden shadow-sm animate-in fade-in duration-150">
           {/* Header */}
           <div className="p-3.5 border-b border-dark-700/80 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
@@ -657,7 +655,7 @@ export function KPICreationStudio({
         </aside>
       ) : (
         /* Collapsed History Rail */
-        <div className="w-11 flex-shrink-0 h-full flex flex-col items-center py-3 rounded-2xl bg-dark-900 border border-dark-700 shadow-sm animate-in fade-in duration-150">
+        <aside className="w-12 flex-shrink-0 h-full self-stretch flex flex-col items-center py-3.5 rounded-2xl bg-dark-900 border border-dark-700/80 shadow-sm animate-in fade-in duration-150">
           <button
             type="button"
             onClick={() => setIsHistoryOpen(true)}
@@ -666,8 +664,19 @@ export function KPICreationStudio({
           >
             <ChevronRightIcon className="w-4 h-4" />
           </button>
-          <div className="mt-4 writing-vertical text-[10px] font-bold uppercase tracking-widest text-dark-400 select-none">
-            History ({sessions.length})
+          <div className="mt-6 flex flex-col items-center gap-2.5 flex-1 select-none">
+            <ClockIcon className="w-4 h-4 text-dark-400 flex-shrink-0" />
+            <span
+              style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}
+              className="text-[10px] font-bold uppercase tracking-widest text-dark-400 py-1"
+            >
+              History
+            </span>
+            {sessions.length > 0 && (
+              <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-dark-800 text-dark-300 border border-dark-700 font-mono">
+                {sessions.length}
+              </span>
+            )}
           </div>
           <button
             type="button"
@@ -677,50 +686,47 @@ export function KPICreationStudio({
           >
             <PlusIcon className="w-4 h-4 stroke-[2.5]" />
           </button>
-        </div>
+        </aside>
       )}
 
       {/* ========================================================================= */}
       {/* SECTION 2: CHAT & WORKSPACE (Middle Column) */}
       {/* ========================================================================= */}
-      <main className="flex-1 min-w-0 h-full flex flex-col overflow-hidden relative">
+      <main className="flex-1 min-w-0 h-full self-stretch flex flex-col relative">
         {/* Floating Top Pill: 3 Tabs [AI, Manual, Presets] */}
         <div className="flex items-center justify-center pt-1 pb-2 flex-shrink-0 z-20">
           <div className="flex items-center p-1 bg-dark-900/90 border border-dark-800 rounded-2xl shadow-lg backdrop-blur-md">
             <button
               type="button"
               onClick={() => setActiveMiddleTab('ai')}
-              className={`flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold rounded-xl transition-all cursor-pointer ${
+              className={`px-4 py-1.5 text-xs font-semibold rounded-xl transition-all cursor-pointer ${
                 activeMiddleTab === 'ai'
                   ? 'bg-dark-800 text-foreground shadow-sm'
                   : 'text-dark-400 hover:text-foreground'
               }`}
             >
-              <SparklesIcon className="w-3.5 h-3.5 stroke-[2]" />
               <span>AI</span>
             </button>
             <button
               type="button"
               onClick={() => setActiveMiddleTab('manual')}
-              className={`flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold rounded-xl transition-all cursor-pointer ${
+              className={`px-4 py-1.5 text-xs font-semibold rounded-xl transition-all cursor-pointer ${
                 activeMiddleTab === 'manual'
                   ? 'bg-dark-800 text-foreground shadow-sm'
                   : 'text-dark-400 hover:text-foreground'
               }`}
             >
-              <PencilSquareIcon className="w-3.5 h-3.5 stroke-[2]" />
               <span>Manual</span>
             </button>
             <button
               type="button"
               onClick={() => setActiveMiddleTab('presets')}
-              className={`flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold rounded-xl transition-all cursor-pointer ${
+              className={`px-4 py-1.5 text-xs font-semibold rounded-xl transition-all cursor-pointer ${
                 activeMiddleTab === 'presets'
                   ? 'bg-dark-800 text-foreground shadow-sm'
                   : 'text-dark-400 hover:text-foreground'
               }`}
             >
-              <BookmarkSquareIcon className="w-3.5 h-3.5 stroke-[2]" />
               <span>Presets</span>
             </button>
           </div>
@@ -1039,7 +1045,7 @@ export function KPICreationStudio({
       {/* SECTION 3: STUDIO / ASSIGNED SPACE (Right Column, Collapsible) */}
       {/* ========================================================================= */}
       {isStudioOpen ? (
-        <aside className="w-80 flex-shrink-0 h-full flex flex-col rounded-2xl bg-dark-900 border border-dark-700 overflow-hidden shadow-sm animate-in fade-in duration-150">
+        <aside className="w-80 flex-shrink-0 h-full self-stretch flex flex-col rounded-2xl bg-dark-900 border border-dark-700/80 overflow-hidden shadow-sm animate-in fade-in duration-150">
           {/* Header */}
           <div className="p-3.5 border-b border-dark-800 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
@@ -1074,7 +1080,7 @@ export function KPICreationStudio({
         </aside>
       ) : (
         /* Collapsed Studio Rail */
-        <div className="w-11 flex-shrink-0 h-full flex flex-col items-center py-3 rounded-2xl bg-dark-900 border border-dark-700 shadow-sm animate-in fade-in duration-150">
+        <aside className="w-12 flex-shrink-0 h-full self-stretch flex flex-col items-center py-3.5 rounded-2xl bg-dark-900 border border-dark-700/80 shadow-sm animate-in fade-in duration-150">
           <button
             type="button"
             onClick={() => setIsStudioOpen(true)}
@@ -1083,10 +1089,16 @@ export function KPICreationStudio({
           >
             <ChevronLeftIcon className="w-4 h-4" />
           </button>
-          <div className="mt-4 writing-vertical text-[10px] font-bold uppercase tracking-widest text-dark-400 select-none">
-            Studio
+          <div className="mt-6 flex flex-col items-center gap-2.5 flex-1 select-none">
+            <Bars3BottomLeftIcon className="w-4 h-4 text-dark-400 flex-shrink-0" />
+            <span
+              style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}
+              className="text-[10px] font-bold uppercase tracking-widest text-dark-400 py-1"
+            >
+              Studio
+            </span>
           </div>
-        </div>
+        </aside>
       )}
     </div>
   )

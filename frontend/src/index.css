@@ -1,3 +1,4 @@
+@import './landing.css';
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -90,8 +91,16 @@ body {
 }
 
 /* Focus styles */
-*:focus-visible {
+*:focus-visible:not(input):not(textarea) {
   @apply outline-none ring-2 ring-foreground ring-offset-2 ring-offset-dark-950;
+}
+
+input:focus,
+input:focus-visible,
+textarea:focus,
+textarea:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 /* High-contrast solid primary button text for dark theme */

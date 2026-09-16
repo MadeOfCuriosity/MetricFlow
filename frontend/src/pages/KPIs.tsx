@@ -239,7 +239,7 @@ export function KPIs() {
     <div
       className={`mx-auto transition-all ${
         activeTab === 'create'
-          ? 'w-full max-w-[1650px] flex-1 min-h-0 flex flex-col gap-3 overflow-hidden'
+          ? 'w-full max-w-[1650px] flex-1 min-h-0 h-full flex flex-col gap-3 overflow-hidden'
           : 'space-y-8 max-w-7xl pb-12'
       }`}
     >
@@ -272,7 +272,6 @@ export function KPIs() {
                 : 'text-dark-400 hover:text-foreground'
             }`}
           >
-            <ChartBarIcon className="w-4 h-4 stroke-[2]" />
             <span>All KPIs</span>
             <span
               className={`text-[11px] px-1.5 py-0.2 rounded-full font-normal ${
@@ -293,7 +292,6 @@ export function KPIs() {
                 : 'text-dark-400 hover:text-foreground'
             }`}
           >
-            <SparklesIcon className="w-4 h-4 stroke-[2]" />
             <span>Create</span>
           </button>
         </div>
@@ -411,7 +409,7 @@ export function KPIs() {
 
       {/* TAB 2: CREATE (3-Section NotebookLM Studio Workspace) */}
       {activeTab === 'create' && (
-        <div className="flex-1 min-h-0 animate-in fade-in duration-150">
+        <div className="flex-1 min-h-0 h-full flex flex-col overflow-hidden animate-in fade-in duration-150">
           <KPICreationStudio
             onKpiCreated={() => fetchKPIs()}
             onViewAllKpis={() => handleTabChange('all')}
