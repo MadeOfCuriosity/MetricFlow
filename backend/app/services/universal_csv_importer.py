@@ -117,8 +117,8 @@ class UniversalCSVImporter:
         except Exception:
             return []
 
-    @staticmethod
-    def excel_sheet_to_rows(contents: bytes, sheet_name: Optional[str] = None) -> Tuple[List[str], List[List[str]]]:
+    @classmethod
+    def excel_sheet_to_rows(cls, contents: bytes, sheet_name: Optional[str] = None) -> Tuple[List[str], List[List[str]]]:
         """Converts an Excel sheet into structured header and data rows."""
         try:
             import openpyxl
@@ -157,8 +157,8 @@ class UniversalCSVImporter:
         except Exception:
             return [], []
 
-    @staticmethod
-    def parse_csv_rows(text: str) -> Tuple[List[str], List[List[str]], str]:
+    @classmethod
+    def parse_csv_rows(cls, text: str) -> Tuple[List[str], List[List[str]], str]:
         """
         Detects delimiter and extracts header and clean data rows.
         Normalizes line endings and filters out empty lines.
