@@ -11,6 +11,7 @@ import {
   CheckIcon,
 } from '@heroicons/react/24/outline'
 import { useAuth } from '../context/AuthContext'
+import { useTheme } from '../context/ThemeContext'
 import { DashboardProvider, useDashboard } from '../context/DashboardContext'
 import { DateRangeSelector } from '../components'
 import { WidgetWrapper, WidgetRenderer, AddWidgetModal, WidgetConfigModal } from '../components/widgets'
@@ -116,32 +117,39 @@ function DashboardContent() {
     )
   }
 
+  const { resolvedTheme } = useTheme()
+  const isDark = resolvedTheme === 'dark'
+
   return (
-    <div className="space-y-8 max-w-7xl mx-auto pb-12">
+    <div className="space-y-6 max-w-7xl mx-auto pb-32">
       {/* Welcome header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground tracking-tight">
             Welcome back, {user?.name?.split(' ')[0]}!
           </h1>
-          <p className="text-dark-300 mt-1 text-sm">
+          <p className="text-dark-400 mt-1 text-sm">
             Overview and performance metrics for {organization?.name || 'your organization'}.
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
           <button
             type="button"
             onClick={() => setEditMode(!isEditMode)}
-            className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
+            className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer backdrop-blur-md ${
               isEditMode
-                ? 'bg-primary-500/15 text-primary-400 border border-primary-500/30'
-                : 'bg-dark-900 border border-dark-700 text-dark-200 hover:text-foreground hover:border-dark-600'
+                ? isDark
+                  ? 'bg-white/[0.12] text-white border border-white/20'
+                  : 'bg-dark-100 text-dark-950 border border-dark-300'
+                : isDark
+                ? 'bg-white/[0.06] border border-white/10 text-white/70 hover:text-white hover:bg-white/[0.10]'
+                : 'bg-white border border-dark-700/80 text-dark-200 hover:text-foreground hover:bg-dark-50 shadow-sm'
             }`}
           >
             {isEditMode ? (
               <>
                 <CheckIcon className="w-4 h-4 stroke-[2.5]" />
-                <span>Done Customizing</span>
+                <span>Done</span>
               </>
             ) : (
               <>
@@ -156,29 +164,51 @@ function DashboardContent() {
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-foreground text-dark-950 font-semibold hover:opacity-90 transition-opacity text-sm shadow-sm cursor-pointer"
           >
             <PlusIcon className="w-4 h-4 stroke-[2.5]" />
-            <span>Enter Today's Data</span>
+            <span>Enter Data</span>
           </Link>
         </div>
       </div>
 
-      {/* Subtle Summary Stat Badges */}
-      <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
-        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-dark-900 border border-dark-700/70 text-xs">
-          <ChartBarIcon className="w-3.5 h-3.5 text-dark-400 stroke-[1.8]" />
-          <span className="text-dark-400">Tracked KPIs:</span>
-          <span className="font-semibold text-foreground">{activeKpisCount}</span>
+      {/* Stat Badges */}
+      <div className="flex flex-wrap items-center gap-2">
+        <div
+          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full backdrop-blur-md text-xs ${
+            isDark
+              ? 'bg-white/[0.06] border border-white/10 text-white/50'
+              : 'bg-white border border-dark-700/80 text-dark-400 shadow-sm'
+          }`}
+        >
+          <ChartBarIcon className="w-3.5 h-3.5 opacity-70 stroke-[1.8]" />
+          <span>KPIs</span>
+          <span className={`font-semibold ${isDark ? 'text-white/90' : 'text-dark-100'}`}>
+            {activeKpisCount}
+          </span>
         </div>
 
-        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-dark-900 border border-dark-700/70 text-xs">
-          <Squares2X2Icon className="w-3.5 h-3.5 text-dark-400 stroke-[1.8]" />
-          <span className="text-dark-400">Active Widgets:</span>
-          <span className="font-semibold text-foreground">{totalWidgetsCount}</span>
+        <div
+          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full backdrop-blur-md text-xs ${
+            isDark
+              ? 'bg-white/[0.06] border border-white/10 text-white/50'
+              : 'bg-white border border-dark-700/80 text-dark-400 shadow-sm'
+          }`}
+        >
+          <Squares2X2Icon className="w-3.5 h-3.5 opacity-70 stroke-[1.8]" />
+          <span>Widgets</span>
+          <span className={`font-semibold ${isDark ? 'text-white/90' : 'text-dark-100'}`}>
+            {totalWidgetsCount}
+          </span>
         </div>
 
         {isEditMode && (
-          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary-500/10 border border-primary-500/20 text-xs text-primary-400 font-medium">
-            <span className="w-1.5 h-1.5 rounded-full bg-primary-400 animate-pulse" />
-            <span>Edit mode active (drag or resize cards)</span>
+          <div
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full backdrop-blur-md text-xs font-medium ${
+              isDark
+                ? 'bg-white/[0.08] border border-white/15 text-white/70'
+                : 'bg-black/[0.05] border border-black/[0.1] text-dark-200'
+            }`}
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-primary-500 animate-pulse" />
+            <span>Drag or resize cards</span>
           </div>
         )}
       </div>
@@ -195,7 +225,11 @@ function DashboardContent() {
             <button
               type="button"
               onClick={resetToDefault}
-              className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-medium text-dark-300 hover:text-foreground bg-dark-900 border border-dark-700 rounded-xl hover:bg-dark-800 transition-colors cursor-pointer"
+              className={`flex items-center gap-1.5 px-3.5 py-2 text-xs font-medium rounded-xl transition-colors cursor-pointer backdrop-blur-md ${
+                isDark
+                  ? 'text-white/50 hover:text-white/80 bg-white/[0.05] border border-white/10 hover:bg-white/[0.09]'
+                  : 'text-dark-300 hover:text-foreground bg-white border border-dark-700/80 hover:bg-dark-50 shadow-sm'
+              }`}
             >
               <ArrowPathIcon className="w-3.5 h-3.5" />
               <span>Reset Layout</span>
@@ -231,6 +265,7 @@ function DashboardContent() {
               <WidgetWrapper
                 widgetId={widget.id}
                 title={widget.title}
+                widgetType={widget.type}
                 onConfigure={() => setConfigWidget(widget)}
               >
                 <WidgetRenderer config={widget} />

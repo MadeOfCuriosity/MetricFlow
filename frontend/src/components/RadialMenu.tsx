@@ -139,7 +139,7 @@ export function RadialMenu() {
               ref={(el) => (itemsRef.current[index] = el)}
               type="button"
               onClick={() => handleItemClick(item.action)}
-              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 rounded-full border border-dark-700 bg-dark-900 shadow-xl flex items-center justify-center group cursor-pointer hover:scale-110 hover:border-foreground/30 hover:bg-dark-800 transition-colors focus:outline-none focus-visible:ring-0 z-40"
+              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 rounded-full border border-dark-700 bg-dark-900 flex items-center justify-center group cursor-pointer hover:scale-110 hover:border-foreground/30 hover:bg-dark-800 transition-colors focus:outline-none focus-visible:ring-0 z-40"
               title={item.name}
               aria-label={item.name}
               style={{ willChange: 'transform, opacity' }}
@@ -169,7 +169,7 @@ export function RadialMenu() {
           <button
             type="button"
             onClick={toggleMenu}
-            className="w-12 h-12 rounded-full border border-dark-700 bg-dark-900 flex items-center justify-center relative pointer-events-auto cursor-pointer focus:outline-none focus-visible:ring-0 hover:scale-105 active:scale-95 transition-transform duration-200 filter drop-shadow-[0_8px_20px_rgba(0,0,0,0.15)] dark:drop-shadow-[0_12px_28px_rgba(0,0,0,0.85)] z-50 group hover:border-dark-600 hover:bg-dark-850"
+            className="w-12 h-12 rounded-full border border-dark-700 bg-dark-900 flex items-center justify-center relative pointer-events-auto cursor-pointer focus:outline-none focus-visible:ring-0 hover:scale-105 active:scale-95 transition-transform duration-200 z-50 group hover:border-dark-600 hover:bg-dark-850"
             title={isOpen ? 'Close Tools' : 'Tools'}
             aria-label={isOpen ? 'Close Tools' : 'Tools'}
             aria-expanded={isOpen}

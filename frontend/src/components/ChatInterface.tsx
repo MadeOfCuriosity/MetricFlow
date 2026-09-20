@@ -358,7 +358,7 @@ export function ChatInterface({
       {/* Centered / Docked Input Card & Suggestion Pills */}
       <div className="w-full max-w-2xl mx-auto px-4 flex-shrink-0 z-10">
         {/* Floating Input Box Card */}
-        <div className="rounded-2xl bg-dark-900 border border-dark-800 shadow-2xl p-3 transition-colors">
+        <div className="rounded-2xl bg-dark-900 border border-dark-700 shadow-sm p-3 transition-colors">
           {/* Inner Input Area (subtly darker recessed surface, zero active border) */}
           <div className="rounded-xl bg-dark-950/30 px-3 py-2.5 transition-colors">
             <textarea
@@ -485,7 +485,7 @@ export function ChatInterface({
                   key={prompt}
                   type="button"
                   onClick={() => onSendMessage(prompt)}
-                  className="px-4 py-2 rounded-xl bg-dark-900/80 hover:bg-dark-850 border border-dark-800 text-xs text-dark-400 hover:text-foreground hover:border-dark-700 transition-all cursor-pointer shadow-sm"
+                  className="px-4 py-2 rounded-full bg-dark-850 dark:bg-dark-900/80 hover:bg-dark-800 dark:hover:bg-dark-850 border border-dark-700 text-xs font-medium text-dark-300 dark:text-dark-400 hover:text-foreground hover:border-dark-600 transition-all cursor-pointer"
                 >
                   {prompt}
                 </button>

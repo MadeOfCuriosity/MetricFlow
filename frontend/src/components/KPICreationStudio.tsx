@@ -695,14 +695,14 @@ export function KPICreationStudio({
       <main className="flex-1 min-w-0 h-full self-stretch flex flex-col relative">
         {/* Floating Top Pill: 3 Tabs [AI, Manual, Presets] */}
         <div className="flex items-center justify-center pt-1 pb-2 flex-shrink-0 z-20">
-          <div className="flex items-center p-1 bg-dark-900/90 border border-dark-800 rounded-2xl shadow-lg backdrop-blur-md">
+          <div className="flex items-center p-1 bg-dark-850 dark:bg-dark-900 border border-dark-700 rounded-full">
             <button
               type="button"
               onClick={() => setActiveMiddleTab('ai')}
-              className={`px-4 py-1.5 text-xs font-semibold rounded-xl transition-all cursor-pointer ${
+              className={`px-4 py-1.5 text-xs font-semibold rounded-full transition-all cursor-pointer ${
                 activeMiddleTab === 'ai'
-                  ? 'bg-dark-800 text-foreground shadow-sm'
-                  : 'text-dark-400 hover:text-foreground'
+                  ? 'bg-dark-800 text-foreground shadow-sm border border-dark-700/60'
+                  : 'text-dark-400 hover:text-foreground border border-transparent'
               }`}
             >
               <span>AI</span>
@@ -710,10 +710,10 @@ export function KPICreationStudio({
             <button
               type="button"
               onClick={() => setActiveMiddleTab('manual')}
-              className={`px-4 py-1.5 text-xs font-semibold rounded-xl transition-all cursor-pointer ${
+              className={`px-4 py-1.5 text-xs font-semibold rounded-full transition-all cursor-pointer ${
                 activeMiddleTab === 'manual'
-                  ? 'bg-dark-800 text-foreground shadow-sm'
-                  : 'text-dark-400 hover:text-foreground'
+                  ? 'bg-dark-800 text-foreground shadow-sm border border-dark-700/60'
+                  : 'text-dark-400 hover:text-foreground border border-transparent'
               }`}
             >
               <span>Manual</span>
@@ -721,10 +721,10 @@ export function KPICreationStudio({
             <button
               type="button"
               onClick={() => setActiveMiddleTab('presets')}
-              className={`px-4 py-1.5 text-xs font-semibold rounded-xl transition-all cursor-pointer ${
+              className={`px-4 py-1.5 text-xs font-semibold rounded-full transition-all cursor-pointer ${
                 activeMiddleTab === 'presets'
-                  ? 'bg-dark-800 text-foreground shadow-sm'
-                  : 'text-dark-400 hover:text-foreground'
+                  ? 'bg-dark-800 text-foreground shadow-sm border border-dark-700/60'
+                  : 'text-dark-400 hover:text-foreground border border-transparent'
               }`}
             >
               <span>Presets</span>
@@ -957,7 +957,7 @@ export function KPICreationStudio({
                 />
               </div>
 
-              <div className="flex items-center gap-1 p-1 bg-dark-950 border border-dark-800 rounded-xl overflow-x-auto">
+              <div className="flex items-center gap-1 p-1 bg-dark-850 dark:bg-dark-950 border border-dark-700 rounded-xl overflow-x-auto">
                 {PRESET_CATEGORIES.map((cat) => (
                   <button
                     key={cat}
@@ -965,8 +965,8 @@ export function KPICreationStudio({
                     onClick={() => setSelectedPresetCategory(cat)}
                     className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-all whitespace-nowrap cursor-pointer ${
                       selectedPresetCategory === cat
-                        ? 'bg-dark-800 text-foreground shadow-sm'
-                        : 'text-dark-400 hover:text-foreground'
+                        ? 'bg-dark-800 text-foreground shadow-sm border border-dark-700/60'
+                        : 'text-dark-400 hover:text-foreground border border-transparent'
                     }`}
                   >
                     {cat}

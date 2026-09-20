@@ -29,3 +29,18 @@ class ActivityEntry(BaseModel):
 class ActivityFeedResponse(BaseModel):
     activities: list[ActivityEntry]
     total: int
+
+
+class ActivityHeatmapDay(BaseModel):
+    date: str
+    count: int
+    level: int  # 0 to 4
+
+
+class ActivityHeatmapResponse(BaseModel):
+    days: list[ActivityHeatmapDay]
+    total_activities: int
+    current_streak: int
+    longest_streak: int
+    start_date: str
+    end_date: str

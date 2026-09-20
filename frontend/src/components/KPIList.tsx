@@ -3,7 +3,10 @@ import {
   TrashIcon,
   ChevronRightIcon,
   SparklesIcon,
+  ClockIcon,
 } from '@heroicons/react/24/outline'
+import { getTagColor, TagColorDef, hexToRgba } from '../constants/tagColors'
+import { useTheme } from '../context/ThemeContext'
 
 type TimePeriod = 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'other'
 
@@ -20,6 +23,13 @@ interface KPI {
   is_preset?: boolean
   time_period?: TimePeriod
   room_paths?: string[]
+  room_id?: string | null
+  room_name?: string | null
+  room_color?: string | null
+  latest_value?: number | null
+  last_updated_at?: string | null
+  previous_value?: number | null
+  created_at?: string
 }
 
 interface KPIListProps {
@@ -30,46 +40,110 @@ interface KPIListProps {
   isDeleting: string | null
 }
 
-const getCategoryBadgeClass = (category: string) => {
-  switch (category) {
-    case 'Sales':
-      return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-    case 'Marketing':
-      return 'bg-purple-500/10 text-purple-400 border-purple-500/20'
-    case 'Operations':
-      return 'bg-amber-500/10 text-amber-400 border-amber-500/20'
-    case 'Finance':
-      return 'bg-blue-500/10 text-blue-400 border-blue-500/20'
-    default:
-      return 'bg-dark-800 text-dark-300 border-dark-700'
+const resolveKpiColor = (kpi: KPI): TagColorDef | null => {
+  // ONLY if KPI's parent room has a colortag (or inherited ancestor colortag)
+  if (kpi.room_color) {
+    return getTagColor(kpi.room_color)
+  }
+  return null
+}
+
+const isCurrency = (kpi: KPI): boolean => {
+  if (kpi.unit === '$' || kpi.unit === 'USD' || kpi.unit === '€' || kpi.unit === '£') return true
+  const lowerName = kpi.name.toLowerCase()
+  const lowerFormula = kpi.formula.toLowerCase()
+  return (
+    lowerName.includes('revenue') ||
+    lowerName.includes('cost') ||
+    lowerName.includes('spend') ||
+    lowerName.includes('cac') ||
+    lowerName.includes('arr') ||
+    lowerName.includes('mrr') ||
+    lowerFormula.includes('revenue') ||
+    lowerFormula.includes('spend')
+  )
+}
+
+const isPercentage = (kpi: KPI): boolean => {
+  if (kpi.unit === '%') return true
+  const lowerName = kpi.name.toLowerCase()
+  const formula = kpi.formula
+  return (
+    formula.includes('* 100') ||
+    lowerName.includes('rate') ||
+    lowerName.includes('percentage') ||
+    lowerName.includes('margin') ||
+    lowerName.includes('ratio')
+  )
+}
+
+const formatKPIValue = (val: number, kpi: KPI): string => {
+  if (isNaN(val) || val === null || val === undefined) return '--'
+
+  const isPct = isPercentage(kpi)
+  if (isPct) {
+    return Number.isInteger(val) ? `${val}%` : `${val.toFixed(1)}%`
+  }
+
+  if (Math.abs(val) >= 1_000_000) {
+    return `${(val / 1_000_000).toFixed(1)}M`
+  }
+  if (Math.abs(val) >= 10_000) {
+    return `${(val / 1_000).toFixed(1)}k`
+  }
+
+  return Number.isInteger(val)
+    ? val.toLocaleString()
+    : val.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 2 })
+}
+
+const getUnitSuffix = (kpi: KPI): string => {
+  if (isPercentage(kpi)) return ''
+  if (isCurrency(kpi)) return ''
+  return kpi.unit || ''
+}
+
+const formatRelativeTime = (dateStr?: string | null): string => {
+  if (!dateStr) return 'No entries yet'
+  try {
+    const date = new Date(dateStr)
+    const now = new Date()
+    const diffMs = now.getTime() - date.getTime()
+    const diffMins = Math.floor(diffMs / 60000)
+
+    if (diffMins < 1) return 'Updated just now'
+    if (diffMins < 60) return `Updated ${diffMins}m ago`
+
+    const diffHours = Math.floor(diffMins / 60)
+    if (diffHours < 24) return `Updated ${diffHours}h ago`
+
+    const diffDays = Math.floor(diffHours / 24)
+    if (diffDays === 1) return 'Updated yesterday'
+    if (diffDays < 7) return `Updated ${diffDays}d ago`
+
+    return `Updated ${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
+  } catch {
+    return 'Recently updated'
   }
 }
 
 export function KPIList({ kpis, selectedCategory, onSelect, onDelete, isDeleting }: KPIListProps) {
-  const filteredKPIs = selectedCategory && selectedCategory !== 'All'
+  const { resolvedTheme } = useTheme()
+  const isDark = resolvedTheme === 'dark'
+  const isAllFilter = !selectedCategory || selectedCategory === 'All'
+
+  const filteredKPIs = !isAllFilter
     ? kpis.filter((kpi) => (kpi.category || 'Custom') === selectedCategory)
     : kpis
 
-  // Group by category
-  const groupedKPIs = filteredKPIs.reduce((acc, kpi) => {
-    const category = kpi.category || 'Custom'
-    if (!acc[category]) {
-      acc[category] = []
-    }
-    acc[category].push(kpi)
-    return acc
-  }, {} as Record<string, KPI[]>)
-
-  const categories = Object.keys(groupedKPIs).sort()
-
   if (filteredKPIs.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 px-4 bg-dark-900/50 border border-dark-700/60 rounded-2xl">
-        <div className="w-12 h-12 rounded-xl bg-dark-800 border border-dark-700 flex items-center justify-center mb-3">
+      <div className="flex flex-col items-center justify-center py-16 px-4 bg-dark-900/40 border border-dark-700/60 backdrop-blur-xl rounded-2xl">
+        <div className="w-12 h-12 rounded-xl bg-dark-800/80 border border-dark-700/60 flex items-center justify-center mb-3">
           <ChartBarIcon className="w-6 h-6 text-dark-400 stroke-[1.5]" />
         </div>
         <p className="text-sm font-medium text-foreground">
-          {selectedCategory && selectedCategory !== 'All'
+          {!isAllFilter
             ? `No KPIs found in "${selectedCategory}" category`
             : 'No KPIs match your search'}
         </p>
@@ -78,95 +152,290 @@ export function KPIList({ kpis, selectedCategory, onSelect, onDelete, isDeleting
     )
   }
 
-  return (
-    <div className="space-y-6">
-      {categories.map((category) => (
-        <div key={category} className="space-y-3">
-          <div className="flex items-center gap-2">
-            <span
-              className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold border ${getCategoryBadgeClass(
-                category
-              )}`}
-            >
-              {category}
-            </span>
-            <span className="text-xs text-dark-400 font-medium">
-              ({groupedKPIs[category].length})
-            </span>
+  // Render a single KPI Frosted Glass Card
+  const renderCard = (kpi: KPI) => {
+    const tagColor = resolveKpiColor(kpi)
+    const hasColor = !!tagColor
+    const displayRoom =
+      kpi.room_name ||
+      (kpi.room_paths && kpi.room_paths.length > 0
+        ? kpi.room_paths[0].split(' > ').pop()
+        : null)
+
+    return (
+      <div
+        key={kpi.id}
+        onClick={() => onSelect(kpi)}
+        className={`relative group overflow-hidden rounded-[28px] p-4 sm:p-5 transition-all duration-300 cursor-pointer backdrop-blur-2xl border hover:-translate-y-0.5 flex flex-col justify-between ${
+          isDark
+            ? 'border-white/10 hover:border-white/25'
+            : 'border-dark-700/80 hover:border-dark-400/60'
+        }`}
+        style={{
+          background: hasColor && tagColor
+            ? isDark
+              ? `linear-gradient(145deg, ${hexToRgba(tagColor.hex, 0.15)} 0%, rgba(14,14,16,0.72) 60%)`
+              : `linear-gradient(145deg, ${hexToRgba(tagColor.hex, 0.12)} 0%, rgba(255,255,255,0.85) 60%)`
+            : isDark
+            ? 'rgba(14, 14, 16, 0.72)'
+            : 'rgba(255, 255, 255, 0.85)',
+          boxShadow: isDark
+            ? '0 10px 28px -6px rgba(0, 0, 0, 0.65)'
+            : '0 4px 20px -2px rgba(0, 0, 0, 0.05), 0 1px 3px 0 rgba(0, 0, 0, 0.03)',
+        }}
+      >
+        {/* Subtle Glass Rim Highlight at top edge */}
+        <div
+          className={`absolute inset-x-0 top-0 h-[1px] pointer-events-none transition-opacity duration-300 ${
+            isDark ? 'opacity-35 group-hover:opacity-75' : 'opacity-40 group-hover:opacity-85'
+          }`}
+          style={{
+            background: hasColor && tagColor
+              ? `linear-gradient(90deg, transparent 0%, ${tagColor.glassRim || tagColor.hex} 50%, transparent 100%)`
+              : `linear-gradient(90deg, transparent 0%, ${isDark ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.06)'} 50%, transparent 100%)`,
+          }}
+        />
+
+        {/* Top Header Row */}
+        <div>
+          <div className="flex items-center justify-between gap-2 mb-3">
+            <div className="flex items-center gap-1.5 flex-wrap min-w-0 flex-1">
+              {/* Room Pill or Category Pill */}
+              <div
+                className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full backdrop-blur-md text-[11px] font-medium truncate max-w-full ${
+                  isDark
+                    ? 'bg-white/[0.06] border border-white/10 text-white/90'
+                    : 'bg-black/[0.04] border border-black/[0.08] text-dark-100 shadow-sm'
+                }`}
+              >
+                {hasColor && tagColor ? (
+                  <span
+                    className="w-2 h-2 rounded-full flex-shrink-0"
+                    style={{
+                      backgroundColor: tagColor.hex,
+                      boxShadow: `0 0 8px ${tagColor.hex}`,
+                    }}
+                  />
+                ) : (
+                  <span className="w-1.5 h-1.5 rounded-full flex-shrink-0 bg-dark-400/40" />
+                )}
+                <span className="truncate tracking-tight">
+                  {displayRoom || kpi.category}
+                </span>
+              </div>
+
+              {/* Time period pill */}
+              {kpi.time_period && (
+                <span
+                  className={`text-[10px] px-2 py-0.5 rounded-full font-medium capitalize ${
+                    isDark
+                      ? 'bg-white/[0.04] border border-white/5 text-white/60'
+                      : 'bg-black/[0.03] border border-black/[0.06] text-dark-400'
+                  }`}
+                >
+                  {kpi.time_period}
+                </span>
+              )}
+
+              {/* Preset badge */}
+              {kpi.is_preset && (
+                <span
+                  className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-amber-500/10 border border-amber-500/20 text-amber-500 dark:text-amber-300 text-[10px] font-medium rounded-full"
+                  title="Preset KPI"
+                >
+                  <SparklesIcon className="w-2.5 h-2.5 text-amber-500 dark:text-amber-400" />
+                </span>
+              )}
+            </div>
+
+            {/* Action buttons */}
+            <div className="flex items-center gap-1 flex-shrink-0">
+              {!kpi.is_preset && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onDelete(kpi)
+                  }}
+                  disabled={isDeleting === kpi.id}
+                  className={`p-1 rounded-lg transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-50 cursor-pointer ${
+                    isDark
+                      ? 'text-white/40 hover:text-rose-400 hover:bg-rose-500/10'
+                      : 'text-dark-400 hover:text-rose-500 hover:bg-rose-500/10'
+                  }`}
+                  title="Delete KPI"
+                >
+                  {isDeleting === kpi.id ? (
+                    <div className="w-3 h-3 border-2 border-rose-400 border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <TrashIcon className="w-3.5 h-3.5" />
+                  )}
+                </button>
+              )}
+
+              <div
+                className={`w-6 h-6 rounded-full flex items-center justify-center transition-all ${
+                  isDark
+                    ? 'bg-white/[0.04] border border-white/5 group-hover:bg-white/[0.08] group-hover:border-white/15'
+                    : 'bg-black/[0.03] border border-black/[0.06] group-hover:bg-black/[0.06] group-hover:border-black/[0.12]'
+                }`}
+              >
+                <ChevronRightIcon
+                  className={`w-3 h-3 transition-all group-hover:translate-x-0.5 ${
+                    isDark ? 'text-white/40 group-hover:text-white' : 'text-dark-400 group-hover:text-dark-100'
+                  }`}
+                />
+              </div>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {groupedKPIs[category].map((kpi) => (
-              <div
-                key={kpi.id}
-                className="bg-dark-900 border border-dark-700 hover:border-dark-500/80 rounded-2xl p-4 transition-all duration-150 cursor-pointer group flex flex-col justify-between"
-                onClick={() => onSelect(kpi)}
-              >
-                <div>
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="text-sm font-semibold text-foreground group-hover:text-primary-400 transition-colors truncate">
-                          {kpi.name}
-                        </h3>
-                        {kpi.is_preset && (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-dark-800 border border-dark-700 text-dark-300 text-[10px] font-medium rounded-md">
-                            <SparklesIcon className="w-2.5 h-2.5 text-amber-400" />
-                            Preset
-                          </span>
-                        )}
-                        {kpi.time_period && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-dark-800 text-dark-400 font-medium capitalize">
-                            {kpi.time_period}
-                          </span>
-                        )}
-                      </div>
-                      {kpi.description && (
-                        <p className="text-xs text-dark-400 mt-1 line-clamp-2 leading-relaxed">
-                          {kpi.description}
-                        </p>
-                      )}
-                    </div>
+          {/* KPI Name (No description) */}
+          <h3
+            className={`text-sm font-semibold tracking-tight transition-colors truncate ${
+              isDark ? 'text-white group-hover:text-white' : 'text-dark-100 group-hover:text-foreground'
+            }`}
+            title={kpi.name}
+          >
+            {kpi.name}
+          </h3>
 
-                    <div className="flex items-center gap-1 flex-shrink-0">
-                      {!kpi.is_preset && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            onDelete(kpi)
-                          }}
-                          disabled={isDeleting === kpi.id}
-                          className="p-1.5 text-dark-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-50 cursor-pointer"
-                          title="Delete KPI"
-                        >
-                          {isDeleting === kpi.id ? (
-                            <div className="w-3.5 h-3.5 border-2 border-rose-400 border-t-transparent rounded-full animate-spin" />
-                          ) : (
-                            <TrashIcon className="w-4 h-4" />
-                          )}
-                        </button>
-                      )}
-                      <ChevronRightIcon className="w-4 h-4 text-dark-500 group-hover:text-dark-300 group-hover:translate-x-0.5 transition-all" />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-3 pt-3 border-t border-dark-800/80 flex items-center justify-between gap-2 text-xs">
-                  <div className="font-mono text-[11px] text-dark-400 bg-dark-950/60 px-2 py-1 rounded-md border border-dark-800/60 truncate max-w-[70%]">
-                    {kpi.formula}
-                  </div>
-                  {kpi.unit && (
-                    <span className="text-dark-400 text-xs font-medium">
-                      Unit: <span className="text-foreground">{kpi.unit}</span>
-                    </span>
-                  )}
-                </div>
+          {/* Hero KPI Value */}
+          <div className="my-2.5 flex items-baseline gap-1.5">
+            {kpi.latest_value !== null && kpi.latest_value !== undefined ? (
+              <>
+                {isCurrency(kpi) && (
+                  <span
+                    className={`text-lg font-semibold tracking-tight ${
+                      isDark ? 'text-white/60' : 'text-dark-400'
+                    }`}
+                  >
+                    $
+                  </span>
+                )}
+                <span
+                  className={`text-2xl sm:text-3xl font-extrabold tracking-tight drop-shadow-sm font-mono ${
+                    isDark ? 'text-white' : 'text-foreground'
+                  }`}
+                >
+                  {formatKPIValue(kpi.latest_value, kpi)}
+                </span>
+                {getUnitSuffix(kpi) && (
+                  <span
+                    className={`text-xs font-semibold uppercase tracking-wider ml-0.5 ${
+                      isDark ? 'text-white/70' : 'text-dark-400'
+                    }`}
+                  >
+                    {getUnitSuffix(kpi)}
+                  </span>
+                )}
+              </>
+            ) : (
+              <div className="flex items-baseline gap-1.5">
+                <span
+                  className={`text-2xl sm:text-3xl font-bold tracking-tight font-mono ${
+                    isDark ? 'text-white/30' : 'text-dark-400/40'
+                  }`}
+                >
+                  --
+                </span>
+                <span className={`text-[11px] font-medium ${isDark ? 'text-white/40' : 'text-dark-400'}`}>
+                  No entries yet
+                </span>
               </div>
-            ))}
+            )}
+          </div>
+
+          {/* Relative Timestamp & Direction */}
+          <div
+            className={`flex items-center gap-1.5 text-[10px] mb-3 ${
+              isDark ? 'text-white/50' : 'text-dark-400'
+            }`}
+          >
+            <ClockIcon
+              className={`w-3 h-3 flex-shrink-0 ${
+                isDark ? 'text-white/40' : 'text-dark-400'
+              }`}
+            />
+            <span className="truncate">{formatRelativeTime(kpi.last_updated_at || kpi.created_at)}</span>
+            {kpi.direction && (
+              <>
+                <span className={isDark ? 'text-white/30' : 'text-dark-400/50'}>·</span>
+                <span className="whitespace-nowrap">
+                  {kpi.direction === 'up' ? '↗ Higher' : '↘ Lower'}
+                </span>
+              </>
+            )}
           </div>
         </div>
-      ))}
+
+        {/* Card Footer: Formula & Units */}
+        <div
+          className={`pt-2.5 border-t flex items-center justify-between gap-2 text-xs mt-auto ${
+            isDark ? 'border-white/[0.07]' : 'border-dark-700/60'
+          }`}
+        >
+          <div
+            className={`font-mono text-[10px] px-2 py-0.5 rounded-md truncate max-w-full ${
+              isDark
+                ? 'text-white/60 bg-black/40 border border-white/[0.06]'
+                : 'text-dark-300 bg-black/[0.03] border border-black/[0.06]'
+            }`}
+            title={kpi.formula}
+          >
+            {kpi.formula}
+          </div>
+          {kpi.unit && !isCurrency(kpi) && !isPercentage(kpi) && (
+            <span
+              className={`text-[10px] font-medium whitespace-nowrap flex-shrink-0 ${
+                isDark ? 'text-white/50' : 'text-dark-400'
+              }`}
+            >
+              {kpi.unit}
+            </span>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  // When "All" is active, render directly as a continuous latest-updated 4-column grid
+  if (isAllFilter) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="text-xs text-dark-400 font-medium">
+            Arranged by latest updated · {filteredKPIs.length} KPIs
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
+          {filteredKPIs.map(renderCard)}
+        </div>
+      </div>
+    )
+  }
+
+  // When a specific category is selected, render cards in that category (4 in a row)
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2">
+        <span
+          className={`text-xs font-semibold px-2.5 py-1 rounded-lg ${
+            isDark
+              ? 'bg-white/[0.06] border border-white/10 text-white'
+              : 'bg-black/[0.04] border border-black/[0.08] text-dark-100'
+          }`}
+        >
+          {selectedCategory}
+        </span>
+        <span className="text-xs text-dark-400 font-medium">
+          ({filteredKPIs.length})
+        </span>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
+        {filteredKPIs.map(renderCard)}
+      </div>
     </div>
   )
 }

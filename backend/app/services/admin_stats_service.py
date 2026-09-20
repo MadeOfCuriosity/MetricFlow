@@ -215,3 +215,139 @@ class AdminStatsService:
         paginated = activities[offset : offset + limit]
 
         return paginated, total
+
+    @staticmethod
+    def get_activity_heatmap(
+        db: Session, org_id: UUID, days: int = 365, year: int | None = None
+    ) -> dict:
+        """Calculate daily activity counts, levels, and streaks for GitHub-style heatmap."""
+        today = date.today()
+        if year:
+            start_date = date(year, 1, 1)
+            end_date = min(date(year, 12, 31), today) if year == today.year else date(year, 12, 31)
+        else:
+            start_date = today - timedelta(days=days - 1)
+            end_date = today
+
+        # 1. Daily DataEntry counts
+        daily_entries = (
+            db.query(DataEntry.date, func.count(DataEntry.id))
+            .filter(
+                DataEntry.org_id == org_id,
+                DataEntry.date >= start_date,
+                DataEntry.date <= end_date,
+            )
+            .group_by(DataEntry.date)
+            .all()
+        )
+        counts_map: dict[date, int] = {row[0]: row[1] for row in daily_entries}
+
+        # 2. Add other actions safely
+        try:
+            user_counts = (
+                db.query(func.date(User.created_at), func.count(User.id))
+                .filter(
+                    User.org_id == org_id,
+                    func.date(User.created_at) >= start_date,
+                    func.date(User.created_at) <= end_date,
+                )
+                .group_by(func.date(User.created_at))
+                .all()
+            )
+            for d, count in user_counts:
+                d_val = date.fromisoformat(d) if isinstance(d, str) else d
+                counts_map[d_val] = counts_map.get(d_val, 0) + count
+        except Exception:
+            pass
+
+        try:
+            kpi_counts = (
+                db.query(func.date(KPIDefinition.created_at), func.count(KPIDefinition.id))
+                .filter(
+                    KPIDefinition.org_id == org_id,
+                    func.date(KPIDefinition.created_at) >= start_date,
+                    func.date(KPIDefinition.created_at) <= end_date,
+                )
+                .group_by(func.date(KPIDefinition.created_at))
+                .all()
+            )
+            for d, count in kpi_counts:
+                d_val = date.fromisoformat(d) if isinstance(d, str) else d
+                counts_map[d_val] = counts_map.get(d_val, 0) + count
+        except Exception:
+            pass
+
+        try:
+            room_counts = (
+                db.query(func.date(Room.created_at), func.count(Room.id))
+                .filter(
+                    Room.org_id == org_id,
+                    func.date(Room.created_at) >= start_date,
+                    func.date(Room.created_at) <= end_date,
+                )
+                .group_by(func.date(Room.created_at))
+                .all()
+            )
+            for d, count in room_counts:
+                d_val = date.fromisoformat(d) if isinstance(d, str) else d
+                counts_map[d_val] = counts_map.get(d_val, 0) + count
+        except Exception:
+            pass
+
+        # Build chronological day list
+        days_list = []
+        total_days = (end_date - start_date).days + 1
+        current_streak = 0
+        longest_streak = 0
+        running_streak = 0
+
+        for i in range(total_days):
+            d = start_date + timedelta(days=i)
+            count = counts_map.get(d, 0)
+            if count == 0:
+                level = 0
+                running_streak = 0
+            elif count <= 2:
+                level = 1
+                running_streak += 1
+            elif count <= 5:
+                level = 2
+                running_streak += 1
+            elif count <= 9:
+                level = 3
+                running_streak += 1
+            else:
+                level = 4
+                running_streak += 1
+
+            if running_streak > longest_streak:
+                longest_streak = running_streak
+
+            days_list.append({
+                "date": d.isoformat(),
+                "count": count,
+                "level": level,
+            })
+
+        # Calculate current streak ending today or yesterday
+        today_count = counts_map.get(today, 0)
+        yesterday_count = counts_map.get(today - timedelta(days=1), 0)
+        if today_count > 0:
+            check_date = today
+            while counts_map.get(check_date, 0) > 0:
+                current_streak += 1
+                check_date -= timedelta(days=1)
+        elif yesterday_count > 0:
+            check_date = today - timedelta(days=1)
+            while counts_map.get(check_date, 0) > 0:
+                current_streak += 1
+                check_date -= timedelta(days=1)
+
+        return {
+            "days": days_list,
+            "total_activities": sum(counts_map.values()),
+            "current_streak": current_streak,
+            "longest_streak": longest_streak,
+            "start_date": start_date.isoformat(),
+            "end_date": end_date.isoformat(),
+        }

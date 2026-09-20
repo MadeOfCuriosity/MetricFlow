@@ -50,6 +50,9 @@ export interface KPI {
   input_fields: string[]
   is_preset: boolean
   room_paths?: string[]
+  room_id?: string | null
+  room_name?: string | null
+  room_color?: string | null
 }
 
 export interface DataEntry {
@@ -98,7 +101,7 @@ export const WIDGET_DEFAULTS: Record<WidgetType, { w: number; h: number; minW: n
   'gauge-progress': { w: 3, h: 3, minW: 2, minH: 2 },
   'insights-list':  { w: 4, h: 5, minW: 3, minH: 3 },
   'kpi-cards':      { w: 12, h: 4, minW: 6, minH: 3 },
-  'today-progress': { w: 12, h: 3, minW: 6, minH: 2 },
+  'today-progress': { w: 12, h: 4, minW: 6, minH: 3 },
 }
 
 export const WIDGET_TYPE_INFO: Record<WidgetType, { label: string; description: string }> = {

@@ -34,6 +34,21 @@ export interface ActivityFeedResponse {
   total: number
 }
 
+export interface ActivityHeatmapDay {
+  date: string
+  count: number
+  level: number // 0 to 4
+}
+
+export interface ActivityHeatmapResponse {
+  days: ActivityHeatmapDay[]
+  total_activities: number
+  current_streak: number
+  longest_streak: number
+  start_date: string
+  end_date: string
+}
+
 export const adminService = {
   getStats: (days = 30) =>
     api.get<AdminStats>(`/api/admin/stats?days=${days}`).then((r) => r.data),
@@ -44,4 +59,13 @@ export const adminService = {
         `/api/admin/activity?limit=${limit}&offset=${offset}`
       )
       .then((r) => r.data),
+
+  getActivityHeatmap: (days = 365, year?: number) => {
+    const params = new URLSearchParams()
+    if (days) params.append('days', days.toString())
+    if (year) params.append('year', year.toString())
+    return api
+      .get<ActivityHeatmapResponse>(`/api/admin/activity-heatmap?${params.toString()}`)
+      .then((r) => r.data)
+  },
 }

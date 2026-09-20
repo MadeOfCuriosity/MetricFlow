@@ -1,6 +1,7 @@
-import { ArrowTrendingUpIcon, ArrowTrendingDownIcon, MinusIcon, EyeIcon } from '@heroicons/react/24/outline'
+import { ArrowTrendingUpIcon, ArrowTrendingDownIcon, MinusIcon } from '@heroicons/react/24/outline'
 import { LineChart, Line, ResponsiveContainer } from 'recharts'
-import { useNavigate } from 'react-router-dom'
+import { getTagColor, hexToRgba } from '../constants/tagColors'
+import { useTheme } from '../context/ThemeContext'
 
 interface KPICardProps {
   kpiId: string
@@ -12,10 +13,11 @@ interface KPICardProps {
   onClick?: () => void
   isSelected?: boolean
   roomPaths?: string[]
+  roomColor?: string | null
+  roomName?: string | null
 }
 
 export function KPICard({
-  kpiId,
   name,
   value,
   previousValue,
@@ -24,107 +26,154 @@ export function KPICard({
   onClick,
   isSelected = false,
   roomPaths,
+  roomColor,
+  roomName,
 }: KPICardProps) {
-  const navigate = useNavigate()
-  // Calculate trend
-  const trend = value !== null && previousValue !== null && previousValue !== undefined && previousValue !== 0
-    ? ((value - previousValue) / Math.abs(previousValue)) * 100
-    : null
+  const { resolvedTheme } = useTheme()
+  const isDark = resolvedTheme === 'dark'
 
-  const getTrendIcon = () => {
-    if (trend === null) return <MinusIcon className="w-4 h-4 text-dark-400" />
-    if (trend > 0) return <ArrowTrendingUpIcon className="w-4 h-4 text-success-400" />
-    if (trend < 0) return <ArrowTrendingDownIcon className="w-4 h-4 text-danger-400" />
-    return <MinusIcon className="w-4 h-4 text-dark-400" />
-  }
+  // ONLY resolve color if roomColor is set!
+  const tagColor = roomColor ? getTagColor(roomColor) : null
+  const hasColor = !!tagColor
 
-  const getTrendColor = () => {
-    if (trend === null) return 'text-dark-400'
-    if (trend > 0) return 'text-success-400'
-    if (trend < 0) return 'text-danger-400'
-    return 'text-dark-400'
-  }
+  const displayRoom =
+    roomName ||
+    (roomPaths && roomPaths.length > 0 ? roomPaths[0].split(' > ').pop() : null) ||
+    category
 
-  const getSparklineColor = () => {
-    if (trend === null) return '#52525b'
-    if (trend > 0) return '#10b981'
-    if (trend < 0) return '#ef4444'
-    return '#52525b'
-  }
+  // Trend
+  const trend =
+    value !== null && previousValue !== null && previousValue !== undefined && previousValue !== 0
+      ? ((value - previousValue) / Math.abs(previousValue)) * 100
+      : null
 
-  const getCategoryColor = (cat: string) => {
-    const colors: Record<string, string> = {
-      Sales: 'bg-dark-800 text-foreground border border-dark-700',
-      Marketing: 'bg-dark-800 text-foreground border border-dark-700',
-      Operations: 'bg-warning-500/15 text-warning-400',
-      Finance: 'bg-success-500/15 text-success-400',
-      Custom: 'bg-dark-800 text-dark-300 border border-dark-700',
-    }
-    return colors[cat] || colors.Custom
-  }
+  const trendColor =
+    trend === null
+      ? isDark
+        ? 'text-white/40'
+        : 'text-dark-400'
+      : trend > 0
+      ? isDark
+        ? 'text-emerald-400'
+        : 'text-emerald-600'
+      : isDark
+      ? 'text-rose-400'
+      : 'text-rose-600'
+
+  const sparkColor = trend === null ? '#71717a' : trend > 0 ? '#10b981' : '#ef4444'
+
+  const formattedValue =
+    value !== null
+      ? Math.abs(value) >= 1_000_000
+        ? `${(value / 1_000_000).toFixed(1)}M`
+        : Math.abs(value) >= 10_000
+        ? `${(value / 1_000).toFixed(1)}k`
+        : value.toLocaleString(undefined, { maximumFractionDigits: 2 })
+      : '—'
 
   return (
     <div
       onClick={onClick}
-      className={`bg-dark-900 border rounded-xl p-5 transition-all cursor-pointer shadow-card hover:shadow-card-hover hover:border-foreground/40 ${
-        isSelected ? 'border-foreground ring-1 ring-foreground/20' : 'border-dark-700'
+      className={`relative group overflow-hidden rounded-[24px] p-4 transition-all duration-300 cursor-pointer backdrop-blur-2xl border hover:-translate-y-0.5 flex flex-col justify-between ${
+        isSelected
+          ? isDark
+            ? 'border-white/30'
+            : 'border-dark-400'
+          : isDark
+          ? 'border-white/10 hover:border-white/20'
+          : 'border-dark-700/80 hover:border-dark-400/60'
       }`}
+      style={{
+        background: hasColor && tagColor
+          ? isDark
+            ? `linear-gradient(145deg, ${hexToRgba(tagColor.hex, 0.15)} 0%, rgba(14,14,16,0.72) 60%)`
+            : `linear-gradient(145deg, ${hexToRgba(tagColor.hex, 0.12)} 0%, rgba(255,255,255,0.85) 60%)`
+          : isDark
+          ? 'rgba(14, 14, 16, 0.72)'
+          : 'rgba(255, 255, 255, 0.85)',
+        boxShadow: isSelected
+          ? isDark
+            ? `0 10px 28px -6px rgba(0,0,0,0.65)${hasColor && tagColor ? `, 0 0 0 1px ${hexToRgba(tagColor.hex, 0.4)}` : ''}`
+            : `0 4px 20px -2px rgba(0,0,0,0.08)${hasColor && tagColor ? `, 0 0 0 1.5px ${hexToRgba(tagColor.hex, 0.5)}` : ''}`
+          : isDark
+          ? '0 10px 28px -6px rgba(0,0,0,0.65)'
+          : '0 4px 20px -2px rgba(0,0,0,0.05), 0 1px 3px 0 rgba(0,0,0,0.03)',
+      }}
     >
-      <div className="flex items-start justify-between mb-3">
-        <div>
-          <span className={`inline-block px-2 py-0.5 text-xs font-medium rounded-full ${getCategoryColor(category)}`}>
-            {category}
-          </span>
-          <h3 className="mt-2 text-sm font-medium text-dark-300">{name}</h3>
-          {roomPaths && roomPaths.length > 0 && (
-            <p className="mt-0.5 text-xs text-dark-400 truncate max-w-[180px]" title={roomPaths.join(' | ')}>
-              {roomPaths.join(' | ')}
-            </p>
+      {/* Top rim highlight */}
+      <div
+        className={`absolute inset-x-0 top-0 h-[1px] pointer-events-none transition-opacity duration-300 ${
+          isDark ? 'opacity-50 group-hover:opacity-80' : 'opacity-40 group-hover:opacity-85'
+        }`}
+        style={{
+          background: hasColor && tagColor
+            ? `linear-gradient(90deg, transparent 0%, ${tagColor.glassRim || tagColor.hex} 50%, transparent 100%)`
+            : `linear-gradient(90deg, transparent 0%, ${isDark ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.06)'} 50%, transparent 100%)`,
+        }}
+      />
+
+      {/* Top row: room pill + sparkline */}
+      <div className="flex items-start justify-between gap-2 mb-3">
+        <div
+          className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full backdrop-blur-md text-[11px] font-medium truncate max-w-[65%] ${
+            isDark
+              ? 'bg-white/[0.06] border border-white/10 text-white/80'
+              : 'bg-black/[0.04] border border-black/[0.08] text-dark-100 shadow-sm'
+          }`}
+        >
+          {hasColor && tagColor ? (
+            <span
+              className="w-2 h-2 rounded-full flex-shrink-0"
+              style={{ backgroundColor: tagColor.hex, boxShadow: `0 0 6px ${tagColor.hex}` }}
+            />
+          ) : (
+            <span className="w-1.5 h-1.5 rounded-full flex-shrink-0 bg-dark-400/40" />
           )}
+          <span className="truncate">{displayRoom}</span>
         </div>
+
         {sparklineData.length > 1 && (
-          <div className="w-20 h-10">
+          <div className="w-16 h-8 flex-shrink-0">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={sparklineData}>
-                <Line
-                  type="monotone"
-                  dataKey="value"
-                  stroke={getSparklineColor()}
-                  strokeWidth={2}
-                  dot={false}
-                />
+                <Line type="monotone" dataKey="value" stroke={sparkColor} strokeWidth={1.5} dot={false} />
               </LineChart>
             </ResponsiveContainer>
           </div>
         )}
       </div>
 
-      <div className="flex items-end justify-between">
-        <div>
-          <p className="text-2xl font-bold text-foreground">
-            {value !== null ? value.toLocaleString(undefined, { maximumFractionDigits: 2 }) : '—'}
-          </p>
-        </div>
+      {/* KPI name */}
+      <p
+        className={`text-xs font-medium truncate mb-1.5 ${
+          isDark ? 'text-white/50' : 'text-dark-400'
+        }`}
+      >
+        {name}
+      </p>
+
+      {/* Hero value + trend */}
+      <div className="flex items-end justify-between gap-2">
+        <p
+          className={`text-xl font-bold leading-none ${
+            isDark ? 'text-white' : 'text-foreground'
+          }`}
+        >
+          {formattedValue}
+        </p>
         {trend !== null && (
-          <div className={`flex items-center gap-1 ${getTrendColor()}`}>
-            {getTrendIcon()}
-            <span className="text-sm font-medium">
-              {Math.abs(trend).toFixed(1)}%
-            </span>
+          <div className={`flex items-center gap-0.5 text-xs font-semibold ${trendColor} flex-shrink-0`}>
+            {trend > 0 ? (
+              <ArrowTrendingUpIcon className="w-3.5 h-3.5" />
+            ) : trend < 0 ? (
+              <ArrowTrendingDownIcon className="w-3.5 h-3.5" />
+            ) : (
+              <MinusIcon className="w-3.5 h-3.5" />
+            )}
+            <span>{Math.abs(trend).toFixed(1)}%</span>
           </div>
         )}
       </div>
-
-      <button
-        onClick={(e) => {
-          e.stopPropagation()
-          navigate(`/kpis/${kpiId}/data`)
-        }}
-        className="mt-4 w-full flex items-center justify-center gap-2 px-3 py-2 text-sm text-dark-300 hover:text-foreground bg-dark-800 hover:bg-dark-700 rounded-lg transition-colors"
-      >
-        <EyeIcon className="w-4 h-4" />
-        View Data
-      </button>
     </div>
   )
 }

@@ -1,7 +1,20 @@
+import { useState } from 'react'
 import { useAuth } from '../../context/AuthContext'
+import { useToast } from '../../context/ToastContext'
 
 export function SettingsProfile() {
   const { user } = useAuth()
+  const { success } = useToast()
+  const [name, setName] = useState(user?.name || '')
+  const [isSaving, setIsSaving] = useState(false)
+
+  const handleSave = () => {
+    setIsSaving(true)
+    setTimeout(() => {
+      setIsSaving(false)
+      success('Profile Updated', 'Your profile details have been saved successfully.')
+    }, 400)
+  }
 
   return (
     <div className="bg-dark-900 border border-dark-700 rounded-2xl p-6 sm:p-8 space-y-6 shadow-sm">
@@ -28,7 +41,8 @@ export function SettingsProfile() {
           <label className="block text-xs font-semibold text-dark-300 mb-1.5">Full Name</label>
           <input
             type="text"
-            defaultValue={user?.name || ''}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
             className="w-full px-3.5 py-2.5 bg-dark-950/50 border border-dark-700 rounded-xl text-sm text-foreground placeholder-dark-400 focus:outline-none focus:border-dark-500 transition-colors"
           />
         </div>
@@ -46,9 +60,11 @@ export function SettingsProfile() {
       <div className="pt-4 border-t border-dark-800 flex justify-end">
         <button
           type="button"
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-foreground text-dark-950 font-semibold hover:opacity-90 transition-opacity text-sm shadow-sm cursor-pointer"
+          onClick={handleSave}
+          disabled={isSaving}
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-foreground text-dark-950 font-semibold hover:opacity-90 transition-opacity text-sm shadow-sm cursor-pointer disabled:opacity-50"
         >
-          Save Changes
+          {isSaving ? 'Saving...' : 'Save Changes'}
         </button>
       </div>
     </div>

@@ -1,3 +1,6 @@
+import { useState } from 'react'
+import { useToast } from '../../context/ToastContext'
+
 const NOTIFICATION_ITEMS = [
   {
     id: 'insights',
@@ -22,6 +25,17 @@ const NOTIFICATION_ITEMS = [
 ]
 
 export function SettingsNotifications() {
+  const { success } = useToast()
+  const [isSaving, setIsSaving] = useState(false)
+
+  const handleSave = () => {
+    setIsSaving(true)
+    setTimeout(() => {
+      setIsSaving(false)
+      success('Preferences Saved', 'Your notification alert preferences have been updated.')
+    }, 400)
+  }
+
   return (
     <div className="bg-dark-900 border border-dark-700 rounded-2xl p-6 sm:p-8 space-y-6 shadow-sm">
       <div>
@@ -50,9 +64,11 @@ export function SettingsNotifications() {
       <div className="pt-4 border-t border-dark-800 flex justify-end">
         <button
           type="button"
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-foreground text-dark-950 font-semibold hover:opacity-90 transition-opacity text-sm shadow-sm cursor-pointer"
+          onClick={handleSave}
+          disabled={isSaving}
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-foreground text-dark-950 font-semibold hover:opacity-90 transition-opacity text-sm shadow-sm cursor-pointer disabled:opacity-50"
         >
-          Save Preferences
+          {isSaving ? 'Saving...' : 'Save Preferences'}
         </button>
       </div>
     </div>

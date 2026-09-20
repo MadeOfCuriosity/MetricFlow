@@ -38,7 +38,7 @@ export function AppDock() {
     <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
       <nav
         aria-label="Application Navigation"
-        className="flex items-center pointer-events-auto filter drop-shadow-[0_1px_4px_rgba(0,0,0,0.06)] dark:drop-shadow-[0_2px_6px_rgba(0,0,0,0.3)] max-w-full"
+        className="flex items-center pointer-events-auto max-w-full"
       >
         {dockItems.map((item, index) => {
           const isActive = isItemActive(item.href)
@@ -46,7 +46,7 @@ export function AppDock() {
           const isLast = index === dockItems.length - 1
 
           let podClasses =
-            'h-12 w-12 bg-dark-900 flex-shrink-0 flex items-center justify-center relative group focus:outline-none cursor-pointer hover:bg-dark-850 transition-colors'
+            'h-12 w-12 bg-dark-900 border-solid flex-shrink-0 flex items-center justify-center relative group focus:outline-none cursor-pointer hover:bg-dark-850 transition-colors'
           if (isFirst) {
             podClasses += ' rounded-l-full border-t border-b border-l border-dark-700'
           } else if (isLast) {
@@ -74,7 +74,7 @@ export function AppDock() {
                 <div
                   className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 ${
                     isActive
-                      ? 'bg-foreground text-dark-950 shadow-sm'
+                      ? 'bg-foreground text-dark-950'
                       : 'text-dark-300 group-hover:text-foreground group-hover:bg-dark-800/80'
                   }`}
                 >

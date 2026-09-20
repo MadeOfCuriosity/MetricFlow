@@ -3,7 +3,11 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_db, require_admin_org
 from app.models import User, Organization
-from app.schemas.admin import AdminStatsResponse, ActivityFeedResponse
+from app.schemas.admin import (
+    AdminStatsResponse,
+    ActivityFeedResponse,
+    ActivityHeatmapResponse,
+)
 from app.services.admin_stats_service import AdminStatsService
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -11,7 +15,7 @@ router = APIRouter(prefix="/admin", tags=["admin"])
 
 @router.get("/stats", response_model=AdminStatsResponse)
 def get_admin_stats(
-    days: int = Query(default=30, ge=1, le=90),
+    days: int = Query(default=30, ge=1, le=365),
     admin_org: tuple[User, Organization] = Depends(require_admin_org),
     db: Session = Depends(get_db),
 ):
@@ -25,6 +29,19 @@ def get_admin_stats(
         **stats,
         completion_rate=completion_rate,
     )
+
+
+@router.get("/activity-heatmap", response_model=ActivityHeatmapResponse)
+def get_activity_heatmap(
+    days: int = Query(default=365, ge=7, le=400),
+    year: int | None = Query(default=None, ge=2020, le=2030),
+    admin_org: tuple[User, Organization] = Depends(require_admin_org),
+    db: Session = Depends(get_db),
+):
+    """Get daily activity counts, levels, and streaks for GitHub-style activity heatmap."""
+    _, org = admin_org
+
+    return AdminStatsService.get_activity_heatmap(db, org.id, days=days, year=year)
 
 
 @router.get("/activity", response_model=ActivityFeedResponse)

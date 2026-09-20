@@ -1,5 +1,6 @@
 export { default as Landing } from './Landing'
 export { default as Privacy } from './Privacy'
+export { default as Terms } from './Terms'
 export { Subscription } from './Subscription'
 export { Login } from './Login'
 export { Register } from './Register'
@@ -20,14 +21,24 @@ export {
   AdminDashboard,
   AdminRooms,
   AdminIntegrations,
-  AdminApps,
   AdminActivity,
   AdminUsers,
   AdminOrganization,
   SettingsProfile,
+  SettingsMyActivity,
   SettingsNotifications,
+  SettingsPlan,
+  SettingsUsage,
+  SettingsUpgrade,
+  SettingsPlanUsage,
+  SettingsGeneral,
+  SettingsOrganization,
+  SettingsAccount,
   SettingsAppearance,
   SettingsSecurity,
+  SettingsPrivacy,
+  SettingsTerms,
+  SettingsActivityPage,
 } from './admin'
 export {
   SuperAdminLogin,

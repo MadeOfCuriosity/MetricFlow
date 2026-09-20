@@ -32,6 +32,13 @@ interface KPI {
   is_preset?: boolean
   time_period?: TimePeriod
   room_paths?: string[]
+  room_id?: string | null
+  room_name?: string | null
+  room_color?: string | null
+  latest_value?: number | null
+  last_updated_at?: string | null
+  previous_value?: number | null
+  created_at?: string
 }
 
 interface Preset {
@@ -161,9 +168,9 @@ export function KPIs() {
     return counts
   }, [kpis])
 
-  // Filtered KPIs based on search and category
+  // Filtered and sorted KPIs based on search, category, and latest-updated order
   const filteredKPIs = useMemo(() => {
-    return kpis.filter((kpi) => {
+    const list = kpis.filter((kpi) => {
       const matchesSearch =
         !searchQuery.trim() ||
         kpi.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -178,6 +185,13 @@ export function KPIs() {
       }
 
       return true
+    })
+
+    // Sort by latest updated order: most recently updated first, fallback to creation date
+    return list.sort((a, b) => {
+      const timeA = new Date(a.last_updated_at || a.created_at || 0).getTime()
+      const timeB = new Date(b.last_updated_at || b.created_at || 0).getTime()
+      return timeB - timeA
     })
   }, [kpis, searchQuery, selectedCategory])
 
@@ -240,7 +254,7 @@ export function KPIs() {
       className={`mx-auto transition-all ${
         activeTab === 'create'
           ? 'w-full max-w-[1650px] flex-1 min-h-0 h-full flex flex-col gap-3 overflow-hidden'
-          : 'space-y-8 max-w-7xl pb-12'
+          : 'space-y-8 max-w-7xl pb-32'
       }`}
     >
       <SEOHead
@@ -262,14 +276,14 @@ export function KPIs() {
         </div>
 
         {/* 2 Switches / Tabs: All KPIs and Create */}
-        <div className="flex items-center p-1 bg-dark-900 border border-dark-700 rounded-xl flex-shrink-0">
+        <div className="flex items-center p-1 bg-dark-850 dark:bg-dark-900 border border-dark-700 rounded-xl flex-shrink-0">
           <button
             type="button"
             onClick={() => handleTabChange('all')}
             className={`flex items-center gap-2 px-3.5 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all cursor-pointer ${
               activeTab === 'all'
-                ? 'bg-dark-800 text-foreground shadow-sm'
-                : 'text-dark-400 hover:text-foreground'
+                ? 'bg-dark-800 text-foreground shadow-sm border border-dark-700/60'
+                : 'text-dark-400 hover:text-foreground border border-transparent'
             }`}
           >
             <span>All KPIs</span>
@@ -288,8 +302,8 @@ export function KPIs() {
             onClick={() => handleTabChange('create')}
             className={`flex items-center gap-2 px-3.5 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all cursor-pointer ${
               activeTab === 'create'
-                ? 'bg-dark-800 text-foreground shadow-sm'
-                : 'text-dark-400 hover:text-foreground'
+                ? 'bg-dark-800 text-foreground shadow-sm border border-dark-700/60'
+                : 'text-dark-400 hover:text-foreground border border-transparent'
             }`}
           >
             <span>Create</span>

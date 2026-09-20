@@ -101,8 +101,8 @@ export function Header({ onMenuClick, onToggleAIAgent, isAIAgentOpen }: HeaderPr
 
   return (
     <>
-      <header className="sticky top-0 z-30 w-full pt-3.5 pb-2 px-4 flex justify-center pointer-events-none">
-        <div className="flex items-center pointer-events-auto filter drop-shadow-[0_1px_4px_rgba(0,0,0,0.06)] dark:drop-shadow-[0_2px_6px_rgba(0,0,0,0.3)] max-w-full">
+      <header className="sticky top-0 z-30 w-full pt-3.5 pb-2 px-4 flex justify-center pointer-events-none relative">
+        <div className="flex items-center pointer-events-auto max-w-full">
           
           {/* Pod 1: Brand / Logo / Mobile Menu (Left Cap Circle) */}
           <div className="rounded-l-full border-t border-b border-l border-dark-700 bg-dark-900 h-12 w-12 flex-shrink-0 flex items-center justify-center relative group">
@@ -112,7 +112,7 @@ export function Header({ onMenuClick, onToggleAIAgent, isAIAgentOpen }: HeaderPr
               className="hidden lg:flex items-center justify-center focus:outline-none translate-x-1"
               title="Dashboard"
             >
-              <div className="w-8 h-8 rounded-full border border-dark-700 bg-dark-850/80 flex items-center justify-center group-hover:border-foreground/30 group-hover:bg-dark-800 transition-all shadow-sm">
+              <div className="w-8 h-8 rounded-full border border-dark-700 bg-dark-850/80 flex items-center justify-center group-hover:border-foreground/30 group-hover:bg-dark-800 transition-all">
                 <img
                   src={resolvedTheme === 'light' ? '/visualise_dark.png' : '/visualise.png'}
                   alt="Visualize"
@@ -128,7 +128,7 @@ export function Header({ onMenuClick, onToggleAIAgent, isAIAgentOpen }: HeaderPr
               onClick={onMenuClick}
               title="Open Navigation Menu"
             >
-              <div className="w-8 h-8 rounded-full border border-dark-700 bg-dark-850/80 flex items-center justify-center group-hover:border-foreground/30 group-hover:bg-dark-800 transition-all shadow-sm">
+              <div className="w-8 h-8 rounded-full border border-dark-700 bg-dark-850/80 flex items-center justify-center group-hover:border-foreground/30 group-hover:bg-dark-800 transition-all">
                 <img
                   src={resolvedTheme === 'light' ? '/visualise_dark.png' : '/visualise.png'}
                   alt="Visualize"
@@ -158,7 +158,7 @@ export function Header({ onMenuClick, onToggleAIAgent, isAIAgentOpen }: HeaderPr
           {/* Pod 3: Quick Search Pod (Circle Node) */}
           <button
             onClick={() => setIsSearchOpen(true)}
-            className="h-12 w-12 border-t border-b border-dark-700 bg-dark-900 flex-shrink-0 flex items-center justify-center group cursor-pointer hover:bg-dark-850 transition-colors focus:outline-none"
+            className="h-12 w-12 border-t border-b border-solid border-dark-700 bg-dark-900 flex-shrink-0 flex items-center justify-center group cursor-pointer hover:bg-dark-850 transition-colors focus:outline-none"
             title="Search (Cmd+K)"
           >
             <div className="w-8 h-8 rounded-full flex items-center justify-center group-hover:bg-dark-800 transition-colors">
@@ -173,14 +173,14 @@ export function Header({ onMenuClick, onToggleAIAgent, isAIAgentOpen }: HeaderPr
           <button
             type="button"
             onClick={onToggleAIAgent}
-            className="h-12 w-12 border-t border-b border-dark-700 bg-dark-900 flex-shrink-0 flex items-center justify-center group cursor-pointer hover:bg-dark-850 transition-colors focus:outline-none"
+            className="h-12 w-12 border-t border-b border-solid border-dark-700 bg-dark-900 flex-shrink-0 flex items-center justify-center group cursor-pointer hover:bg-dark-850 transition-colors focus:outline-none"
             title="Ask Visualize"
             aria-label="Ask Visualize"
           >
             <div
               className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 ${
                 isAIAgentOpen
-                  ? 'bg-foreground text-dark-950 shadow-sm'
+                  ? 'bg-foreground text-dark-950'
                   : 'text-dark-300 group-hover:text-foreground group-hover:bg-dark-800'
               }`}
             >
@@ -199,7 +199,7 @@ export function Header({ onMenuClick, onToggleAIAgent, isAIAgentOpen }: HeaderPr
           <div className="h-12 rounded-r-full border-t border-b border-r border-dark-700 bg-dark-900 flex-shrink-0 flex items-center pl-2 pr-2.5 sm:pr-3.5 relative">
             <Menu as="div" className="relative">
               <Menu.Button className="flex items-center gap-2 p-1 text-dark-300 hover:text-foreground rounded-full hover:bg-dark-800/80 transition-colors focus:outline-none">
-                <div className="w-8 h-8 bg-foreground rounded-full flex items-center justify-center shadow-sm flex-shrink-0">
+                <div className="w-8 h-8 bg-foreground rounded-full flex items-center justify-center flex-shrink-0">
                   <span className="text-xs font-bold text-dark-950">
                     {user?.name?.charAt(0).toUpperCase() || 'U'}
                   </span>
@@ -271,6 +271,13 @@ export function Header({ onMenuClick, onToggleAIAgent, isAIAgentOpen }: HeaderPr
               </Transition>
             </Menu>
           </div>
+        </div>
+
+        {/* Top Right Corner Beta Tag */}
+        <div className="absolute right-4 sm:right-6 top-1/2 -translate-y-1/2 pointer-events-auto flex items-center">
+          <span className="px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-widest text-primary-400 bg-primary-500/10 border border-primary-500/20 rounded-full select-none shadow-sm backdrop-blur-md">
+            Beta
+          </span>
         </div>
       </header>
 

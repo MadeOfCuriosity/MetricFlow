@@ -1,10 +1,13 @@
 from uuid import UUID
+from datetime import datetime
+from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 
 from app.api.deps import get_db, get_current_user_org
-from app.models import User, Organization, Room, RoomKPIAssignment
+from app.models import User, Organization, Room, RoomKPIAssignment, DataEntry
 from app.schemas.kpi import (
     KPICreateRequest,
     KPIUpdateRequest,
@@ -46,15 +49,118 @@ def get_all_kpis(
 ):
     """
     Get all KPIs for the current user's organization.
-    Includes both preset and custom KPIs.
+    Includes both preset and custom KPIs, enriched with assigned room metadata,
+    room tag color (with ancestor inheritance), and the latest recorded data entry values.
     """
     _, org = user_org
     kpis = KPIService.get_all_kpis(db, org.id)
 
+    # Pre-fetch all rooms for this org to resolve breadcrumbs and colors efficiently
+    org_rooms = {r.id: r for r in db.query(Room).filter(Room.org_id == org.id).all()}
+
+    def _get_ancestors(room: Room) -> list[Room]:
+        anc = []
+        curr = room.parent_room_id
+        visited = set()
+        while curr and curr in org_rooms and curr not in visited:
+            visited.add(curr)
+            parent = org_rooms[curr]
+            anc.insert(0, parent)
+            curr = parent.parent_room_id
+        return anc
+
+    # Fetch room assignments
+    assignments = (
+        db.query(RoomKPIAssignment)
+        .join(Room, RoomKPIAssignment.room_id == Room.id)
+        .filter(Room.org_id == org.id)
+        .all()
+    )
+    assignments_by_kpi: dict[UUID, list[RoomKPIAssignment]] = {}
+    for a in assignments:
+        assignments_by_kpi.setdefault(a.kpi_id, []).append(a)
+
+    # Fetch latest data entries per KPI
+    latest_entry_map = {}
+    try:
+        latest_entries = (
+            db.query(DataEntry)
+            .filter(DataEntry.org_id == org.id)
+            .order_by(DataEntry.kpi_id, DataEntry.date.desc(), DataEntry.created_at.desc())
+            .distinct(DataEntry.kpi_id)
+            .all()
+        )
+        latest_entry_map = {entry.kpi_id: entry for entry in latest_entries}
+    except Exception:
+        db.rollback()
+        # Fallback query
+        subq = (
+            db.query(DataEntry.kpi_id, func.max(DataEntry.date).label("max_date"))
+            .filter(DataEntry.org_id == org.id)
+            .group_by(DataEntry.kpi_id)
+            .subquery()
+        )
+        fallback_entries = (
+            db.query(DataEntry)
+            .join(subq, (DataEntry.kpi_id == subq.c.kpi_id) & (DataEntry.date == subq.c.max_date))
+            .all()
+        )
+        latest_entry_map = {entry.kpi_id: entry for entry in fallback_entries}
+
     kpi_responses = []
     for kpi in kpis:
         resp = KPIResponse.model_validate(kpi)
-        resp.room_paths = _build_kpi_room_paths(db, kpi.id, org.id)
+
+        # Resolve room paths and colors
+        kpi_assigns = assignments_by_kpi.get(kpi.id, [])
+        paths = []
+        resolved_room_color = None
+        primary_room_name = None
+        primary_room_id = None
+
+        for a in kpi_assigns:
+            room = org_rooms.get(a.room_id)
+            if room:
+                ancestors = _get_ancestors(room)
+                parts = [anc.name for anc in ancestors] + [room.name]
+                paths.append(" > ".join(parts))
+
+                if not primary_room_id:
+                    primary_room_id = room.id
+                    primary_room_name = room.name
+
+                if not resolved_room_color:
+                    if room.color:
+                        resolved_room_color = room.color
+                    else:
+                        for anc in reversed(ancestors):
+                            if anc.color:
+                                resolved_room_color = anc.color
+                                break
+
+        # Check if latest entry has a room with color if not resolved yet
+        latest_entry = latest_entry_map.get(kpi.id)
+        if not resolved_room_color and latest_entry and latest_entry.room_id and latest_entry.room_id in org_rooms:
+            entry_room = org_rooms[latest_entry.room_id]
+            if entry_room.color:
+                resolved_room_color = entry_room.color
+            if not primary_room_id:
+                primary_room_id = entry_room.id
+                primary_room_name = entry_room.name
+
+        resp.room_paths = sorted(paths)
+        resp.room_id = primary_room_id
+        resp.room_name = primary_room_name
+        resp.room_color = resolved_room_color
+
+        # Attach latest value and last updated timestamp
+        if latest_entry:
+            resp.latest_value = latest_entry.calculated_value
+            resp.last_updated_at = latest_entry.created_at
+        else:
+            resp.latest_value = None
+            resp.last_updated_at = None
+
         kpi_responses.append(resp)
 
     return KPIListResponse(

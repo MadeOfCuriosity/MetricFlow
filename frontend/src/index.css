@@ -103,6 +103,10 @@ textarea:focus-visible {
   box-shadow: none !important;
 }
 
+button {
+  border-style: solid;
+}
+
 /* High-contrast solid primary button text for dark theme */
 [data-theme="dark"] .bg-primary-500.text-white,
 [data-theme="dark"] .bg-primary-600.text-white,

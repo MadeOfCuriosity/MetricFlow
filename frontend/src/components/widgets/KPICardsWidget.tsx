@@ -39,6 +39,8 @@ export function KPICardsWidget({ data, selectedKPI, setSelectedKPI, dateRange }:
                 previousValue={rangeEntries[1]?.calculated_value ?? null}
                 category={kpi.category}
                 roomPaths={kpi.room_paths}
+                roomColor={kpi.room_color}
+                roomName={kpi.room_name}
                 sparklineData={rangeEntries
                   .slice(0, 7)
                   .reverse()

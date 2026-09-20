@@ -89,6 +89,12 @@ class KPIResponse(BaseModel):
     created_at: datetime
     data_fields: list[DataFieldBrief] = []
     room_paths: list[str] = []
+    room_id: Optional[UUID] = None
+    room_name: Optional[str] = None
+    room_color: Optional[str] = None
+    latest_value: Optional[float] = None
+    last_updated_at: Optional[datetime] = None
+    previous_value: Optional[float] = None
 
     model_config = {"from_attributes": True}
 

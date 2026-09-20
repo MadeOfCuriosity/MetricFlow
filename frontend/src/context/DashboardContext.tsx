@@ -50,7 +50,7 @@ function getDefaultLayout(): DashboardLayout {
     { i: 'default-kpi-cards', x: 0, y: 2, w: 12, h: 4, minW: 6, minH: 3 },
     { i: 'default-line-chart', x: 0, y: 6, w: 8, h: 5, minW: 4, minH: 3 },
     { i: 'default-insights', x: 8, y: 6, w: 4, h: 5, minW: 3, minH: 3 },
-    { i: 'default-today', x: 0, y: 11, w: 12, h: 3, minW: 6, minH: 2 },
+    { i: 'default-today', x: 0, y: 11, w: 12, h: 4, minW: 6, minH: 3 },
   ]
 
   const md: WidgetLayoutItem[] = [
@@ -61,7 +61,7 @@ function getDefaultLayout(): DashboardLayout {
     { i: 'default-kpi-cards', x: 0, y: 4, w: 6, h: 4, minW: 6, minH: 3 },
     { i: 'default-line-chart', x: 0, y: 8, w: 6, h: 5, minW: 4, minH: 3 },
     { i: 'default-insights', x: 0, y: 13, w: 6, h: 5, minW: 3, minH: 3 },
-    { i: 'default-today', x: 0, y: 18, w: 6, h: 3, minW: 6, minH: 2 },
+    { i: 'default-today', x: 0, y: 18, w: 6, h: 4, minW: 6, minH: 3 },
   ]
 
   const sm: WidgetLayoutItem[] = widgets.map((w, idx) => ({

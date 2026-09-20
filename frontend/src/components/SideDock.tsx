@@ -63,7 +63,7 @@ export function SideDock({ sidebarOpen, onToggleSidebar }: SideDockProps) {
     <div className="fixed left-4 bottom-4 z-40 pointer-events-none">
       <nav
         aria-label="Sidebar Controls"
-        className="flex flex-col items-center pointer-events-auto filter drop-shadow-[0_1px_4px_rgba(0,0,0,0.06)] dark:drop-shadow-[0_2px_6px_rgba(0,0,0,0.3)]"
+        className="flex flex-col items-center pointer-events-auto"
       >
         {/* Pod 1: Rooms Toggle (Top Cap) - Clicking this expands into the sidebar */}
         <button

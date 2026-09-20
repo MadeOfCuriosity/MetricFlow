@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom'
 import {
   BuildingOfficeIcon,
   CreditCardIcon,
@@ -16,6 +17,7 @@ const PLAN_NAME: Record<string, string> = {
 }
 
 export function AdminOrganization() {
+  const navigate = useNavigate()
   const { organization } = useAuth()
   const planCode = organization?.plan_code
   const planName = planCode ? PLAN_NAME[planCode] || planCode : 'Free'
@@ -88,6 +90,7 @@ export function AdminOrganization() {
           </div>
           <button
             type="button"
+            onClick={() => navigate('/settings/upgrade')}
             className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-dark-800 border border-dark-700 text-xs font-semibold text-foreground hover:bg-dark-700 transition-colors self-start sm:self-auto cursor-pointer"
           >
             Upgrade Plan
