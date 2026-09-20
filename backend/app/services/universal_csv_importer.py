@@ -140,12 +140,17 @@ class UniversalCSVImporter:
             if not raw_rows:
                 return [], []
 
-            # Find best header row among the first 10 rows (the row with most columns / header titles)
+            # Find best header row among the first 10 rows (prefer row with date columns or header keywords)
             header_idx = 0
-            max_cols = len(raw_rows[0])
+            max_score = -1
             for idx, r in enumerate(raw_rows[:10]):
-                if len(r) > max_cols:
-                    max_cols = len(r)
+                date_cells = sum(1 for c in r if cls.parse_date_value(c))
+                header_kw_cells = sum(
+                    1 for c in r if any(k in str(c).lower() for k in ("account", "date", "metric", "room", "particulars", "description", "field"))
+                )
+                score = date_cells * 10 + header_kw_cells * 2 + len(r)
+                if score > max_score:
+                    max_score = score
                     header_idx = idx
 
             return raw_rows[header_idx], raw_rows[header_idx + 1:]
@@ -194,8 +199,21 @@ class UniversalCSVImporter:
         if not cleaned_rows:
             return [], [], delimiter
 
-        header = cleaned_rows[0]
-        data_rows = cleaned_rows[1:]
+        # Find best header row among the first 10 rows (prefer row with date columns or header keywords)
+        header_idx = 0
+        max_score = -1
+        for idx, r in enumerate(cleaned_rows[:10]):
+            date_cells = sum(1 for c in r if cls.parse_date_value(c))
+            header_kw_cells = sum(
+                1 for c in r if any(k in str(c).lower() for k in ("account", "date", "metric", "room", "particulars", "description", "field"))
+            )
+            score = date_cells * 10 + header_kw_cells * 2 + len(r)
+            if score > max_score:
+                max_score = score
+                header_idx = idx
+
+        header = cleaned_rows[header_idx]
+        data_rows = cleaned_rows[header_idx + 1:]
 
         return header, data_rows, delimiter
 
@@ -372,17 +390,19 @@ class UniversalCSVImporter:
         extracted_stmt_date = cls.extract_statement_period_date(full_text or header)
 
         # 1. Check for Matrix layout (rows are fields, columns are dates)
-        if header_lower[0] in FIELD_HEADER_KEYWORDS:
-            date_col_candidates = 0
-            has_room = len(header_lower) > 1 and header_lower[1] in ROOM_HEADER_KEYWORDS
-            date_start = 2 if has_room else 1
-            for h in header[date_start:]:
-                if cls.parse_date_value(h):
-                    date_col_candidates += 1
+        date_candidates = []
+        for idx, h in enumerate(header):
+            if h and cls.parse_date_value(h):
+                date_candidates.append((idx, h))
 
-            if date_col_candidates >= max(1, len(header[date_start:]) // 2):
-                room_col = header[1] if has_room else None
-                return CSVLayoutType.MATRIX, None, room_col, [], None, None
+        if len(date_candidates) >= 2 or (header_lower and header_lower[0] in FIELD_HEADER_KEYWORDS and len(date_candidates) >= 1):
+            room_col = None
+            first_date_idx = date_candidates[0][0] if date_candidates else 1
+            for idx in range(first_date_idx):
+                if header_lower[idx] in ROOM_HEADER_KEYWORDS or "room" in header_lower[idx]:
+                    room_col = header[idx]
+                    break
+            return CSVLayoutType.MATRIX, None, room_col, [], None, None
 
         # 2. Check for Date Column
         date_col_idx: Optional[int] = None
@@ -551,20 +571,30 @@ class UniversalCSVImporter:
 
         elif layout == CSVLayoutType.MATRIX:
             seen_row_fields = set()
-            for r in data_rows[:50]:
-                if r and r[0].strip():
-                    fname = r[0].strip()
-                    if fname not in seen_row_fields:
-                        seen_row_fields.add(fname)
-                        matched = field_by_var.get(fname.lower()) or field_by_name.get(fname.lower())
-                        suggested_mappings.append(
-                            CSVFieldMapping(
-                                source_column=fname,
-                                target_field_id=str(matched.id) if matched else None,
-                                target_field_name=matched.name if matched else fname.replace("_", " ").title(),
-                                action="map" if matched else "create",
-                            )
+            skip_row_names = {"account", "account code", "total", "sub total", "subtotal", "grand total", "net total", "particulars", "description", "line item"}
+            date_cols = [idx for idx, h in enumerate(header) if cls.parse_date_value(h)]
+
+            for r in data_rows[:100]:
+                if not r or not r[0].strip():
+                    continue
+                fname = r[0].strip()
+                if fname.lower() in skip_row_names:
+                    continue
+                # Ensure row has at least one numeric cell
+                has_num = any(col < len(r) and cls.parse_number(r[col]) is not None for col in date_cols) if date_cols else any(cls.parse_number(c) is not None for c in r[1:])
+                if not has_num:
+                    continue
+                if fname not in seen_row_fields:
+                    seen_row_fields.add(fname)
+                    matched = field_by_var.get(fname.lower()) or field_by_name.get(fname.lower())
+                    suggested_mappings.append(
+                        CSVFieldMapping(
+                            source_column=fname,
+                            target_field_id=str(matched.id) if matched else None,
+                            target_field_name=matched.name if matched else fname.replace("_", " ").title(),
+                            action="map" if matched else "create",
                         )
+                    )
         elif layout == CSVLayoutType.LONG:
             suggested_mappings.append(
                 CSVFieldMapping(
@@ -770,17 +800,15 @@ class UniversalCSVImporter:
                 len(header) > 1 and header[1].lower() in ("room", "room_name")
             ) or bool(config.room_column and config.room_column.lower() in header_indices)
 
-            date_start_col = 2 if has_room_column else 1
-
             date_columns: List[Tuple[int, date]] = []
-            for col_idx in range(date_start_col, len(header)):
+            for col_idx in range(len(header)):
                 h_val = header[col_idx].strip()
                 if not h_val:
                     continue
                 parsed_d = cls.parse_date_value(h_val, config.date_format)
                 if parsed_d:
                     date_columns.append((col_idx, parsed_d))
-                else:
+                elif col_idx >= (2 if has_room_column else 1):
                     unmatched_columns.append(h_val)
 
             if not date_columns:
@@ -789,16 +817,33 @@ class UniversalCSVImporter:
                     entries_created=0,
                     fields_created=[],
                     kpis_recalculated=0,
-                    errors=[{"row": 1, "error": f"No valid date columns found in matrix header: {header[date_start_col:]}"}],
+                    errors=[{"row": 1, "error": f"No valid date columns found in matrix header: {header}"}],
                     unmatched_columns=unmatched_columns,
                 )
+
+            skip_row_names = {"account", "account code", "total", "sub total", "subtotal", "grand total", "net total", "particulars", "description", "line item"}
+            mapping_lookup = {
+                m.source_column.lower(): m for m in (config.field_mappings or [])
+            }
 
             for row_num, row in enumerate(data_rows, start=2):
                 if not row or not row[0].strip():
                     continue
 
                 field_name = row[0].strip()
-                rows_processed += 1
+                if field_name.lower() in skip_row_names:
+                    continue
+
+                # Ensure row has at least one valid numeric cell among the date columns
+                if not any(col_idx < len(row) and cls.parse_number(row[col_idx]) is not None for col_idx, _ in date_columns):
+                    continue
+
+                m = mapping_lookup.get(field_name.lower())
+                if m and m.action == "ignore":
+                    continue
+
+                target_id = m.target_field_id if m else None
+                target_name = (m.target_field_name if m and m.target_field_name else field_name).strip()
 
                 target_room = None
                 if has_room_column and len(row) > 1 and row[1].strip():
@@ -808,9 +853,11 @@ class UniversalCSVImporter:
                         errors.append({"row": row_num, "error": f"Room not found: '{room_cell}'"})
                         continue
 
-                field_obj = get_or_create_field(field_name)
+                field_obj = get_or_create_field(target_name, target_id)
                 if not field_obj:
                     continue
+
+                rows_processed += 1
 
                 for col_idx, entry_date in date_columns:
                     if col_idx >= len(row):

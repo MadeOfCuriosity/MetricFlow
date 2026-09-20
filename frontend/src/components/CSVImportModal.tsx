@@ -169,16 +169,67 @@ export function CSVImportModal({ isOpen, onClose, onImported }: CSVImportModalPr
           const dataRows = allRows.slice(1)
           const delimiter = results.meta.delimiter || ','
 
+          // Helper to check if a string looks like a date
+          const isDateStr = (s: string) => {
+            if (!s || !s.trim()) return false
+            const str = s.trim()
+            return /^\d{1,4}[-/.]\d{1,2}[-/.]\d{1,4}/.test(str) ||
+                   /^\d{1,2}[-/.\s][A-Za-z]+[-/.\s]\d{2,4}/.test(str)
+          }
+
+          // Check for Matrix Layout (multiple date columns in header)
+          const dateColsInHeader = rawHeaders.filter((h) => isDateStr(h))
+          const isMatrix = dateColsInHeader.length >= 2
+
           // Check if this is a Financial Statement / P&L (Key-Value)
           const allText = allRows.map((r) => r.join(' ')).join(' ').toLowerCase()
-          const isStatement = ['profit', 'loss', 'income', 'expense', 'sales', 'cogs', 'statement'].some((k) =>
+          const isStatement = !isMatrix && ['profit', 'loss', 'income', 'expense', 'sales', 'cogs', 'statement'].some((k) =>
             allText.includes(k)
           )
 
-          let detectedLayout: CSVLayoutType = isStatement ? 'statement' : 'columnar'
+          let detectedLayout: CSVLayoutType = isMatrix ? 'matrix' : isStatement ? 'statement' : 'columnar'
           let dateCol: string | null = null
           let roomCol: string | null = null
           let detectedStmtDate = new Date().toISOString().split('T')[0]
+
+          if (isMatrix) {
+            const skipNames = new Set(['account', 'account code', 'total', 'sub total', 'subtotal', 'grand total'])
+            const suggestedMappings: any[] = []
+            const seen = new Set<string>()
+
+            dataRows.forEach((r) => {
+              if (r.length >= 1 && r[0]) {
+                const fname = r[0].trim()
+                if (fname && !skipNames.has(fname.toLowerCase()) && !seen.has(fname.toLowerCase())) {
+                  seen.add(fname.toLowerCase())
+                  const clean = fname.toLowerCase().replace(/[\s-]/g, '_')
+                  const matched = fields.find(
+                    (f) => f.variable_name.toLowerCase() === clean || f.name.toLowerCase() === fname.toLowerCase()
+                  )
+                  suggestedMappings.push({
+                    source_column: fname,
+                    target_field_id: matched ? matched.id : null,
+                    target_field_name: matched ? matched.name : fname,
+                    action: matched ? 'map' : 'create',
+                  })
+                }
+              }
+            })
+
+            resolve({
+              detected_layout: 'matrix',
+              delimiter,
+              total_rows: dataRows.length,
+              headers: rawHeaders,
+              preview_rows: dataRows.slice(0, 6),
+              suggested_date_column: null,
+              suggested_room_column: null,
+              suggested_statement_date: null,
+              suggested_field_mappings: suggestedMappings,
+              unmatched_columns: [],
+            })
+            return
+          }
 
           // Extract date from text if found (e.g. 01-JUNE-2026 TO 30-JUNE-2026)
           const dateMatch = allText.match(/(?:to|ended|period)\s*(?:of)?\s*(\d{1,2})[-/\s]([a-z]+)[-/\s](\d{4})/i)
