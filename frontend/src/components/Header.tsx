@@ -5,10 +5,8 @@ import {
   MagnifyingGlassIcon,
   UserCircleIcon,
   ArrowRightOnRectangleIcon,
-  BuildingOfficeIcon,
-  BellIcon,
+  Cog6ToothIcon,
   SwatchIcon,
-  KeyIcon,
   XMarkIcon,
   HomeIcon,
   ChartBarIcon,
@@ -51,12 +49,9 @@ interface HeaderProps {
   isAIAgentOpen?: boolean
 }
 
-const settingsLinks = [
-  { tab: 'profile', label: 'Profile', icon: UserCircleIcon, adminOnly: false },
-  { tab: 'organization', label: 'Organization', icon: BuildingOfficeIcon, adminOnly: true },
-  { tab: 'notifications', label: 'Notifications', icon: BellIcon, adminOnly: false },
-  { tab: 'appearance', label: 'Appearance', icon: SwatchIcon, adminOnly: false },
-  { tab: 'security', label: 'Security', icon: KeyIcon, adminOnly: false },
+const profileMenuLinks = [
+  { path: '/data-table', label: 'Data Table', icon: TableCellsIcon, adminOnly: false },
+  { path: '/settings', label: 'Settings', icon: Cog6ToothIcon, adminOnly: false },
 ]
 
 const searchItems = [
@@ -80,7 +75,7 @@ export function Header({ onMenuClick, onToggleAIAgent, isAIAgentOpen }: HeaderPr
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
 
-  const visibleSettingsLinks = settingsLinks.filter((link) => !link.adminOnly || isAdmin)
+  const visibleProfileMenuLinks = profileMenuLinks.filter((link) => !link.adminOnly || isAdmin)
 
   // Global Cmd+K / Ctrl+K shortcut listener
   useEffect(() => {
@@ -235,11 +230,11 @@ export function Header({ onMenuClick, onToggleAIAgent, isAIAgentOpen }: HeaderPr
                   </div>
 
                   <div className="py-1">
-                    {visibleSettingsLinks.map((link) => (
-                      <Menu.Item key={link.tab}>
+                    {visibleProfileMenuLinks.map((link) => (
+                      <Menu.Item key={link.path}>
                         {({ active }) => (
                           <button
-                            onClick={() => navigate(`/settings/${link.tab}`)}
+                            onClick={() => navigate(link.path)}
                             className={`${
                               active ? 'bg-dark-800 text-foreground' : 'text-dark-300'
                             } flex items-center gap-3 w-full px-4 py-2 text-xs font-medium transition-colors`}

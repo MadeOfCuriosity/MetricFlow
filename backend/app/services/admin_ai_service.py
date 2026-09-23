@@ -22,7 +22,7 @@ from app.models import (
 )
 
 
-ADMIN_AGENT_SYSTEM_PROMPT = """You are an AI assistant for a business metrics platform called MetricFlow. You help admins understand their organization's data, KPIs, and insights.
+ADMIN_AGENT_SYSTEM_PROMPT = """You are an AI assistant for a business metrics platform called Visualize. You help admins understand their organization's data, KPIs, and insights.
 
 You have access to the organization's complete data context provided below. Use this data to answer questions accurately.
 

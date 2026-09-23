@@ -1,4 +1,4 @@
-# MetricFlow
+# Visualize
 
 A full-stack SaaS application for business KPI tracking with AI-powered insights.
 
@@ -34,7 +34,7 @@ A full-stack SaaS application for business KPI tracking with AI-powered insights
 ```bash
 # Clone and start all services
 git clone <repo-url>
-cd MetricFlow
+cd Visualize
 
 # Start PostgreSQL, backend, and frontend
 docker-compose up -d
@@ -103,7 +103,7 @@ Frontend runs at http://localhost:5173
 ## Demo Credentials
 
 After running the seed script:
-- **Email**: demo@metricflow.io
+- **Email**: demo@visualize.io
 - **Password**: demo123
 
 ## API Documentation
@@ -115,7 +115,7 @@ Once the backend is running, access:
 ## Project Structure
 
 ```
-MetricFlow/
+Visualize/
 ├── backend/
 │   ├── app/
 │   │   ├── api/           # API routes
@@ -151,7 +151,7 @@ MetricFlow/
 | Variable | Description | Default |
 |----------|-------------|---------|
 | VITE_API_URL | Backend API URL | http://localhost:8000 |
-| VITE_APP_NAME | App display name | MetricFlow |
+| VITE_APP_NAME | App display name | Visualize |
 
 ## Running Tests
 

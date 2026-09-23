@@ -6,7 +6,7 @@ import { Header } from './Header'
 import { AdminAIAgent } from './AdminAIAgent'
 import { ImpersonationBanner } from './ImpersonationBanner'
 import { InAppNotifications } from './InAppNotifications'
-import { RadialMenu } from './RadialMenu'
+import { PendingEntriesButton } from './PendingEntriesButton'
 import { XMarkIcon } from '@heroicons/react/24/outline'
 
 export function Layout() {
@@ -73,7 +73,7 @@ export function Layout() {
         onClose={() => setIsAIAgentOpen(false)}
       />
       <AppDock />
-      <RadialMenu />
+      <PendingEntriesButton />
     </div>
   )
 }

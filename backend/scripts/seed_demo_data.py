@@ -60,7 +60,7 @@ def create_demo_data():
         user = User(
             id=uuid4(),
             org_id=org.id,
-            email="demo@metricflow.io",
+            email="demo@visualize.io",
             password_hash=get_password_hash("demo123"),
             name="Demo User",
             auth_provider="email",
@@ -70,7 +70,7 @@ def create_demo_data():
         db.add(user)
         db.flush()
 
-        print(f"Created user: demo@metricflow.io (password: demo123)")
+        print(f"Created user: demo@visualize.io (password: demo123)")
 
         # Create KPIs
         kpis_data = [
@@ -237,7 +237,7 @@ def create_demo_data():
         print("Demo data created successfully!")
         print("=" * 50)
         print(f"\nLogin credentials:")
-        print(f"  Email: demo@metricflow.io")
+        print(f"  Email: demo@visualize.io")
         print(f"  Password: demo123")
         print(f"\nOrganization: Demo Company")
         print(f"KPIs: {len(kpis)}")

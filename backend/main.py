@@ -12,7 +12,7 @@ import os
 
 from app.core.config import settings
 from app.core.database import engine
-from app.core.exceptions import MetricFlowException
+from app.core.exceptions import VisualizeException
 from app.core.rate_limit import limiter, public_limiter
 from app.core.middleware import (
     SecurityHeadersMiddleware,
@@ -46,7 +46,7 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     """Application lifespan events."""
     # Startup
-    logger.info("Starting MetricFlow API...")
+    logger.info("Starting Visualize API...")
 
     # Validate required secrets — hard-fail in production, warn in dev
     config_errors = settings.validate_required_secrets()
@@ -69,17 +69,17 @@ async def lifespan(app: FastAPI):
     from app.core.scheduler import start_scheduler, shutdown_scheduler
     start_scheduler()
 
-    logger.info("MetricFlow API started successfully")
+    logger.info("Visualize API started successfully")
     yield
     # Shutdown
     shutdown_scheduler()
-    logger.info("Shutting down MetricFlow API...")
+    logger.info("Shutting down Visualize API...")
 
 # Determine if running in production
 IS_PRODUCTION = os.getenv("ENVIRONMENT", "development") == "production"
 
 app = FastAPI(
-    title="MetricFlow API",
+    title="Visualize API",
     description="Business KPI tracking SaaS application",
     version="1.0.0",
     lifespan=lifespan,
@@ -94,9 +94,9 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 
 # Exception handlers
-@app.exception_handler(MetricFlowException)
-async def metricflow_exception_handler(request: Request, exc: MetricFlowException):
-    """Handle custom MetricFlow exceptions."""
+@app.exception_handler(VisualizeException)
+async def visualize_exception_handler(request: Request, exc: VisualizeException):
+    """Handle custom Visualize exceptions."""
     return JSONResponse(
         status_code=exc.status_code,
         content={
@@ -182,7 +182,7 @@ app.include_router(sales_router, prefix="/api")
 
 @app.get("/")
 def root():
-    return {"message": "Welcome to MetricFlow API"}
+    return {"message": "Welcome to Visualize API"}
 
 
 @app.get("/health")

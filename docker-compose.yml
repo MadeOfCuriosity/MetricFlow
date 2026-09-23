@@ -4,11 +4,11 @@ services:
   # PostgreSQL Database
   db:
     image: postgres:15-alpine
-    container_name: metricflow-db
+    container_name: visualize-db
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: metricflow
+      POSTGRES_DB: visualize
     ports:
       - "5432:5432"
     volumes:
@@ -24,9 +24,9 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: metricflow-backend
+    container_name: visualize-backend
     environment:
-      DATABASE_URL: postgresql://postgres:postgres@db:5432/metricflow
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/visualize
       SECRET_KEY: dev-secret-key-change-in-production-min-32-chars
       JWT_ALGORITHM: HS256
       ACCESS_TOKEN_EXPIRE_MINUTES: 30
@@ -48,10 +48,10 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: metricflow-frontend
+    container_name: visualize-frontend
     environment:
       VITE_API_URL: http://localhost:8000
-      VITE_APP_NAME: MetricFlow
+      VITE_APP_NAME: Visualize
     ports:
       - "5173:5173"
     depends_on:

@@ -11,8 +11,8 @@ import {
   TableCellsIcon,
   SparklesIcon,
   CalendarDaysIcon,
+  PencilSquareIcon,
 } from '@heroicons/react/24/outline'
-import Papa from 'papaparse'
 import { dataFieldsApi } from '../services/dataFields'
 import type {
   CSVImportResponse,
@@ -112,6 +112,11 @@ export function CSVImportModal({ isOpen, onClose, onImported }: CSVImportModalPr
   const [isDragOver, setIsDragOver] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // Header-row override: null = trust auto-detection; otherwise a user-picked
+  // absolute row index (0-indexed among the file's non-blank rows).
+  const [headerRowOverride, setHeaderRowOverride] = useState<number | null>(null)
+  const [showHeaderPicker, setShowHeaderPicker] = useState(false)
+
   // Load existing fields for dropdown mapping
   useEffect(() => {
     if (isOpen) {
@@ -133,6 +138,8 @@ export function CSVImportModal({ isOpen, onClose, onImported }: CSVImportModalPr
     setIsDragOver(false)
     setShowAdvancedMapping(false)
     setColumnMappings({})
+    setHeaderRowOverride(null)
+    setShowHeaderPicker(false)
   }
 
   const handleClose = () => {
@@ -141,202 +148,6 @@ export function CSVImportModal({ isOpen, onClose, onImported }: CSVImportModalPr
     }
     resetState()
     onClose()
-  }
-
-  const analyzeClientSide = (selectedFile: File, fields: DataField[]): Promise<CSVAnalysisResponse> => {
-    return new Promise((resolve, reject) => {
-      Papa.parse(selectedFile, {
-        preview: 60,
-        skipEmptyLines: 'greedy',
-        transform: (val) => (val || '').trim(),
-        complete: (results) => {
-          if (!results.data || results.data.length < 1) {
-            reject(new Error('Document is empty or could not be parsed.'))
-            return
-          }
-
-          // Clean rows and strip empty lines
-          const allRows = (results.data as string[][])
-            .map((r) => r.map((c) => (c || '').replace(/^\uFEFF/, '').trim()))
-            .filter((r) => r.some((c) => c !== ''))
-
-          if (allRows.length === 0) {
-            reject(new Error('No readable data rows found.'))
-            return
-          }
-
-          const rawHeaders = allRows[0]
-          const dataRows = allRows.slice(1)
-          const delimiter = results.meta.delimiter || ','
-
-          // Helper to check if a string looks like a date
-          const isDateStr = (s: string) => {
-            if (!s || !s.trim()) return false
-            const str = s.trim()
-            return /^\d{1,4}[-/.]\d{1,2}[-/.]\d{1,4}/.test(str) ||
-                   /^\d{1,2}[-/.\s][A-Za-z]+[-/.\s]\d{2,4}/.test(str)
-          }
-
-          // Check for Matrix Layout (multiple date columns in header)
-          const dateColsInHeader = rawHeaders.filter((h) => isDateStr(h))
-          const isMatrix = dateColsInHeader.length >= 2
-
-          // Check if this is a Financial Statement / P&L (Key-Value)
-          const allText = allRows.map((r) => r.join(' ')).join(' ').toLowerCase()
-          const isStatement = !isMatrix && ['profit', 'loss', 'income', 'expense', 'sales', 'cogs', 'statement'].some((k) =>
-            allText.includes(k)
-          )
-
-          let detectedLayout: CSVLayoutType = isMatrix ? 'matrix' : isStatement ? 'statement' : 'columnar'
-          let dateCol: string | null = null
-          let roomCol: string | null = null
-          let detectedStmtDate = new Date().toISOString().split('T')[0]
-
-          if (isMatrix) {
-            const skipNames = new Set(['account', 'account code', 'total', 'sub total', 'subtotal', 'grand total'])
-            const suggestedMappings: any[] = []
-            const seen = new Set<string>()
-
-            dataRows.forEach((r) => {
-              if (r.length >= 1 && r[0]) {
-                const fname = r[0].trim()
-                if (fname && !skipNames.has(fname.toLowerCase()) && !seen.has(fname.toLowerCase())) {
-                  seen.add(fname.toLowerCase())
-                  const clean = fname.toLowerCase().replace(/[\s-]/g, '_')
-                  const matched = fields.find(
-                    (f) => f.variable_name.toLowerCase() === clean || f.name.toLowerCase() === fname.toLowerCase()
-                  )
-                  suggestedMappings.push({
-                    source_column: fname,
-                    target_field_id: matched ? matched.id : null,
-                    target_field_name: matched ? matched.name : fname,
-                    action: matched ? 'map' : 'create',
-                  })
-                }
-              }
-            })
-
-            resolve({
-              detected_layout: 'matrix',
-              delimiter,
-              total_rows: dataRows.length,
-              headers: rawHeaders,
-              preview_rows: dataRows.slice(0, 6),
-              suggested_date_column: null,
-              suggested_room_column: null,
-              suggested_statement_date: null,
-              suggested_field_mappings: suggestedMappings,
-              unmatched_columns: [],
-            })
-            return
-          }
-
-          // Extract date from text if found (e.g. 01-JUNE-2026 TO 30-JUNE-2026)
-          const dateMatch = allText.match(/(?:to|ended|period)\s*(?:of)?\s*(\d{1,2})[-/\s]([a-z]+)[-/\s](\d{4})/i)
-          if (dateMatch) {
-            const months: Record<string, string> = {
-              jan: '01', feb: '02', mar: '03', apr: '04', may: '05', jun: '06',
-              june: '06', jul: '07', july: '07', aug: '08', sep: '09', oct: '10', nov: '11', dec: '12'
-            }
-            const dStr = dateMatch[1].padStart(2, '0')
-            const mStr = months[dateMatch[2].toLowerCase().slice(0, 3)] || '01'
-            const yStr = dateMatch[3]
-            detectedStmtDate = `${yStr}-${mStr}-${dStr}`
-          }
-
-          const headerLower = rawHeaders.map((h) => h.toLowerCase())
-
-          if (detectedLayout === 'statement') {
-            const suggestedMappings: any[] = []
-            const seen = new Set<string>()
-
-            dataRows.forEach((r) => {
-              if (r.length >= 2 && r[0]) {
-                const itemName = r[0]
-                const hasNum = r.slice(1).some((c) => !isNaN(parseFloat(c.replace(/[^\d.-]/g, ''))))
-                if (hasNum && !seen.has(itemName)) {
-                  seen.add(itemName)
-                  const clean = itemName.toLowerCase().replace(/[\s-]/g, '_')
-                  const matched = fields.find(
-                    (f) => f.variable_name.toLowerCase() === clean || f.name.toLowerCase() === itemName.toLowerCase()
-                  )
-                  suggestedMappings.push({
-                    source_column: itemName,
-                    target_field_id: matched ? matched.id : null,
-                    target_field_name: matched ? matched.name : itemName,
-                    action: matched ? 'map' : 'create',
-                  })
-                }
-              }
-            })
-
-            resolve({
-              detected_layout: 'statement',
-              delimiter,
-              total_rows: dataRows.length,
-              headers: ['Line Item', 'Amount'],
-              preview_rows: dataRows.slice(0, 6),
-              suggested_date_column: null,
-              suggested_room_column: null,
-              suggested_statement_date: detectedStmtDate,
-              suggested_field_mappings: suggestedMappings,
-              unmatched_columns: [],
-            })
-            return
-          }
-
-          // Columnar / Matrix detection
-          if (['field', 'field_name', 'name', 'data_field'].includes(headerLower[0])) {
-            detectedLayout = 'matrix'
-            if (headerLower.length > 1 && ['room', 'room_name'].includes(headerLower[1])) {
-              roomCol = rawHeaders[1]
-            }
-          } else {
-            const dateIdx = headerLower.findIndex((h) =>
-              ['date', 'day', 'timestamp', 'time', 'created_at', 'entry_date'].some((k) => h.includes(k))
-            )
-            dateCol = dateIdx !== -1 ? rawHeaders[dateIdx] : rawHeaders[0]
-
-            const roomIdx = headerLower.findIndex(
-              (h, idx) => idx !== dateIdx && ['room', 'room_name', 'branch', 'location'].some((k) => h.includes(k))
-            )
-            if (roomIdx !== -1) roomCol = rawHeaders[roomIdx]
-          }
-
-          const metricCols: string[] = []
-          rawHeaders.forEach((h) => {
-            if (h !== dateCol && h !== roomCol && h) metricCols.push(h)
-          })
-
-          const suggestedMappings = metricCols.map((col) => {
-            const clean = col.toLowerCase().replace(/[\s-]/g, '_')
-            const matched = fields.find(
-              (f) => f.variable_name.toLowerCase() === clean || f.name.toLowerCase() === col.toLowerCase()
-            )
-            return {
-              source_column: col,
-              target_field_id: matched ? matched.id : null,
-              target_field_name: matched ? matched.name : col.replace(/_/g, ' '),
-              action: (matched ? 'map' : 'create') as 'map' | 'create',
-            }
-          })
-
-          resolve({
-            detected_layout: detectedLayout,
-            delimiter,
-            total_rows: dataRows.length,
-            headers: rawHeaders,
-            preview_rows: dataRows.slice(0, 6),
-            suggested_date_column: dateCol,
-            suggested_room_column: roomCol,
-            suggested_statement_date: detectedStmtDate,
-            suggested_field_mappings: suggestedMappings,
-            unmatched_columns: [],
-          })
-        },
-        error: (err) => reject(err),
-      })
-    })
   }
 
   const applyAnalysis = (data: CSVAnalysisResponse) => {
@@ -380,31 +191,20 @@ export function CSVImportModal({ isOpen, onClose, onImported }: CSVImportModalPr
     setColumnMappings(initialMap)
   }
 
-  const handleFileSelect = async (selectedFile: File, sheetName?: string) => {
+  const handleFileSelect = async (selectedFile: File, sheetName?: string, headerRowIndex?: number) => {
     setFile(selectedFile)
     setError(null)
     setResult(null)
     setIsAnalyzing(true)
-
-    const isExcel =
-      selectedFile.name.toLowerCase().endsWith('.xlsx') ||
-      selectedFile.name.toLowerCase().endsWith('.xls') ||
-      selectedFile.name.toLowerCase().endsWith('.xlsm')
+    if (headerRowIndex === undefined) {
+      setHeaderRowOverride(null)
+    }
 
     try {
-      try {
-        const data = await dataFieldsApi.analyzeCSV(selectedFile, sheetName)
-        applyAnalysis(data)
-      } catch (backendErr) {
-        if (isExcel) {
-          throw backendErr
-        }
-        // Fallback to client-side parsing only for CSV / text files
-        const clientData = await analyzeClientSide(selectedFile, existingFields)
-        applyAnalysis(clientData)
-      }
+      const data = await dataFieldsApi.analyzeCSV(selectedFile, sheetName, headerRowIndex)
+      applyAnalysis(data)
     } catch (err: unknown) {
-      setError(formatApiErrorMessage(err, 'Failed to parse file. Please verify format.'))
+      setError(formatApiErrorMessage(err, 'Failed to parse file. Please verify it is a valid CSV or Excel file.'))
     } finally {
       setIsAnalyzing(false)
     }
@@ -413,8 +213,18 @@ export function CSVImportModal({ isOpen, onClose, onImported }: CSVImportModalPr
   const handleSheetChange = (sheet: string) => {
     if (file && sheet !== selectedSheet) {
       setSelectedSheet(sheet)
+      setHeaderRowOverride(null)
       handleFileSelect(file, sheet)
     }
+  }
+
+  // Re-analyzes the file forcing a specific row to be treated as the header —
+  // used when auto-detection guesses wrong and the user picks the real one.
+  const handlePickHeaderRow = (rowIndex: number) => {
+    if (!file) return
+    setHeaderRowOverride(rowIndex)
+    setShowHeaderPicker(false)
+    handleFileSelect(file, selectedSheet || undefined, rowIndex)
   }
 
   const handleDrop = (e: React.DragEvent) => {
@@ -434,7 +244,7 @@ export function CSVImportModal({ isOpen, onClose, onImported }: CSVImportModalPr
     try {
       let config: CSVColumnMappingConfig | undefined = undefined
 
-      if (useAdvancedConfig || showAdvancedMapping || layout === 'statement') {
+      if (useAdvancedConfig || showAdvancedMapping || layout === 'statement' || headerRowOverride !== null) {
         config = {
           layout,
           date_column: dateColumn || null,
@@ -451,6 +261,7 @@ export function CSVImportModal({ isOpen, onClose, onImported }: CSVImportModalPr
             target_field_name: mapping.target_field_name || null,
             action: mapping.action,
           })),
+          header_row_index: headerRowOverride,
         }
       }
 
@@ -705,6 +516,63 @@ export function CSVImportModal({ isOpen, onClose, onImported }: CSVImportModalPr
                           Change File
                         </button>
                       </div>
+                    </div>
+
+                    {/* Header Row Detection Notice + Picker */}
+                    <div className="p-3 bg-dark-900/60 border border-dark-700/80 rounded-xl">
+                      <div className="flex items-center justify-between gap-3 flex-wrap">
+                        <p className="text-xs text-dark-300">
+                          Detected header row: <span className="font-mono text-foreground">row {analysis.header_row_index + 1}</span>
+                          {analysis.rows_before_header.length > 0 && (
+                            <span className="text-dark-400"> — {analysis.rows_before_header.length} row{analysis.rows_before_header.length !== 1 ? 's' : ''} above it skipped as banner text</span>
+                          )}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => setShowHeaderPicker(!showHeaderPicker)}
+                          className="inline-flex items-center gap-1.5 text-xs font-medium text-primary-400 hover:text-primary-300"
+                        >
+                          <PencilSquareIcon className="w-3.5 h-3.5" />
+                          {showHeaderPicker ? 'Cancel' : "That's not right — pick the header row"}
+                        </button>
+                      </div>
+
+                      {showHeaderPicker && (
+                        <div className="mt-3 border border-dark-700 rounded-lg divide-y divide-dark-700 bg-dark-800/60 overflow-hidden">
+                          {[
+                            ...analysis.rows_before_header.map((cells, i) => ({
+                              cells,
+                              absoluteIndex: analysis.header_row_index - analysis.rows_before_header.length + i,
+                              isCurrentHeader: false,
+                            })),
+                            { cells: analysis.headers, absoluteIndex: analysis.header_row_index, isCurrentHeader: true },
+                            ...analysis.preview_rows.slice(0, 2).map((cells, i) => ({
+                              cells,
+                              absoluteIndex: analysis.header_row_index + 1 + i,
+                              isCurrentHeader: false,
+                            })),
+                          ].map(({ cells, absoluteIndex, isCurrentHeader }) => (
+                            <button
+                              key={absoluteIndex}
+                              type="button"
+                              onClick={() => handlePickHeaderRow(absoluteIndex)}
+                              className={`w-full flex items-center gap-3 px-3 py-2 text-left text-xs transition-colors ${
+                                isCurrentHeader ? 'bg-primary-500/10' : 'hover:bg-dark-700/40'
+                              }`}
+                            >
+                              <span className={`px-1.5 py-0.5 rounded text-[10px] font-mono flex-shrink-0 ${isCurrentHeader ? 'bg-primary-500/20 text-primary-300' : 'bg-dark-700 text-dark-400'}`}>
+                                row {absoluteIndex + 1}
+                              </span>
+                              <span className="font-mono text-dark-200 truncate">
+                                {cells.slice(0, 6).join(' | ')}
+                              </span>
+                              {isCurrentHeader && (
+                                <span className="ml-auto text-[10px] text-primary-400 flex-shrink-0">current header</span>
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
 
                     {/* Multi-Sheet Selector Tabs (For Excel Files) */}

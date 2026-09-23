@@ -1,4 +1,4 @@
-"""Initial schema for MetricFlow
+"""Initial schema for Visualize
 
 Revision ID: 001_initial_schema
 Revises:

@@ -1,6 +1,6 @@
-# MetricFlow AWS Deployment Guide
+# Visualize AWS Deployment Guide
 
-This guide covers deploying MetricFlow to AWS using:
+This guide covers deploying Visualize to AWS using:
 - **AWS RDS PostgreSQL** for the database — private, not internet-reachable
 - **AWS App Runner** for the backend API — deployed from a container image, not from source
 - **AWS Amplify** for the frontend
@@ -11,7 +11,7 @@ This guide covers deploying MetricFlow to AWS using:
 
 - AWS Account with appropriate permissions
 - AWS CLI installed and configured
-- GitHub repository with your MetricFlow code
+- GitHub repository with your Visualize code
 - Domain name (optional, for custom domains)
 
 ## Architecture Overview
@@ -54,9 +54,9 @@ Create at least two private subnets (different AZs) in the VPC that will host RD
 
 ```bash
 aws ec2 create-subnet --vpc-id <vpc-id> --cidr-block <unused-/20> --availability-zone <az-a> \
-  --tag-specifications 'ResourceType=subnet,Tags=[{Key=Name,Value=metricflow-private-a}]'
+  --tag-specifications 'ResourceType=subnet,Tags=[{Key=Name,Value=visualize-private-a}]'
 aws ec2 create-subnet --vpc-id <vpc-id> --cidr-block <unused-/20> --availability-zone <az-b> \
-  --tag-specifications 'ResourceType=subnet,Tags=[{Key=Name,Value=metricflow-private-b}]'
+  --tag-specifications 'ResourceType=subnet,Tags=[{Key=Name,Value=visualize-private-b}]'
 ```
 
 ### 1.2 NAT Gateway (for outbound internet access from the private subnets)
@@ -82,11 +82,11 @@ Cost note: a NAT Gateway runs ~$0.045/hr (~$32+/mo) plus data processing charges
 ### 1.3 App Runner VPC connector
 
 ```bash
-CONNECTOR_SG=$(aws ec2 create-security-group --group-name metricflow-apprunner-connector-sg \
+CONNECTOR_SG=$(aws ec2 create-security-group --group-name visualize-apprunner-connector-sg \
   --description "Egress SG for App Runner VPC connector" --vpc-id <vpc-id> --query 'GroupId' --output text)
 
 CONNECTOR_ARN=$(aws apprunner create-vpc-connector \
-  --vpc-connector-name metricflow-backend-connector \
+  --vpc-connector-name visualize-backend-connector \
   --subnets <private-subnet-a> <private-subnet-b> \
   --security-groups "$CONNECTOR_SG" \
   --query 'VpcConnector.VpcConnectorArn' --output text)
@@ -98,28 +98,28 @@ Use a DB subnet group backed by the **private** subnets (or your existing defaul
 
 ```bash
 aws rds create-db-subnet-group \
-  --db-subnet-group-name metricflow-db-subnet \
-  --db-subnet-group-description "Subnet group for MetricFlow RDS" \
+  --db-subnet-group-name visualize-db-subnet \
+  --db-subnet-group-description "Subnet group for Visualize RDS" \
   --subnet-ids <subnet-id-1> <subnet-id-2>
 
 # See "Master password" below instead of an inline --master-user-password.
 aws rds create-db-instance \
-  --db-instance-identifier metricflow-db \
+  --db-instance-identifier visualize-db \
   --db-instance-class db.t3.micro \
   --engine postgres \
   --engine-version 15 \
-  --master-username metricflow_admin \
+  --master-username visualize_admin \
   --manage-master-user-password \
   --allocated-storage 20 \
   --storage-type gp2 \
   --vpc-security-group-ids <rds-security-group-id> \
-  --db-subnet-group-name metricflow-db-subnet \
-  --db-name metricflow \
+  --db-subnet-group-name visualize-db-subnet \
+  --db-name visualize \
   --no-publicly-accessible \
   --backup-retention-period 7 \
   --storage-encrypted
 
-aws rds wait db-instance-available --db-instance-identifier metricflow-db
+aws rds wait db-instance-available --db-instance-identifier visualize-db
 ```
 
 Scope the RDS security group's ingress to **only** the VPC connector's security group — not a CIDR block:
@@ -156,7 +156,7 @@ The app's required secrets (audit source: `backend/app/core/config.py`, in parti
 
 ```bash
 for name in database-url jwt-secret encryption-key gemini-api-key razorpay-key-id razorpay-key-secret razorpay-webhook-secret; do
-  aws secretsmanager create-secret --name "metricflow/$name" --secret-string "<value>"
+  aws secretsmanager create-secret --name "visualize/$name" --secret-string "<value>"
 done
 ```
 
@@ -172,7 +172,7 @@ Re-run the audit (`grep -rn "os.environ\|getenv\|settings\." backend/app/core/co
 
 ### 3.2 Create the App Runner service (first time only)
 
-Console: **App Runner → Create service → Container registry → Amazon ECR**, point at the `metricflow-backend` repository, enable **automatic deployments**. Configure:
+Console: **App Runner → Create service → Container registry → Amazon ECR**, point at the `visualize-backend` repository, enable **automatic deployments**. Configure:
 - CPU/memory (1 vCPU / 2GB is a reasonable start)
 - Port `8000`
 - Environment variables: `ENVIRONMENT=production`, `FRONTEND_URL=<amplify-url>`, `RAZORPAY_PLAN_IDS=<plan_code:razorpay_plan_id,...>`
@@ -204,7 +204,7 @@ Migrations run inside the container on boot (`start.sh` → `scripts/run_migrati
 4. Choose your repository
 5. Select branch (`main`)
 6. Configure build settings:
-   - App name: `metricflow`
+   - App name: `visualize`
    - Framework: **Vite**
    - Build command: (uses `amplify.yml` automatically)
    - Base directory: `frontend`
@@ -244,14 +244,14 @@ Update the backend's `FRONTEND_URL` environment variable to the Amplify URL (com
 
 1. In Amplify Console → Domain management
 2. Click **Add domain**
-3. Enter your domain (e.g., `app.metricflow.com`)
+3. Enter your domain (e.g., `app.visualize.com`)
 4. Follow DNS configuration instructions
 
 ### 6.2 Backend Custom Domain
 
 1. In App Runner → Custom domains
 2. Click **Link domain**
-3. Enter your domain (e.g., `api.metricflow.com`)
+3. Enter your domain (e.g., `api.visualize.com`)
 4. Update DNS with provided CNAME records
 
 ---
@@ -261,13 +261,13 @@ Update the backend's `FRONTEND_URL` environment variable to the Amplify URL (com
 ### 7.1 Enable CloudWatch Logs
 
 App Runner automatically sends logs to CloudWatch. View them at:
-- CloudWatch → Log groups → `/aws/apprunner/metricflow-backend/...`
+- CloudWatch → Log groups → `/aws/apprunner/visualize-backend/...`
 
 ### 7.2 Set Up Alarms
 
 ```bash
 aws cloudwatch put-metric-alarm \
-  --alarm-name "MetricFlow-HighErrorRate" \
+  --alarm-name "Visualize-HighErrorRate" \
   --metric-name "5xxErrors" \
   --namespace "AWS/AppRunner" \
   --statistic Average \
@@ -296,7 +296,7 @@ aws cloudwatch put-metric-alarm \
 3. Ensure `requirements.txt` includes all dependencies
 
 ```bash
-aws logs tail /aws/apprunner/metricflow-backend/service --follow
+aws logs tail /aws/apprunner/visualize-backend/service --follow
 ```
 
 ### Amplify Build Failures

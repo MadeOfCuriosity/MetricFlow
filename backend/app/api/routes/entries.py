@@ -406,12 +406,14 @@ def get_sheet_view(
 async def analyze_csv_file(
     file: UploadFile = File(...),
     sheet_name: Optional[str] = Form(None),
+    header_row_index: Optional[int] = Form(None),
     user_org: tuple[User, Organization] = Depends(get_current_user_org),
     db: Session = Depends(get_db),
 ):
     """
     Analyze an uploaded CSV or Excel file, auto-detect layout (columnar, matrix, long, transactional, financial statement),
     delimiters, sheets, date formats, and suggest optimal column-to-DataField mappings.
+    Pass `header_row_index` to override auto-detection with a user-picked header row.
     """
     user, org = user_org
 
@@ -443,6 +445,7 @@ async def analyze_csv_file(
         org=org,
         db=db,
         sheet_name=sheet_name,
+        header_row_index=header_row_index,
     )
 
 
@@ -584,7 +587,7 @@ def download_csv_template(
         writer.writerow(row)
 
     output.seek(0)
-    filename = f"metricflow_template_{year:04d}-{mon:02d}.csv"
+    filename = f"visualize_template_{year:04d}-{mon:02d}.csv"
 
     return StreamingResponse(
         io.BytesIO(output.getvalue().encode("utf-8-sig")),

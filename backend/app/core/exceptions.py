@@ -1,10 +1,10 @@
-"""Custom exceptions and error handling for MetricFlow API."""
+"""Custom exceptions and error handling for Visualize API."""
 
 from fastapi import HTTPException, status
 
 
-class MetricFlowException(HTTPException):
-    """Base exception for MetricFlow API."""
+class VisualizeException(HTTPException):
+    """Base exception for Visualize API."""
 
     def __init__(
         self,
@@ -17,7 +17,7 @@ class MetricFlowException(HTTPException):
 
 
 # Authentication Errors (401, 403)
-class InvalidCredentialsError(MetricFlowException):
+class InvalidCredentialsError(VisualizeException):
     """Raised when login credentials are invalid."""
 
     def __init__(self, detail: str = "Invalid email or password"):
@@ -28,7 +28,7 @@ class InvalidCredentialsError(MetricFlowException):
         )
 
 
-class TokenExpiredError(MetricFlowException):
+class TokenExpiredError(VisualizeException):
     """Raised when JWT token has expired."""
 
     def __init__(self, detail: str = "Token has expired"):
@@ -39,7 +39,7 @@ class TokenExpiredError(MetricFlowException):
         )
 
 
-class InvalidTokenError(MetricFlowException):
+class InvalidTokenError(VisualizeException):
     """Raised when JWT token is invalid."""
 
     def __init__(self, detail: str = "Invalid token"):
@@ -50,7 +50,7 @@ class InvalidTokenError(MetricFlowException):
         )
 
 
-class ForbiddenError(MetricFlowException):
+class ForbiddenError(VisualizeException):
     """Raised when user lacks permission for an action."""
 
     def __init__(self, detail: str = "You do not have permission to perform this action"):
@@ -62,7 +62,7 @@ class ForbiddenError(MetricFlowException):
 
 
 # Resource Errors (404, 409)
-class NotFoundError(MetricFlowException):
+class NotFoundError(VisualizeException):
     """Raised when a resource is not found."""
 
     def __init__(self, resource: str = "Resource", detail: str | None = None):
@@ -73,7 +73,7 @@ class NotFoundError(MetricFlowException):
         )
 
 
-class AlreadyExistsError(MetricFlowException):
+class AlreadyExistsError(VisualizeException):
     """Raised when trying to create a resource that already exists."""
 
     def __init__(self, resource: str = "Resource", detail: str | None = None):
@@ -85,7 +85,7 @@ class AlreadyExistsError(MetricFlowException):
 
 
 # Validation Errors (400, 422)
-class ValidationError(MetricFlowException):
+class ValidationError(VisualizeException):
     """Raised when input validation fails."""
 
     def __init__(self, detail: str = "Invalid input"):
@@ -96,7 +96,7 @@ class ValidationError(MetricFlowException):
         )
 
 
-class FormulaError(MetricFlowException):
+class FormulaError(VisualizeException):
     """Raised when a formula is invalid or cannot be evaluated."""
 
     def __init__(self, detail: str = "Invalid formula"):
@@ -108,7 +108,7 @@ class FormulaError(MetricFlowException):
 
 
 # Rate Limiting (429)
-class RateLimitExceededError(MetricFlowException):
+class RateLimitExceededError(VisualizeException):
     """Raised when rate limit is exceeded."""
 
     def __init__(self, detail: str = "Rate limit exceeded. Please try again later."):
@@ -120,7 +120,7 @@ class RateLimitExceededError(MetricFlowException):
 
 
 # Server Errors (500, 503)
-class InternalServerError(MetricFlowException):
+class InternalServerError(VisualizeException):
     """Raised for unexpected server errors."""
 
     def __init__(self, detail: str = "An unexpected error occurred"):
@@ -131,7 +131,7 @@ class InternalServerError(MetricFlowException):
         )
 
 
-class ServiceUnavailableError(MetricFlowException):
+class ServiceUnavailableError(VisualizeException):
     """Raised when an external service is unavailable."""
 
     def __init__(self, service: str = "Service", detail: str | None = None):

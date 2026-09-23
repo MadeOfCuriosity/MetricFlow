@@ -9,7 +9,7 @@ from app.core.database import Base
 
 
 class IntegrationFieldMapping(Base):
-    """Maps an external field/column to a MetricFlow DataField."""
+    """Maps an external field/column to a Visualize DataField."""
     __tablename__ = "integration_field_mappings"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)

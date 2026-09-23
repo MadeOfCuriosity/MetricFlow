@@ -7,27 +7,8 @@ import {
   ExclamationTriangleIcon,
   CalendarDaysIcon,
 } from '@heroicons/react/24/outline'
-import { useRoom } from '../context/RoomContext'
 import { dataFieldsApi } from '../services/dataFields'
 import type { SheetViewResponse, SheetFieldRow, FieldEntryInput } from '../types/dataField'
-import type { RoomTreeNode } from '../types/room'
-
-interface FlatRoomOption {
-  id: string
-  name: string
-  depth: number
-}
-
-function flattenTree(nodes: RoomTreeNode[], depth = 0): FlatRoomOption[] {
-  const result: FlatRoomOption[] = []
-  for (const node of nodes) {
-    result.push({ id: node.id, name: node.name, depth })
-    if (node.children.length > 0) {
-      result.push(...flattenTree(node.children, depth + 1))
-    }
-  }
-  return result
-}
 
 // Cell key: "fieldId:dateStr"
 type CellKey = string
@@ -35,12 +16,13 @@ function makeCellKey(fieldId: string, dateStr: string): CellKey {
   return `${fieldId}:${dateStr}`
 }
 
-export function SpreadsheetView() {
-  const { roomTree } = useRoom()
-  const flatRooms = useMemo(() => flattenTree(roomTree), [roomTree])
+interface SpreadsheetViewProps {
+  searchQuery: string
+  selectedRoom: string
+}
 
+export function SpreadsheetView({ searchQuery, selectedRoom }: SpreadsheetViewProps) {
   const [currentMonth, setCurrentMonth] = useState(() => format(new Date(), 'yyyy-MM'))
-  const [selectedRoom, setSelectedRoom] = useState<string>('all')
   const [sheetData, setSheetData] = useState<SheetViewResponse | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
@@ -110,6 +92,18 @@ export function SpreadsheetView() {
     const d = parse(currentMonth + '-01', 'yyyy-MM-dd', new Date())
     return format(d, 'MMMM yyyy')
   }, [currentMonth])
+
+  const visibleRoomGroups = useMemo(() => {
+    if (!sheetData) return []
+    const query = searchQuery.trim().toLowerCase()
+    if (!query) return sheetData.room_groups
+    return sheetData.room_groups
+      .map((group) => ({
+        ...group,
+        fields: group.fields.filter((field) => field.name.toLowerCase().includes(query)),
+      }))
+      .filter((group) => group.fields.length > 0)
+  }, [sheetData, searchQuery])
 
   // Get the effective value for a cell (dirty value takes precedence)
   const getCellValue = useCallback(
@@ -313,7 +307,7 @@ export function SpreadsheetView() {
 
   return (
     <div className="space-y-4">
-      {/* Month navigation + room filter + save button */}
+      {/* Month navigation + save button */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
         {/* Month navigation */}
         <div className="flex items-center gap-1.5">
@@ -339,20 +333,6 @@ export function SpreadsheetView() {
         </div>
 
         <div className="flex items-center gap-3">
-          {/* Room filter */}
-          <select
-            value={selectedRoom}
-            onChange={(e) => setSelectedRoom(e.target.value)}
-            className="px-3 py-2 bg-dark-900 border border-dark-700 rounded-xl text-foreground text-xs focus:outline-none focus:border-dark-500 cursor-pointer"
-          >
-            <option value="all">All Rooms</option>
-            {flatRooms.map((room) => (
-              <option key={room.id} value={room.id}>
-                {'—\u00A0'.repeat(room.depth)}{room.name}
-              </option>
-            ))}
-          </select>
-
           {/* Save button */}
           <button
             type="button"
@@ -405,17 +385,21 @@ export function SpreadsheetView() {
       )}
 
       {/* Empty state */}
-      {!isLoading && sheetData && sheetData.room_groups.length === 0 && (
+      {!isLoading && sheetData && visibleRoomGroups.length === 0 && (
         <div className="bg-dark-900 border border-dashed border-dark-700/80 rounded-2xl p-12 text-center">
-          <h3 className="text-base font-semibold text-foreground mb-1">No daily data fields</h3>
+          <h3 className="text-base font-semibold text-foreground mb-1">
+            {searchQuery ? 'No matching fields' : 'No daily data fields'}
+          </h3>
           <p className="text-xs text-dark-300">
-            The sheet view tracks fields with a daily entry frequency. Create daily data fields to use this view.
+            {searchQuery
+              ? `No fields match "${searchQuery}". Try a different search.`
+              : 'The sheet view tracks fields with a daily entry frequency. Create daily data fields to use this view.'}
           </p>
         </div>
       )}
 
       {/* Spreadsheet table */}
-      {!isLoading && sheetData && sheetData.room_groups.length > 0 && (
+      {!isLoading && sheetData && visibleRoomGroups.length > 0 && (
         <div className="bg-dark-900 border border-dark-700 rounded-2xl overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
             <table
@@ -455,7 +439,7 @@ export function SpreadsheetView() {
                 </tr>
               </thead>
               <tbody>
-                {sheetData.room_groups.map((group) => (
+                {visibleRoomGroups.map((group) => (
                   <div key={`group-${group.room_id || 'unassigned'}`} style={{ display: 'contents' }}>
                     {/* Room header row */}
                     <tr className="border-b border-dark-700 bg-dark-950/40">

@@ -1,5 +1,5 @@
 """
-Universal CSV & Excel Importer Service for MetricFlow.
+Universal CSV & Excel Importer Service for Visualize.
 
 Supports multiple data layouts:
 1. Columnar / Time-Series:
@@ -25,6 +25,7 @@ import calendar
 import csv
 import io
 import re
+from collections import Counter
 from datetime import date, datetime
 from typing import Any, Dict, List, Optional, Set, Tuple
 from uuid import UUID, uuid4
@@ -117,9 +118,48 @@ class UniversalCSVImporter:
         except Exception:
             return []
 
+    @staticmethod
+    def _typical_row_width(rows: List[List[str]], sample_size: int = 15) -> int:
+        """Most common cell-count among the first `sample_size` rows. Used to spot banner/title rows."""
+        lengths = [len(r) for r in rows[:sample_size] if r]
+        if not lengths:
+            return 0
+        return Counter(lengths).most_common(1)[0][0]
+
     @classmethod
-    def excel_sheet_to_rows(cls, contents: bytes, sheet_name: Optional[str] = None) -> Tuple[List[str], List[List[str]]]:
-        """Converts an Excel sheet into structured header and data rows."""
+    def find_header_row_index(cls, rows: List[List[str]], scan_limit: int = 10) -> int:
+        """
+        Structurally locates the header row: the first row (within scan_limit) whose
+        width is close to the table's typical column width. Narrower rows above it
+        (report titles, banner text, section labels) are treated as skippable and
+        never chosen as the header.
+
+        Deliberately does NOT treat "looks like a date" as evidence for header-ness \u2014
+        a header cell containing a literal date is evidence AGAINST it being the
+        header, not for it (that was the source of the original bug: a data row like
+        "2026-01-01,100,5" would outscore the real "Date,Revenue,Signups" header
+        because it had a parseable date in it).
+        """
+        if not rows:
+            return 0
+        typical_width = cls._typical_row_width(rows)
+        if typical_width <= 1:
+            return 0
+        threshold = max(2, round(typical_width * 0.6))
+        for idx, row in enumerate(rows[:scan_limit]):
+            if len(row) >= threshold:
+                return idx
+        return 0
+
+    @classmethod
+    def excel_sheet_to_rows_detailed(
+        cls, contents: bytes, sheet_name: Optional[str] = None, header_row_index: Optional[int] = None
+    ) -> Tuple[List[str], List[List[str]], int, List[List[str]]]:
+        """
+        Converts an Excel sheet into structured header/data rows.
+        Returns (header, data_rows, header_row_index, skipped_rows_before_header).
+        Pass `header_row_index` to force a specific row instead of auto-detecting.
+        """
         try:
             import openpyxl
             wb = openpyxl.load_workbook(io.BytesIO(contents), data_only=True)
@@ -138,30 +178,33 @@ class UniversalCSVImporter:
                         raw_rows.append(str_row)
 
             if not raw_rows:
-                return [], []
+                return [], [], 0, []
 
-            # Find best header row among the first 10 rows (prefer row with date columns or header keywords)
-            header_idx = 0
-            max_score = -1
-            for idx, r in enumerate(raw_rows[:10]):
-                date_cells = sum(1 for c in r if cls.parse_date_value(c))
-                header_kw_cells = sum(
-                    1 for c in r if any(k in str(c).lower() for k in ("account", "date", "metric", "room", "particulars", "description", "field"))
-                )
-                score = date_cells * 10 + header_kw_cells * 2 + len(r)
-                if score > max_score:
-                    max_score = score
-                    header_idx = idx
+            header_idx = (
+                header_row_index
+                if header_row_index is not None and 0 <= header_row_index < len(raw_rows)
+                else cls.find_header_row_index(raw_rows)
+            )
 
-            return raw_rows[header_idx], raw_rows[header_idx + 1:]
+            return raw_rows[header_idx], raw_rows[header_idx + 1:], header_idx, raw_rows[:header_idx]
         except Exception:
-            return [], []
+            return [], [], 0, []
 
     @classmethod
-    def parse_csv_rows(cls, text: str) -> Tuple[List[str], List[List[str]], str]:
+    def excel_sheet_to_rows(cls, contents: bytes, sheet_name: Optional[str] = None) -> Tuple[List[str], List[List[str]]]:
+        """Backwards-compatible wrapper: converts an Excel sheet into header + data rows."""
+        header, data_rows, _, _ = cls.excel_sheet_to_rows_detailed(contents, sheet_name)
+        return header, data_rows
+
+    @classmethod
+    def parse_csv_rows_detailed(
+        cls, text: str, header_row_index: Optional[int] = None
+    ) -> Tuple[List[str], List[List[str]], str, int, List[List[str]]]:
         """
         Detects delimiter and extracts header and clean data rows.
         Normalizes line endings and filters out empty lines.
+        Returns (header, data_rows, delimiter, header_row_index, skipped_rows_before_header).
+        Pass `header_row_index` to force a specific row instead of auto-detecting.
         """
         # Ensure newlines are normalized
         normalized_text = text.replace("\r\n", "\n").replace("\r", "\n")
@@ -185,7 +228,7 @@ class UniversalCSVImporter:
             raw_rows = [[c.strip() for c in l.split(delimiter)] for l in lines]
 
         if not raw_rows:
-            return [], [], delimiter
+            return [], [], delimiter, 0, []
 
         # Filter out trailing empty cells in each row
         cleaned_rows = []
@@ -197,24 +240,24 @@ class UniversalCSVImporter:
                 cleaned_rows.append(str_row)
 
         if not cleaned_rows:
-            return [], [], delimiter
+            return [], [], delimiter, 0, []
 
-        # Find best header row among the first 10 rows (prefer row with date columns or header keywords)
-        header_idx = 0
-        max_score = -1
-        for idx, r in enumerate(cleaned_rows[:10]):
-            date_cells = sum(1 for c in r if cls.parse_date_value(c))
-            header_kw_cells = sum(
-                1 for c in r if any(k in str(c).lower() for k in ("account", "date", "metric", "room", "particulars", "description", "field"))
-            )
-            score = date_cells * 10 + header_kw_cells * 2 + len(r)
-            if score > max_score:
-                max_score = score
-                header_idx = idx
+        header_idx = (
+            header_row_index
+            if header_row_index is not None and 0 <= header_row_index < len(cleaned_rows)
+            else cls.find_header_row_index(cleaned_rows)
+        )
 
         header = cleaned_rows[header_idx]
         data_rows = cleaned_rows[header_idx + 1:]
+        skipped_rows = cleaned_rows[:header_idx]
 
+        return header, data_rows, delimiter, header_idx, skipped_rows
+
+    @classmethod
+    def parse_csv_rows(cls, text: str) -> Tuple[List[str], List[List[str]], str]:
+        """Backwards-compatible wrapper: returns (header, data_rows, delimiter)."""
+        header, data_rows, delimiter, _, _ = cls.parse_csv_rows_detailed(text)
         return header, data_rows, delimiter
 
     @staticmethod
@@ -324,6 +367,48 @@ class UniversalCSVImporter:
                 last_day = calendar.monthrange(y_val, m_num)[1]
                 return date(y_val, m_num, last_day)
 
+        return None
+
+    @classmethod
+    def resolve_column_date_format(cls, values: List[str]) -> Optional[str]:
+        """
+        Scans a whole date column once to lock a single DD/MM vs MM/DD interpretation
+        for every row in it, instead of guessing per-cell (which can silently parse
+        '03/04/2026' as one thing on row 5 and the opposite thing on row 40).
+
+        If any value has a first-component > 12, the column must be DD/MM/YYYY.
+        If any value has a second-component > 12, the column must be MM/DD/YYYY.
+        Otherwise the format is genuinely ambiguous from the data alone and we
+        leave it to the existing per-cell fallback (which defaults to DD/MM).
+        """
+        saw_first_over_12 = False
+        saw_second_over_12 = False
+        separator = "/"
+        for v in values:
+            if not v or not v.strip():
+                continue
+            s = v.strip()
+            if re.match(r"^\d{4}", s):
+                continue  # already unambiguous (ISO-style / year-first)
+            sep_match = re.search(r"[/.\-]", s)
+            if sep_match:
+                separator = sep_match.group(0)
+            parts = re.split(r"[/.\-]", s)
+            if len(parts) != 3:
+                continue
+            try:
+                p0, p1 = int(parts[0]), int(parts[1])
+            except ValueError:
+                continue
+            if p0 > 12:
+                saw_first_over_12 = True
+            if p1 > 12:
+                saw_second_over_12 = True
+
+        if saw_first_over_12 and not saw_second_over_12:
+            return f"%d{separator}%m{separator}%Y"
+        if saw_second_over_12 and not saw_first_over_12:
+            return f"%m{separator}%d{separator}%Y"
         return None
 
     @classmethod
@@ -498,9 +583,12 @@ class UniversalCSVImporter:
         org: Organization,
         db: Session,
         sheet_name: Optional[str] = None,
+        header_row_index: Optional[int] = None,
     ) -> CSVAnalysisResponse:
         """
         Analyzes uploaded CSV or Excel file, auto-detecting sheets and layout structure.
+        Pass `header_row_index` to override auto-detection with a user-picked row
+        (0-indexed among the non-blank rows of the file/sheet).
         """
         sheets: List[str] = []
         selected_sheet: Optional[str] = sheet_name
@@ -509,16 +597,22 @@ class UniversalCSVImporter:
             sheets = cls.get_excel_sheets(contents)
             if sheets:
                 selected_sheet = sheet_name if sheet_name in sheets else sheets[0]
-                header, data_rows = cls.excel_sheet_to_rows(contents, selected_sheet)
+                header, data_rows, detected_header_idx, skipped_rows = cls.excel_sheet_to_rows_detailed(
+                    contents, selected_sheet, header_row_index
+                )
                 delimiter = ","
                 full_text = " ".join(" ".join(r) for r in ([header] + data_rows[:10]))
             else:
                 text = cls.decode_csv_bytes(contents)
-                header, data_rows, delimiter = cls.parse_csv_rows(text)
+                header, data_rows, delimiter, detected_header_idx, skipped_rows = cls.parse_csv_rows_detailed(
+                    text, header_row_index
+                )
                 full_text = text[:4096]
         else:
             text = cls.decode_csv_bytes(contents)
-            header, data_rows, delimiter = cls.parse_csv_rows(text)
+            header, data_rows, delimiter, detected_header_idx, skipped_rows = cls.parse_csv_rows_detailed(
+                text, header_row_index
+            )
             full_text = text[:4096]
 
         if not header:
@@ -535,6 +629,8 @@ class UniversalCSVImporter:
                 unmatched_columns=[],
                 sheets=sheets,
                 selected_sheet=selected_sheet,
+                header_row_index=0,
+                rows_before_header=[],
             )
 
         layout, date_col, room_col, metric_cols, value_col, stmt_date = cls.detect_layout_and_columns(
@@ -633,6 +729,8 @@ class UniversalCSVImporter:
             unmatched_columns=[],
             sheets=sheets,
             selected_sheet=selected_sheet,
+            header_row_index=detected_header_idx,
+            rows_before_header=skipped_rows[-3:],
         )
 
     @classmethod
@@ -649,13 +747,14 @@ class UniversalCSVImporter:
         Universally transforms and imports CSV or Excel files across all layouts.
         """
         sheet_name = config.sheet_name if config else None
+        header_row_index = config.header_row_index if config else None
 
         if cls.is_excel_file(filename, contents):
-            header, data_rows = cls.excel_sheet_to_rows(contents, sheet_name)
+            header, data_rows, _, _ = cls.excel_sheet_to_rows_detailed(contents, sheet_name, header_row_index)
             full_text = " ".join(" ".join(r) for r in ([header] + data_rows[:10]))
         else:
             text = cls.decode_csv_bytes(contents)
-            header, data_rows, _ = cls.parse_csv_rows(text)
+            header, data_rows, _, _, _ = cls.parse_csv_rows_detailed(text, header_row_index)
             full_text = text[:4096]
 
         if not header or not data_rows:
@@ -920,12 +1019,18 @@ class UniversalCSVImporter:
                 if field_obj:
                     field_col_map[idx] = field_obj
 
+            # Lock a single DD/MM vs MM/DD interpretation for the whole date column
+            # up front, rather than letting parse_date_value guess row-by-row.
+            resolved_date_format = config.date_format or cls.resolve_column_date_format(
+                [row[date_col_idx] for row in data_rows if date_col_idx < len(row)]
+            )
+
             for row_num, row in enumerate(data_rows, start=2):
                 if not row or date_col_idx >= len(row) or not row[date_col_idx].strip():
                     continue
 
                 raw_date_str = row[date_col_idx].strip()
-                entry_date = cls.parse_date_value(raw_date_str, config.date_format)
+                entry_date = cls.parse_date_value(raw_date_str, resolved_date_format)
                 if not entry_date:
                     errors.append({"row": row_num, "error": f"Invalid date format '{raw_date_str}'"})
                     continue
@@ -967,12 +1072,16 @@ class UniversalCSVImporter:
             if config.room_column:
                 room_col_idx = header_indices.get(config.room_column.lower())
 
+            resolved_date_format = config.date_format or cls.resolve_column_date_format(
+                [row[date_col_idx] for row in data_rows if date_col_idx < len(row)]
+            )
+
             for row_num, row in enumerate(data_rows, start=2):
                 if not row or date_col_idx >= len(row) or not row[date_col_idx].strip():
                     continue
 
                 raw_date_str = row[date_col_idx].strip()
-                entry_date = cls.parse_date_value(raw_date_str, config.date_format)
+                entry_date = cls.parse_date_value(raw_date_str, resolved_date_format)
                 if not entry_date:
                     errors.append({"row": row_num, "error": f"Invalid date format '{raw_date_str}'"})
                     continue

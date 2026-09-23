@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   PlusIcon,
   PencilIcon,
@@ -8,6 +9,8 @@ import {
   ArrowUpTrayIcon,
   FolderIcon,
   CalendarDaysIcon,
+  ListBulletIcon,
+  TableCellsIcon,
 } from '@heroicons/react/24/outline'
 import { DataFieldFormModal } from '../components/DataFieldFormModal'
 import { DeleteConfirmModal } from '../components/DeleteConfirmModal'
@@ -35,17 +38,15 @@ function flattenTree(nodes: RoomTreeNode[], depth = 0): FlatRoomOption[] {
   return result
 }
 
-const INTERVAL_OPTIONS = ['all', 'daily', 'weekly', 'monthly', 'custom'] as const
-
 export function Data() {
   const { success, error: showError } = useToast()
   const { roomTree } = useRoom()
+  const navigate = useNavigate()
 
   const [dataFields, setDataFields] = useState<DataField[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedRoom, setSelectedRoom] = useState<string>('all')
-  const [selectedInterval, setSelectedInterval] = useState<string>('all')
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [editField, setEditField] = useState<DataField | null>(null)
   const [fieldToDelete, setFieldToDelete] = useState<DataField | null>(null)
@@ -120,13 +121,9 @@ export function Data() {
         (selectedRoom === 'unassigned' && field.room_ids.length === 0) ||
         field.room_ids.includes(selectedRoom)
 
-      const interval = field.entry_interval || 'daily'
-      const matchesInterval =
-        selectedInterval === 'all' || interval === selectedInterval
-
-      return matchesSearch && matchesRoom && matchesInterval
+      return matchesSearch && matchesRoom
     })
-  }, [dataFields, searchQuery, selectedRoom, selectedInterval])
+  }, [dataFields, searchQuery, selectedRoom])
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto pb-12">
@@ -139,6 +136,25 @@ export function Data() {
           </p>
         </div>
         <div className="flex items-center gap-3">
+          {/* View switch */}
+          <div className="flex items-center p-1 bg-dark-900 border border-dark-700 rounded-xl">
+            <button
+              type="button"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-all cursor-pointer bg-dark-800 text-foreground shadow-sm"
+            >
+              <ListBulletIcon className="w-3.5 h-3.5" />
+              <span>Data Fields</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate('/data-table')}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-all cursor-pointer text-dark-400 hover:text-foreground"
+            >
+              <TableCellsIcon className="w-3.5 h-3.5" />
+              <span>Data Table</span>
+            </button>
+          </div>
+
           <button
             type="button"
             onClick={() => setIsImportModalOpen(true)}
@@ -216,24 +232,6 @@ export function Data() {
                 </option>
               ))}
             </select>
-          </div>
-
-          {/* Interval tabs */}
-          <div className="flex items-center p-1 bg-dark-900 border border-dark-700 rounded-xl">
-            {INTERVAL_OPTIONS.map((interval) => (
-              <button
-                key={interval}
-                type="button"
-                onClick={() => setSelectedInterval(interval)}
-                className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all capitalize cursor-pointer ${
-                  selectedInterval === interval
-                    ? 'bg-dark-800 text-foreground shadow-sm'
-                    : 'text-dark-400 hover:text-foreground'
-                }`}
-              >
-                {interval}
-              </button>
-            ))}
           </div>
         </div>
       </div>

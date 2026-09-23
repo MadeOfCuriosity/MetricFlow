@@ -14,6 +14,7 @@ import {
   GoogleOrgSetup,
   Dashboard,
   Entries,
+  DataTable,
   KPIs,
   KPIDataView,
   AIBuilder,
@@ -94,6 +95,7 @@ function App() {
             <Route path="kpis/:kpiId/data" element={<KPIDataView />} />
             <Route path="data" element={<Data />} />
             <Route path="entries" element={<Entries />} />
+            <Route path="data-table" element={<DataTable />} />
             <Route path="insights" element={<Insights />} />
             <Route path="rooms" element={<Rooms />} />
             <Route path="ai-builder" element={<Navigate to="/dashboard" replace />} />

@@ -148,6 +148,7 @@ export interface CSVColumnMappingConfig {
   sheet_name?: string | null
   aggregation?: 'sum' | 'avg' | 'min' | 'max' | 'count' | 'latest'
   field_mappings?: CSVFieldMapping[]
+  header_row_index?: number | null
 }
 
 export interface CSVAnalysisResponse {
@@ -163,6 +164,8 @@ export interface CSVAnalysisResponse {
   unmatched_columns: string[]
   sheets?: string[]
   selected_sheet?: string | null
+  header_row_index: number
+  rows_before_header: string[][]
 }
 
 export interface CSVImportResponse {

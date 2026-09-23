@@ -99,6 +99,50 @@ class TestUniversalCSVParserUnits(unittest.TestCase):
         assert date_col == "Date"
         assert val_col == "Value"
 
+    def test_header_row_is_never_a_data_row_with_a_date_in_it(self):
+        """
+        Regression test for the original bug: the header-scoring heuristic used to
+        let a data row with a parseable date ("2026-01-01,100,5") outscore the real
+        header ("Date,Revenue,Signups"), silently treating the first data row as
+        the header and losing it.
+        """
+        csv_text = "Date,Revenue,Signups\n2026-01-01,100,5\n2026-01-02,150,8"
+        header, rows, delim = UniversalCSVImporter.parse_csv_rows(csv_text)
+        assert header == ["Date", "Revenue", "Signups"]
+        assert len(rows) == 2
+        assert rows[0] == ["2026-01-01", "100", "5"]
+
+    def test_find_header_row_index_skips_narrow_banner_rows(self):
+        rows = [
+            ["My Company Name"],
+            ["Monthly Report"],
+            ["Date", "Revenue", "Signups"],
+            ["2026-01-01", "100", "5"],
+            ["2026-01-02", "150", "8"],
+        ]
+        assert UniversalCSVImporter.find_header_row_index(rows) == 2
+
+    def test_find_header_row_index_defaults_to_zero_for_ordinary_tables(self):
+        rows = [
+            ["Date", "Revenue", "Signups"],
+            ["2026-01-01", "100", "5"],
+            ["2026-01-02", "150", "8"],
+        ]
+        assert UniversalCSVImporter.find_header_row_index(rows) == 0
+
+    def test_resolve_column_date_format_locks_ambiguous_dates(self):
+        # 15 can only be a day -> column must be DD/MM/YYYY
+        values = ["15/01/2026", "02/03/2026", "10/04/2026"]
+        assert UniversalCSVImporter.resolve_column_date_format(values) == "%d/%m/%Y"
+
+        # 25 can only be a month position value... i.e. second component > 12 -> MM/DD/YYYY
+        values2 = ["01/25/2026", "02/03/2026"]
+        assert UniversalCSVImporter.resolve_column_date_format(values2) == "%m/%d/%Y"
+
+        # Genuinely ambiguous column (nothing over 12 anywhere) -> no lock
+        values3 = ["01/02/2026", "03/04/2026"]
+        assert UniversalCSVImporter.resolve_column_date_format(values3) is None
+
     def test_detect_transactional_layout(self):
         header = ["Timestamp", "Order Amount", "Fee"]
         sample_rows = [
@@ -271,6 +315,87 @@ Deals Closed,5,7
             calls = mock_create.call_args_list
             assert len(calls) == 1
             assert calls[0].kwargs["entry_date"] == date(2026, 6, 30)
+
+    def test_import_columnar_with_banner_rows_above_header(self):
+        """
+        A file with a couple of title/banner lines above the real header should
+        still import correctly (the header should not be mistaken for a data row,
+        and the banner lines should not be mistaken for the header either).
+        """
+        csv_text = """My Company Inc
+Monthly Metrics Export
+Date,Gross Sales,New Leads
+2026-01-01,5000,20
+2026-01-02,6200,25
+"""
+        with unittest.mock.patch("app.services.entry_service.EntryService.create_field_entries") as mock_create:
+            mock_create.return_value = (["entry1", "entry2"], 1, [])
+            resp = UniversalCSVImporter.import_csv(
+                text=csv_text,
+                user=self.user,
+                org=self.org,
+                db=self.db,
+            )
+
+            assert resp.rows_processed == 2
+            assert "Gross Sales" in resp.fields_created
+            assert "New Leads" in resp.fields_created
+
+    def test_analyze_file_reports_detected_header_row_and_skipped_rows(self):
+        csv_text = "My Company Inc\nDate,Revenue\n2026-01-01,100\n2026-01-02,150\n"
+        analysis = UniversalCSVImporter.analyze_file(
+            contents=csv_text.encode("utf-8"),
+            filename="report.csv",
+            org=self.org,
+            db=self.db,
+        )
+        assert analysis.header_row_index == 1
+        assert analysis.rows_before_header == [["My Company Inc"]]
+        assert analysis.headers == ["Date", "Revenue"]
+
+    def test_import_file_honors_header_row_index_override(self):
+        """
+        If auto-detection picks the wrong row, the user can force the correct one
+        via CSVColumnMappingConfig.header_row_index and the import should use it.
+        """
+        csv_text = "Some junk line that happens to be wide,a,b,c\nDate,Revenue\n2026-01-01,100\n"
+        with unittest.mock.patch("app.services.entry_service.EntryService.create_field_entries") as mock_create:
+            mock_create.return_value = (["entry1"], 1, [])
+            config = CSVColumnMappingConfig(
+                layout=CSVLayoutType.COLUMNAR,
+                date_column="Date",
+                header_row_index=1,
+            )
+            resp = UniversalCSVImporter.import_csv(
+                text=csv_text,
+                user=self.user,
+                org=self.org,
+                db=self.db,
+                config=config,
+            )
+            assert resp.rows_processed == 1
+            assert "Revenue" in resp.fields_created
+
+    def test_import_columnar_locks_ambiguous_date_format_per_column(self):
+        """
+        Without a per-column lock, parse_date_value would guess DD/MM vs MM/DD
+        independently for each row. Here the first row (15/01) can only be DD/MM,
+        so the whole column — including the genuinely ambiguous 02/03 row — must
+        be interpreted as DD/MM consistently.
+        """
+        csv_text = "Date,Revenue\n15/01/2026,100\n02/03/2026,200\n"
+        with unittest.mock.patch("app.services.entry_service.EntryService.create_field_entries") as mock_create:
+            mock_create.return_value = (["entry1"], 1, [])
+            UniversalCSVImporter.import_csv(
+                text=csv_text,
+                user=self.user,
+                org=self.org,
+                db=self.db,
+            )
+            calls = mock_create.call_args_list
+            entry_dates = sorted(c.kwargs["entry_date"] for c in calls)
+            # 15/01/2026 -> Jan 15; 02/03/2026 must ALSO be read as DD/MM -> Mar 2 (not Feb 3)
+            assert entry_dates == [date(2026, 1, 15), date(2026, 3, 2)]
 
     def test_import_multi_sheet_excel_xlsx(self):
         import openpyxl

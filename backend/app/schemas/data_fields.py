@@ -177,6 +177,7 @@ class CSVColumnMappingConfig(BaseModel):
     sheet_name: Optional[str] = None  # For multi-sheet Excel workbooks
     aggregation: Optional[str] = "sum"  # "sum", "avg", "min", "max", "count", "latest"
     field_mappings: Optional[list[CSVFieldMapping]] = None
+    header_row_index: Optional[int] = None  # Force a specific row (0-indexed) as the header, overriding auto-detection
 
 
 class CSVAnalysisResponse(BaseModel):
@@ -192,6 +193,8 @@ class CSVAnalysisResponse(BaseModel):
     unmatched_columns: list[str] = []
     sheets: list[str] = []  # List of sheet names if Excel file
     selected_sheet: Optional[str] = None
+    header_row_index: int = 0  # Which row (0-indexed) was used/detected as the header
+    rows_before_header: list[list[str]] = []  # Up to 3 rows skipped above the header, for user review/override
 
 
 

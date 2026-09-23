@@ -3,8 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import {
   HomeIcon,
   ChartBarIcon,
-  CircleStackIcon,
-  DocumentTextIcon,
+  LightBulbIcon,
   FolderIcon,
 } from '@heroicons/react/24/outline'
 import { LiquidBridge } from './LiquidBridge'
@@ -12,8 +11,7 @@ import { LiquidBridge } from './LiquidBridge'
 const dockItems = [
   { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
   { name: 'KPIs', href: '/kpis', icon: ChartBarIcon },
-  { name: 'Data', href: '/data', icon: CircleStackIcon },
-  { name: 'Data Entry', href: '/entries', icon: DocumentTextIcon },
+  { name: 'Insights', href: '/insights', icon: LightBulbIcon },
   { name: 'Rooms', href: '/rooms', icon: FolderIcon },
 ]
 
@@ -24,9 +22,6 @@ export function AppDock() {
   const isItemActive = (href: string) => {
     if (href === '/dashboard') {
       return location.pathname === '/' || location.pathname.startsWith('/dashboard')
-    }
-    if (href === '/data') {
-      return location.pathname === '/data' || (location.pathname.startsWith('/data') && !location.pathname.startsWith('/entries'))
     }
     if (href === '/rooms') {
       return location.pathname === '/rooms' || location.pathname.startsWith('/rooms')

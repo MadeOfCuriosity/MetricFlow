@@ -138,7 +138,7 @@ export function Insights() {
             </>
           ) : (
             <>
-              MetricFlow analyzes your operational numbers to uncover anomalies and strategic trends.
+              Visualize analyzes your operational numbers to uncover anomalies and strategic trends.
               Click below to generate a fresh analysis.
             </>
           )}

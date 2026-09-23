@@ -62,11 +62,14 @@ export const dataFieldsApi = {
   },
 
 
-  analyzeCSV: (file: File, sheetName?: string) => {
+  analyzeCSV: (file: File, sheetName?: string, headerRowIndex?: number) => {
     const formData = new FormData()
     formData.append('file', file)
     if (sheetName) {
       formData.append('sheet_name', sheetName)
+    }
+    if (headerRowIndex !== undefined) {
+      formData.append('header_row_index', String(headerRowIndex))
     }
     return api.post<CSVAnalysisResponse>('/api/entries/fields/analyze-csv', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
