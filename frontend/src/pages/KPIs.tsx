@@ -3,7 +3,6 @@ import { useSearchParams } from 'react-router-dom'
 import {
   SparklesIcon,
   ChartBarIcon,
-  MagnifyingGlassIcon,
   TagIcon,
   PlusIcon,
 } from '@heroicons/react/24/outline'
@@ -16,30 +15,12 @@ import { SEOHead } from '../components/SEOHead'
 import { useToast } from '../context/ToastContext'
 import api from '../services/api'
 import { KPICreationStudio } from '../components/KPICreationStudio'
+import { SearchInput } from '../components/ui/SearchInput'
+import { StatChip } from '../components/ui/StatChip'
+import type { TimePeriod, KPI } from '../types/kpi'
+import { kpisApi } from '../services/kpis'
 
-type TimePeriod = 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'other'
 
-interface KPI {
-  id: string
-  name: string
-  description: string
-  category: string
-  formula: string
-  input_fields: string[]
-  unit: string
-  direction: 'up' | 'down'
-  is_active: boolean
-  is_preset?: boolean
-  time_period?: TimePeriod
-  room_paths?: string[]
-  room_id?: string | null
-  room_name?: string | null
-  room_color?: string | null
-  latest_value?: number | null
-  last_updated_at?: string | null
-  previous_value?: number | null
-  created_at?: string
-}
 
 interface Preset {
   name: string
@@ -88,9 +69,7 @@ export function KPIs() {
   const fetchKPIs = async () => {
     setIsLoading(true)
     try {
-      const response = await api.get('/api/kpis')
-      const data = response.data
-      setKpis(Array.isArray(data) ? data : data?.kpis ?? [])
+      setKpis(await kpisApi.getAll())
     } catch (err) {
       console.error('Failed to fetch KPIs:', err)
       setKpis([])
@@ -214,7 +193,7 @@ export function KPIs() {
         <button
           type="button"
           onClick={() => handleTabChange('create')}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-foreground text-dark-950 font-semibold hover:opacity-90 transition-opacity text-sm shadow-sm cursor-pointer"
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary-500 text-white font-semibold hover:opacity-90 transition-opacity text-sm shadow-sm cursor-pointer"
         >
           <SparklesIcon className="w-4 h-4 stroke-[2.5]" />
           <span>Create with AI</span>
@@ -316,35 +295,19 @@ export function KPIs() {
         <div className="space-y-6 animate-in fade-in duration-150">
           {/* Subtle KPI Summary Badges */}
           <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-dark-900 border border-dark-700/70 text-xs">
-              <ChartBarIcon className="w-3.5 h-3.5 text-dark-400 stroke-[1.8]" />
-              <span className="text-dark-400">Total KPIs:</span>
-              <span className="font-semibold text-foreground">{totalKpisCount}</span>
-            </div>
+            <StatChip icon={<ChartBarIcon className="w-3.5 h-3.5 text-dark-400 stroke-[1.8]" />} label="Total KPIs" value={totalKpisCount} />
 
-            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-dark-900 border border-dark-700/70 text-xs">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-              <span className="text-dark-400">Active:</span>
-              <span className="font-semibold text-foreground">{activeKpisCount}</span>
-            </div>
+            <StatChip icon={<span className="w-1.5 h-1.5 rounded-full bg-success-400" />} label="Active" value={activeKpisCount} />
 
-            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-dark-900 border border-dark-700/70 text-xs">
-              <SparklesIcon className="w-3.5 h-3.5 text-dark-400 stroke-[1.8]" />
-              <span className="text-dark-400">Presets:</span>
-              <span className="font-semibold text-foreground">{presetKpisCount}</span>
-            </div>
+            <StatChip icon={<SparklesIcon className="w-3.5 h-3.5 text-dark-400 stroke-[1.8]" />} label="Presets" value={presetKpisCount} />
 
-            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-dark-900 border border-dark-700/70 text-xs">
-              <TagIcon className="w-3.5 h-3.5 text-dark-400 stroke-[1.8]" />
-              <span className="text-dark-400">Custom:</span>
-              <span className="font-semibold text-foreground">{customKpisCount}</span>
-            </div>
+            <StatChip icon={<TagIcon className="w-3.5 h-3.5 text-dark-400 stroke-[1.8]" />} label="Custom" value={customKpisCount} />
 
             {/* Quick Link to Create tab */}
             <button
               type="button"
               onClick={() => handleTabChange('create')}
-              className="ml-auto hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-foreground text-dark-950 font-semibold text-xs hover:opacity-90 transition-opacity cursor-pointer"
+              className="ml-auto hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary-500 text-white font-semibold text-xs hover:opacity-90 transition-opacity cursor-pointer"
             >
               <PlusIcon className="w-3.5 h-3.5 stroke-[2.5]" />
               <span>Create KPI</span>
@@ -354,16 +317,7 @@ export function KPIs() {
           {/* Toolbar: Search & Category Filter Segment */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
             {/* Search */}
-            <div className="relative flex-1 max-w-md">
-              <MagnifyingGlassIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-dark-400" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search KPIs by name, formula, or description..."
-                className="w-full pl-9 pr-4 py-2 bg-dark-900 border border-dark-700 rounded-xl text-sm text-foreground placeholder-dark-400 focus:outline-none focus:border-dark-500 transition-colors"
-              />
-            </div>
+            <SearchInput value={searchQuery} onChange={setSearchQuery} placeholder="Search KPIs by name, formula, or description..." />
 
             {/* Filter segment tabs */}
             <div className="flex items-center gap-1.5 p-1 bg-dark-900 border border-dark-700 rounded-xl overflow-x-auto">

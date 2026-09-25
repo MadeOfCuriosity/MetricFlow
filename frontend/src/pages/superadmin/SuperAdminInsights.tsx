@@ -21,6 +21,7 @@ import {
   BanknotesIcon,
 } from '@heroicons/react/24/outline'
 import { superadminService, PlatformInsights } from '../../services/superadmin'
+import { getApiError } from '../../lib/apiError'
 
 const PIE_COLORS = ['#6366f1', '#22c55e', '#f59e0b', '#ef4444', '#06b6d4', '#a855f7', '#14b8a6', '#eab308']
 
@@ -39,7 +40,7 @@ function StatCard({
     <div className="bg-dark-900 border border-dark-700 rounded-xl p-5">
       <div className="flex items-center justify-between">
         <div className="text-sm text-dark-300">{label}</div>
-        <Icon className="w-5 h-5 text-primary-400" />
+        <Icon className="w-5 h-5 text-brand" />
       </div>
       <div className="mt-2 text-2xl font-bold text-foreground">{value}</div>
       {sub && <div className="mt-1 text-xs text-dark-400">{sub}</div>}
@@ -56,7 +57,7 @@ export function SuperAdminInsights() {
     superadminService
       .getInsights()
       .then(setData)
-      .catch((e: any) => setError(e.response?.data?.detail || 'Failed to load insights'))
+      .catch((e: any) => setError(getApiError(e, 'Failed to load insights')))
       .finally(() => setLoading(false))
   }, [])
 

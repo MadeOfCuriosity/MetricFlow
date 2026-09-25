@@ -9,8 +9,10 @@ import {
 } from '@heroicons/react/24/outline'
 import { KPISuggestionCard } from './KPISuggestionCard'
 import type { Room } from '../types/room'
+import { useDismiss } from '../hooks/useDismiss'
+import type { TimePeriod } from '../types/kpi'
+export type { TimePeriod }
 
-export type TimePeriod = 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'other'
 
 export interface KPISuggestion {
   name: string
@@ -87,7 +89,7 @@ function MessageContent({ text }: { text: string }) {
         if (numMatch) {
           return (
             <div key={i} className="flex gap-2">
-              <span className="text-primary-400 font-medium flex-shrink-0">
+              <span className="text-brand font-medium flex-shrink-0">
                 {numMatch[1]}.
               </span>
               <span>{renderInline(numMatch[2])}</span>
@@ -206,19 +208,7 @@ export function ChatInterface({
   }, [input])
 
   // Click outside to close options popover
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setIsMenuOpen(false)
-      }
-    }
-    if (isMenuOpen) {
-      document.addEventListener('mousedown', handleClickOutside)
-    }
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-    }
-  }, [isMenuOpen])
+  useDismiss([menuRef], () => setIsMenuOpen(false), { enabled: isMenuOpen })
 
   const handleSend = () => {
     if (!input.trim() || isLoading) return
@@ -259,8 +249,8 @@ export function ChatInterface({
                 }`}
               >
                 {message.role === 'assistant' && (
-                  <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-primary-500/20 to-primary-500/5 rounded-lg flex items-center justify-center">
-                    <SparklesIcon className="w-4 h-4 text-primary-400" />
+                  <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-brand/20 to-brand/5 rounded-lg flex items-center justify-center">
+                    <SparklesIcon className="w-4 h-4 text-brand" />
                   </div>
                 )}
 
@@ -272,7 +262,7 @@ export function ChatInterface({
                   <div
                     className={`rounded-2xl px-4 py-3 ${
                       message.role === 'user'
-                        ? 'border border-primary-500 text-foreground'
+                        ? 'border border-brand text-foreground'
                         : 'bg-dark-800 text-dark-200'
                     }`}
                   >
@@ -287,7 +277,7 @@ export function ChatInterface({
                           key={chip.value}
                           onClick={() => onSendMessage(chip.value)}
                           disabled={isLoading}
-                          className="px-3 py-1.5 text-sm rounded-full border border-primary-500/40 bg-primary-500/5 text-primary-300 hover:bg-primary-500/15 hover:border-primary-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                          className="px-3 py-1.5 text-sm rounded-full border border-brand/40 bg-brand/5 text-brand hover:bg-brand/15 hover:border-brand transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                         >
                           {chip.label}
                         </button>
@@ -330,18 +320,18 @@ export function ChatInterface({
           {/* Loading indicator */}
           {isLoading && (
             <div className="flex gap-3 animate-fade-in">
-              <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-primary-500/20 to-primary-500/5 rounded-lg flex items-center justify-center">
-                <SparklesIcon className="w-4 h-4 text-primary-400" />
+              <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-brand/20 to-brand/5 rounded-lg flex items-center justify-center">
+                <SparklesIcon className="w-4 h-4 text-brand" />
               </div>
               <div className="bg-dark-800 rounded-2xl px-4 py-3">
                 <div className="flex items-center gap-1.5">
-                  <div className="w-2 h-2 bg-primary-400 rounded-full animate-bounce" />
+                  <div className="w-2 h-2 bg-brand rounded-full animate-bounce" />
                   <div
-                    className="w-2 h-2 bg-primary-400 rounded-full animate-bounce"
+                    className="w-2 h-2 bg-brand rounded-full animate-bounce"
                     style={{ animationDelay: '0.15s' }}
                   />
                   <div
-                    className="w-2 h-2 bg-primary-400 rounded-full animate-bounce"
+                    className="w-2 h-2 bg-brand rounded-full animate-bounce"
                     style={{ animationDelay: '0.3s' }}
                   />
                 </div>
@@ -391,7 +381,7 @@ export function ChatInterface({
               </button>
 
               {selectedRoom && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary-500/15 border border-primary-500/30 text-primary-300 text-[11px] font-medium animate-in fade-in">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-brand/15 border border-brand/30 text-brand text-[11px] font-medium animate-in fade-in">
                   <span className="truncate max-w-[120px]">{selectedRoom.name}</span>
                   <button
                     type="button"
@@ -426,7 +416,7 @@ export function ChatInterface({
                       }`}
                     >
                       <span>None (Global Org KPI)</span>
-                      {!selectedRoomId && <CheckIcon className="w-3.5 h-3.5 text-primary-400" />}
+                      {!selectedRoomId && <CheckIcon className="w-3.5 h-3.5 text-brand" />}
                     </button>
                     {rooms && rooms.length > 0 ? (
                       rooms.map((r) => (
@@ -445,7 +435,7 @@ export function ChatInterface({
                         >
                           <span className="truncate">{r.name}</span>
                           {selectedRoomId === r.id && (
-                            <CheckIcon className="w-3.5 h-3.5 text-primary-400" />
+                            <CheckIcon className="w-3.5 h-3.5 text-brand" />
                           )}
                         </button>
                       ))
@@ -463,7 +453,7 @@ export function ChatInterface({
               onClick={handleSend}
               disabled={!input.trim() || isLoading}
               title="Send message"
-              className="w-8 h-8 rounded-xl bg-foreground text-dark-950 flex items-center justify-center hover:opacity-90 disabled:opacity-20 disabled:cursor-not-allowed transition-all cursor-pointer font-bold flex-shrink-0 shadow-sm"
+              className="w-8 h-8 rounded-xl bg-primary-500 text-white flex items-center justify-center hover:opacity-90 disabled:opacity-20 disabled:cursor-not-allowed transition-all cursor-pointer font-bold flex-shrink-0 shadow-sm"
             >
               <ChevronRightIcon className="w-4 h-4 stroke-[2.5]" />
             </button>

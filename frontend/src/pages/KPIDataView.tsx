@@ -19,18 +19,10 @@ import {
 import { DateRangeSelector } from '../components'
 import type { DateRange } from '../components'
 import api from '../services/api'
+import { getApiError } from '../lib/apiError'
+import { Spinner } from '../components/ui/Spinner'
+import type { KPI } from '../types/kpi'
 
-interface KPI {
-  id: string
-  name: string
-  description: string | null
-  formula: string
-  input_fields: string[]
-  category: string
-  time_period: string
-  is_preset: boolean
-  is_shared: boolean
-}
 
 interface DataEntry {
   id: string
@@ -244,7 +236,7 @@ export function KPIDataView() {
           })
           totalCreated++
         } catch (err: any) {
-          apiErrors.push(`${dateStr}: ${err.response?.data?.detail || 'Failed to save'}`)
+          apiErrors.push(`${dateStr}: ${getApiError(err, 'Failed to save')}`)
         }
       }
 
@@ -339,7 +331,7 @@ export function KPIDataView() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-500"></div>
+        <Spinner size="xl" />
       </div>
     )
   }
@@ -349,7 +341,7 @@ export function KPIDataView() {
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <p className="text-danger-400 mb-4">{error || 'KPI not found'}</p>
-          <Link to="/dashboard" className="text-primary-400 hover:text-primary-300">
+          <Link to="/dashboard" className="text-brand hover:text-brand">
             Return to Dashboard
           </Link>
         </div>
@@ -391,7 +383,7 @@ export function KPIDataView() {
                 {kpi.category}
               </span>
               {kpi.is_shared && (
-                <span className="inline-block px-2 py-0.5 text-xs font-medium rounded-full bg-primary-500/10 text-primary-400">
+                <span className="inline-block px-2 py-0.5 text-xs font-medium rounded-full bg-brand/10 text-brand">
                   Shared
                 </span>
               )}
@@ -477,7 +469,7 @@ export function KPIDataView() {
               >
                 {isImporting ? (
                   <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
+                    <Spinner tone="white" />
                     Importing...
                   </>
                 ) : (
@@ -542,7 +534,7 @@ export function KPIDataView() {
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-800">
+                <tbody className="divide-y divide-dark-800">
                   {filteredEntries.map((entry) => (
                     <tr key={entry.id} className="hover:bg-dark-800/30 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-dark-200">
@@ -556,7 +548,7 @@ export function KPIDataView() {
                               step="any"
                               value={editValues[field] ?? ''}
                               onChange={(e) => setEditValues((prev) => ({ ...prev, [field]: e.target.value }))}
-                              className="w-24 px-2 py-1 text-sm bg-dark-800 border border-dark-600 rounded text-foreground focus:outline-none focus:border-primary-500"
+                              className="w-24 px-2 py-1 text-sm bg-dark-800 border border-dark-600 rounded text-foreground focus:outline-none focus:border-brand"
                             />
                           ) : (
                             entry.values?.[field]?.toLocaleString(undefined, { maximumFractionDigits: 2 }) ?? '—'
@@ -587,7 +579,7 @@ export function KPIDataView() {
                           <div className="flex items-center justify-end gap-2">
                             <button
                               onClick={() => startEditing(entry)}
-                              className="p-1 text-dark-400 hover:text-primary-400 transition-colors"
+                              className="p-1 text-dark-400 hover:text-brand transition-colors"
                               title="Edit"
                             >
                               <PencilIcon className="w-4 h-4" />
@@ -649,7 +641,7 @@ export function KPIDataView() {
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-800">
+              <tbody className="divide-y divide-dark-800">
                 {filteredEntries.map((entry, index) => {
                   const trendInfo = getTrendInfo(filteredEntries, index)
                   return (
@@ -679,7 +671,7 @@ export function KPIDataView() {
                           {inputFields.length > 0 && (
                             <button
                               onClick={() => startEditing(entry)}
-                              className="p-1 text-dark-400 hover:text-primary-400 transition-colors"
+                              className="p-1 text-dark-400 hover:text-brand transition-colors"
                               title="Edit"
                             >
                               <PencilIcon className="w-4 h-4" />

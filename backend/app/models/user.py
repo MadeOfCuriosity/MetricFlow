@@ -20,6 +20,10 @@ class User(Base):
     auth_provider = Column(String(20), nullable=True, default="email")  # 'email', 'google', 'both'
     role = Column(String(20), nullable=False, default="admin")  # "admin" or "room_admin"
     role_label = Column(String(100), nullable=False)  # "Sales Head", "Marketing Head", etc.
+    # WhatsApp: E.164 number (e.g. +919876543210), set only after OTP verification
+    phone_e164 = Column(String(20), nullable=True, index=True)
+    phone_verified_at = Column(DateTime, nullable=True)
+    whatsapp_opt_in_at = Column(DateTime, nullable=True)  # cleared when the user replies STOP
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     # Relationships

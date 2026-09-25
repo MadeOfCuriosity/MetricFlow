@@ -35,6 +35,23 @@ class Settings(BaseSettings):
     # Encryption key for OAuth tokens / API keys (Fernet key)
     ENCRYPTION_KEY: str = ""
 
+    # WhatsApp Cloud API (one shared Visualize number; optional)
+    WHATSAPP_PHONE_NUMBER_ID: Optional[str] = None
+    WHATSAPP_BUSINESS_ACCOUNT_ID: Optional[str] = None
+    WHATSAPP_ACCESS_TOKEN: Optional[str] = None  # System-user token (never expires)
+    WHATSAPP_APP_SECRET: Optional[str] = None  # Verifies X-Hub-Signature-256 on webhooks
+    WHATSAPP_VERIFY_TOKEN: Optional[str] = None  # Echoed during Meta's webhook verification
+    WHATSAPP_API_VERSION: str = "v21.0"
+    WHATSAPP_OTP_TEMPLATE: str = "visualize_otp"
+    WHATSAPP_TEMPLATE_LANGUAGE: str = "en"
+    # The shared number users message, digits only with country code (e.g. 918848827741).
+    # Optional: fetched from the Cloud API when unset.
+    WHATSAPP_DISPLAY_NUMBER: Optional[str] = None
+
+    @property
+    def whatsapp_configured(self) -> bool:
+        return bool(self.WHATSAPP_PHONE_NUMBER_ID and self.WHATSAPP_ACCESS_TOKEN)
+
     def validate_required_secrets(self) -> list[str]:
         """Validate that critical secrets are set. Returns list of errors."""
         errors = []

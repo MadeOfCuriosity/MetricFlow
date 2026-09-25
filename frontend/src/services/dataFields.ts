@@ -11,6 +11,7 @@ import type {
   CSVColumnMappingConfig,
   TodayFieldFormResponse,
   SheetViewResponse,
+  PendingEntriesResponse,
 } from '../types/dataField'
 
 export const dataFieldsApi = {
@@ -54,6 +55,10 @@ export const dataFieldsApi = {
     const qs = params.toString()
     return api.get<TodayFieldFormResponse>(`/api/entries/fields/today${qs ? `?${qs}` : ''}`).then(r => r.data)
   },
+
+  /** Missed entries over the last `days` (newest first) */
+  getPending: (days = 30) =>
+    api.get<PendingEntriesResponse>(`/api/entries/fields/pending?days=${days}`).then((r) => r.data),
 
   getSheetData: (month: string, roomId?: string) => {
     const params = new URLSearchParams({ month })

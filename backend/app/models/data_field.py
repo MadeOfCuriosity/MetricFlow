@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Column, String, Text, DateTime, ForeignKey, Index, UniqueConstraint
+from sqlalchemy import Column, String, Text, Date, DateTime, ForeignKey, Index, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
@@ -19,6 +19,8 @@ class DataField(Base):
     description = Column(Text, nullable=True)
     unit = Column(String(50), nullable=True)  # "$", "%", "hours", etc.
     entry_interval = Column(String(20), nullable=False, default="daily")  # "daily", "weekly", "monthly", "custom"
+    # Anchor for weekly/monthly periods (first period starts here); unused for daily/custom
+    period_start_date = Column(Date, nullable=True)
     created_by = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 

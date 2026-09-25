@@ -30,6 +30,45 @@ def normalize_date_for_interval(d: date, interval: str) -> date:
         return d
 
 
+# Legacy anchors for weekly/monthly fields created before period_start_date existed
+_LEGACY_WEEK_ANCHOR = date(2000, 1, 3)  # a Monday
+_LEGACY_MONTH_ANCHOR = date(2000, 1, 1)
+
+
+def _add_months(anchor: date, months: int) -> date:
+    """anchor + N months, clamping the day to the target month's length (Jan 31 -> Feb 28/29)."""
+    total = anchor.month - 1 + months
+    year, month = anchor.year + total // 12, total % 12 + 1
+    return date(year, month, min(anchor.day, calendar.monthrange(year, month)[1]))
+
+
+def period_bounds(interval: str, anchor: Optional[date], d: date) -> Optional[tuple[date, date]]:
+    """
+    The (start, end) of the entry period containing `d` for a field.
+
+    - daily / custom: the day itself
+    - weekly: 7-day periods counted from the field's start date
+    - monthly: monthly periods counted from the field's start date (day clamped at month end)
+
+    Returns None when `d` is before the field's first period (not started yet).
+    """
+    if interval == "weekly":
+        a = anchor or _LEGACY_WEEK_ANCHOR
+        if d < a:
+            return None
+        start = a + timedelta(days=((d - a).days // 7) * 7)
+        return start, start + timedelta(days=6)
+    if interval == "monthly":
+        a = anchor or _LEGACY_MONTH_ANCHOR
+        if d < a:
+            return None
+        n = (d.year - a.year) * 12 + (d.month - a.month)
+        if _add_months(a, n) > d:
+            n -= 1
+        return _add_months(a, n), _add_months(a, n + 1) - timedelta(days=1)
+    return d, d
+
+
 class EntryService:
     """Service for handling data entry business logic."""
 
@@ -312,7 +351,8 @@ class EntryService:
         """
         created_entries = []
         errors = []
-        affected_field_ids = set()
+        # period date -> fields changed on it (weekly/monthly values snap to their period start)
+        affected_by_date: dict[date, set[UUID]] = {}
 
         for entry_input in field_entries:
             try:
@@ -329,11 +369,20 @@ class EntryService:
                     })
                     continue
 
+                bounds = period_bounds(field.entry_interval, field.period_start_date, entry_date)
+                if bounds is None:
+                    errors.append({
+                        "data_field_id": str(entry_input.data_field_id),
+                        "error": f"'{field.name}' starts on {field.period_start_date.isoformat()}",
+                    })
+                    continue
+                field_date = bounds[0]
+
                 # Upsert: check if entry already exists
                 existing = db.query(DataFieldEntry).filter(
                     DataFieldEntry.org_id == org_id,
                     DataFieldEntry.data_field_id == entry_input.data_field_id,
-                    DataFieldEntry.date == entry_date,
+                    DataFieldEntry.date == field_date,
                 ).first()
 
                 if existing:
@@ -345,7 +394,7 @@ class EntryService:
                     entry = DataFieldEntry(
                         org_id=org_id,
                         data_field_id=entry_input.data_field_id,
-                        date=entry_date,
+                        date=field_date,
                         value=entry_input.value,
                         entered_by=user_id,
                     )
@@ -353,7 +402,7 @@ class EntryService:
                     db.flush()
                     created_entries.append(entry)
 
-                affected_field_ids.add(entry_input.data_field_id)
+                affected_by_date.setdefault(field_date, set()).add(entry_input.data_field_id)
 
             except Exception as e:
                 errors.append({
@@ -363,9 +412,9 @@ class EntryService:
 
         # Auto-recalculate affected KPIs
         kpis_recalculated = 0
-        if affected_field_ids:
-            kpis_recalculated = EntryService._recalculate_kpis(
-                db, org_id, user_id, entry_date, affected_field_ids
+        for field_date, field_ids in affected_by_date.items():
+            kpis_recalculated += EntryService._recalculate_kpis(
+                db, org_id, user_id, field_date, field_ids
             )
 
         if created_entries:
@@ -503,10 +552,6 @@ class EntryService:
         if today is None:
             today = date.today()
 
-        # Normalize the date for the requested interval
-        if interval:
-            today = normalize_date_for_interval(today, interval)
-
         # Get accessible data fields
         fields = DataFieldService.get_accessible_data_fields(
             db, org_id, user_role, user_id
@@ -516,26 +561,40 @@ class EntryService:
         if interval:
             fields = [f for f in fields if f.entry_interval == interval]
 
-        # Get field entries for the target date
+        # Each field's own period for the target date; skip fields that haven't started yet
+        field_periods: dict[UUID, tuple[date, date]] = {}
+        for f in fields:
+            bounds = period_bounds(f.entry_interval, f.period_start_date, today)
+            if bounds is not None:
+                field_periods[f.id] = bounds
+        fields = [f for f in fields if f.id in field_periods]
+
+        # Get each field's entry for its period start
         field_ids = [f.id for f in fields]
-        today_entries = db.query(DataFieldEntry).filter(
+        period_dates = {start for start, _ in field_periods.values()}
+        candidate_entries = db.query(DataFieldEntry).filter(
             DataFieldEntry.org_id == org_id,
             DataFieldEntry.data_field_id.in_(field_ids),
-            DataFieldEntry.date == today,
+            DataFieldEntry.date.in_(period_dates),
         ).all() if field_ids else []
 
-        entries_by_field = {str(e.data_field_id): e for e in today_entries}
+        entries_by_field = {
+            str(e.data_field_id): e
+            for e in candidate_entries
+            if e.date == field_periods[e.data_field_id][0]
+        }
 
         # Batch-load room assignments for all fields
-        field_room_assignments = db.query(
-            DataFieldRoom.data_field_id, Room.id, Room.name
-        ).join(Room, DataFieldRoom.room_id == Room.id).filter(
-            DataFieldRoom.data_field_id.in_(field_ids)
-        ).all() if field_ids else []
+        # Effective rooms: direct assignments + rooms whose KPIs use the field
+        field_rooms_map = DataFieldService.get_field_rooms(db, field_ids)
 
-        field_rooms_map: dict[UUID, list[tuple[UUID, str]]] = {}
-        for fid, rid, rname in field_room_assignments:
-            field_rooms_map.setdefault(fid, []).append((rid, rname))
+        # Who entered each value (shown next to completed fields)
+        from app.models.user import User
+        from app.models.user_room_assignment import UserRoomAssignment
+        enterer_ids = {e.entered_by for e in entries_by_field.values() if e.entered_by}
+        enterer_names = dict(
+            db.query(User.id, User.name).filter(User.id.in_(enterer_ids)).all()
+        ) if enterer_ids else {}
 
         # Group fields by room (a field in multiple rooms appears in each group)
         room_groups: dict[str, dict] = {}
@@ -558,6 +617,9 @@ class EntryService:
                 "entry_interval": field.entry_interval,
                 "has_entry_today": has_entry,
                 "today_value": entry.value if entry else None,
+                "period_start": field_periods[field.id][0],
+                "period_end": field_periods[field.id][1],
+                "entered_by_name": enterer_names.get(entry.entered_by) if entry else None,
             }
 
             rooms_for_field = field_rooms_map.get(field.id, [])
@@ -582,7 +644,108 @@ class EntryService:
                         }
                     room_groups[room_key]["fields"].append(field_item)
 
-        return list(room_groups.values()), completed_count, total_count
+        # Room tag colors and assigned users for each group
+        room_ids = [g["room_id"] for g in room_groups.values() if g["room_id"]]
+        if room_ids:
+            colors = dict(db.query(Room.id, Room.color).filter(Room.id.in_(room_ids)).all())
+            assignee_rows = (
+                db.query(UserRoomAssignment.room_id, User.id, User.name)
+                .join(User, User.id == UserRoomAssignment.user_id)
+                .filter(UserRoomAssignment.room_id.in_(room_ids))
+                .order_by(User.name)
+                .all()
+            )
+            assignees: dict[UUID, list[dict]] = {}
+            for rid, uid, uname in assignee_rows:
+                assignees.setdefault(rid, []).append({"id": uid, "name": uname})
+            for g in room_groups.values():
+                if g["room_id"]:
+                    g["room_color"] = colors.get(g["room_id"])
+                    g["assignees"] = assignees.get(g["room_id"], [])
+
+        # Rooms A–Z, organization-wide ("Unassigned") fields last
+        ordered = sorted(room_groups.values(), key=lambda g: (g["room_id"] is None, g["room_name"].lower()))
+        return ordered, completed_count, total_count
+
+    @staticmethod
+    def get_pending_entries(
+        db: Session,
+        org_id: UUID,
+        user_role: str,
+        user_id: UUID,
+        today: Optional[date] = None,
+        lookback_days: int = 30,
+    ) -> tuple[date, list[dict]]:
+        """
+        Missed entries: past periods (ended before today) of scheduled fields that have no value.
+
+        Looks back `lookback_days`, never before a field was created (or its start date).
+        "No schedule" fields are never pending. Newest periods first.
+        """
+        from app.services.data_field_service import DataFieldService
+
+        today = today or date.today()
+        since = today - timedelta(days=lookback_days)
+
+        fields = [
+            f for f in DataFieldService.get_accessible_data_fields(db, org_id, user_role, user_id)
+            if f.entry_interval in ("daily", "weekly", "monthly")
+        ]
+        if not fields:
+            return since, []
+
+        # Every past period per field inside the window
+        periods: dict[UUID, set[tuple[date, date]]] = {}
+        for f in fields:
+            first_day = max(since, f.created_at.date() if f.created_at else since)
+            if f.period_start_date:
+                first_day = max(first_day, f.period_start_date)
+            d = first_day
+            while d < today:
+                bounds = period_bounds(f.entry_interval, f.period_start_date, d)
+                if bounds is None:
+                    d += timedelta(days=1)
+                    continue
+                start, end = bounds
+                if end < today and start >= since:
+                    periods.setdefault(f.id, set()).add(bounds)
+                d = end + timedelta(days=1)
+
+        if not periods:
+            return since, []
+
+        filled = {
+            (fid, d)
+            for fid, d in db.query(DataFieldEntry.data_field_id, DataFieldEntry.date).filter(
+                DataFieldEntry.org_id == org_id,
+                DataFieldEntry.data_field_id.in_(list(periods.keys())),
+                DataFieldEntry.date >= since,
+                DataFieldEntry.date < today,
+            )
+        }
+
+        room_names = {
+            fid: [name for _, name in rooms]
+            for fid, rooms in DataFieldService.get_field_rooms(db, list(periods.keys())).items()
+        }
+
+        by_id = {f.id: f for f in fields}
+        items = [
+            {
+                "data_field_id": fid,
+                "data_field_name": by_id[fid].name,
+                "unit": by_id[fid].unit,
+                "entry_interval": by_id[fid].entry_interval,
+                "period_start": start,
+                "period_end": end,
+                "room_names": sorted(room_names.get(fid, [])),
+            }
+            for fid, bounds_set in periods.items()
+            for start, end in bounds_set
+            if (fid, start) not in filled
+        ]
+        items.sort(key=lambda i: (-i["period_start"].toordinal(), i["data_field_name"].lower()))
+        return since, items
 
     @staticmethod
     def get_sheet_data(
@@ -595,8 +758,9 @@ class EntryService:
         room_id: Optional[UUID] = None,
     ) -> dict:
         """
-        Get spreadsheet-style data for a month.
-        Returns all daily-interval fields with their entries across the month.
+        Get spreadsheet-style data for a month, for every field.
+        Weekly/monthly fields carry `periods` (the only editable cells: each period's start date);
+        daily and "no schedule" fields are editable on every day.
         """
         from app.services.data_field_service import DataFieldService
 
@@ -615,20 +779,17 @@ class EntryService:
 
         date_strings = [d.isoformat() for d in dates]
 
-        # Get accessible data fields (daily interval only)
         fields = DataFieldService.get_accessible_data_fields(
             db, org_id, user_role, user_id
         )
-        fields = [f for f in fields if f.entry_interval == "daily"]
+        # Scheduled rows first, then weekly, monthly and "no schedule"
+        interval_order = {"daily": 0, "weekly": 1, "monthly": 2, "custom": 3}
+        fields.sort(key=lambda f: (interval_order.get(f.entry_interval, 9), f.name.lower()))
 
         if room_id:
-            # Filter to fields assigned to this room via junction table
-            assigned_field_ids = set(
-                r.data_field_id for r in db.query(DataFieldRoom.data_field_id).filter(
-                    DataFieldRoom.room_id == room_id
-                ).all()
-            )
-            fields = [f for f in fields if f.id in assigned_field_ids]
+            # Fields assigned to this room, directly or through the room's KPIs
+            rooms_by_field = DataFieldService.get_field_rooms(db, [f.id for f in fields])
+            fields = [f for f in fields if any(rid == room_id for rid, _ in rooms_by_field.get(f.id, []))]
 
         if not fields:
             return {
@@ -655,15 +816,8 @@ class EntryService:
             entry_map[(e.data_field_id, e.date.isoformat())] = e.value
 
         # Batch-load room assignments for fields
-        field_room_assignments = db.query(
-            DataFieldRoom.data_field_id, Room.id, Room.name
-        ).join(Room, DataFieldRoom.room_id == Room.id).filter(
-            DataFieldRoom.data_field_id.in_(field_ids)
-        ).all() if field_ids else []
-
-        field_rooms_map: dict[UUID, list[tuple[UUID, str]]] = {}
-        for fid, rid, rname in field_room_assignments:
-            field_rooms_map.setdefault(fid, []).append((rid, rname))
+        # Effective rooms: direct assignments + rooms whose KPIs use the field
+        field_rooms_map = DataFieldService.get_field_rooms(db, field_ids)
 
         # Group fields by room
         room_groups_dict: dict[str, dict] = {}
@@ -671,6 +825,14 @@ class EntryService:
         total_cells = 0
 
         for field in fields:
+            periods: Optional[dict[str, str]] = None
+            if field.entry_interval in ("weekly", "monthly"):
+                periods = {}
+                for d in dates:
+                    bounds = period_bounds(field.entry_interval, field.period_start_date, d)
+                    if bounds and bounds[0] == d:
+                        periods[d.isoformat()] = bounds[1].isoformat()
+
             values: dict[str, Optional[float]] = {}
             mtd = 0.0
             for ds in date_strings:
@@ -678,8 +840,12 @@ class EntryService:
                 values[ds] = val
                 if val is not None:
                     mtd += val
-                    total_filled += 1
-                total_cells += 1
+                # Completion counts expected cells only ("no schedule" is never expected)
+                expected = field.entry_interval != "custom" and (periods is None or ds in periods)
+                if expected:
+                    total_cells += 1
+                    if val is not None:
+                        total_filled += 1
 
             field_item = {
                 "data_field_id": field.id,
@@ -689,6 +855,8 @@ class EntryService:
                 "entry_interval": field.entry_interval,
                 "values": values,
                 "mtd": mtd,
+                "periods": periods,
+                "period_start_date": field.period_start_date if periods is not None else None,
             }
 
             rooms_for_field = field_rooms_map.get(field.id, [])
@@ -715,7 +883,7 @@ class EntryService:
         return {
             "month": f"{year:04d}-{month:02d}",
             "dates": date_strings,
-            "room_groups": list(room_groups_dict.values()),
+            "room_groups": sorted(room_groups_dict.values(), key=lambda g: (g["room_id"] is None, g["room_name"].lower())),
             "total_filled": total_filled,
             "total_cells": total_cells,
         }

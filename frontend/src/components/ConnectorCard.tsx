@@ -5,6 +5,7 @@ import {
   ClockIcon,
 } from '@heroicons/react/24/outline'
 import type { Integration, IntegrationProvider } from '../types/integration'
+import { formatTimeAgo } from '../lib/format'
 
 interface ConnectorCardProps {
   provider: IntegrationProvider
@@ -27,16 +28,7 @@ const STATUS_CONFIG = {
 
 function formatLastSync(dateStr: string | null): string {
   if (!dateStr) return 'Never'
-  const d = new Date(dateStr)
-  const now = new Date()
-  const diffMs = now.getTime() - d.getTime()
-  const diffMins = Math.floor(diffMs / 60000)
-  if (diffMins < 1) return 'Just now'
-  if (diffMins < 60) return `${diffMins}m ago`
-  const diffHours = Math.floor(diffMins / 60)
-  if (diffHours < 24) return `${diffHours}h ago`
-  const diffDays = Math.floor(diffHours / 24)
-  return `${diffDays}d ago`
+  return formatTimeAgo(dateStr, { justNow: 'Just now', yesterday: false })
 }
 
 // Provider logo/icon as simple SVG text

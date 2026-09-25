@@ -7,7 +7,6 @@ import {
   TrashIcon,
   FolderPlusIcon,
   SparklesIcon,
-  TagIcon,
   PencilSquareIcon,
 } from '@heroicons/react/24/outline'
 import { KPICard, TrendChart, DateRangeSelector, getPresetLabel } from '../components'
@@ -18,11 +17,13 @@ import { RoomDashboardResponse, KPI, AggregatedKPI, Room } from '../types/room'
 import { useRoom } from '../context/RoomContext'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
-import { CreateRoomModal } from '../components/CreateRoomModal'
-import { EditRoomModal } from '../components/EditRoomModal'
+import { RoomFormModal } from '../components/RoomFormModal'
 import { TagColorPickerPopover } from '../components/TagColorPickerPopover'
 import { AggregatedKPICard } from '../components/AggregatedKPICard'
-import { getTagColor } from '../constants/tagColors'
+import { resolveRoomColor } from '../constants/tagColors'
+import { TagDot } from '../components/ui/Tag'
+import { getApiError } from '../lib/apiError'
+import { Spinner } from '../components/ui/Spinner'
 
 interface DataEntry {
   id: string
@@ -40,7 +41,7 @@ interface KPIWithEntries extends KPI {
 export function RoomDashboard() {
   const { roomId } = useParams<{ roomId: string }>()
   const navigate = useNavigate()
-  const { deleteRoom, updateRoom, fetchRoomTree } = useRoom()
+  const { rooms, deleteRoom, updateRoom, fetchRoomTree } = useRoom()
   const { success: showSuccess, error: showErrorToast } = useToast()
   const { isAdmin } = useAuth()
   const [dashboardData, setDashboardData] = useState<RoomDashboardResponse | null>(null)
@@ -77,8 +78,7 @@ export function RoomDashboard() {
         newColor ? `Room tagged as ${newColor}` : 'Default obsidian folder restored'
       )
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { detail?: string } } }
-      showErrorToast('Failed to update tag', error.response?.data?.detail || 'Please try again')
+      showErrorToast('Failed to update tag', getApiError(err, 'Please try again'))
     }
   }
 
@@ -250,6 +250,13 @@ export function RoomDashboard() {
   const allKpis = [...roomKpisWithEntries, ...subRoomKpisWithEntries, ...sharedKpisWithEntries]
   const aggregatedKpis: AggregatedKPI[] = dashboardData?.aggregated_kpis || []
 
+  // KPIs shown here take this room's tag (own color, else nearest tagged ancestor),
+  // the same rule the KPIs page uses.
+  const roomColor = dashboardData
+    ? dashboardData.room.color || resolveRoomColor(dashboardData.room.id, rooms)
+    : null
+  const subRoomColors = Object.fromEntries(rooms.map((r) => [r.id, resolveRoomColor(r.id, rooms)]))
+
   // Determine chart data source: either a regular KPI or an aggregated one
   const selectedKPIData = allKpis.find((k) => k.id === selectedKPI)
   const selectedAggData = aggregatedKpis.find((a) => a.kpi.id === selectedAggKPI)
@@ -279,7 +286,7 @@ export function RoomDashboard() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-500"></div>
+        <Spinner size="xl" />
       </div>
     )
   }
@@ -289,7 +296,7 @@ export function RoomDashboard() {
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <p className="text-danger-400 mb-4">{error || 'Room not found'}</p>
-          <Link to="/dashboard" className="text-primary-400 hover:text-primary-300">
+          <Link to="/dashboard" className="text-brand hover:text-brand">
             Return to Dashboard
           </Link>
         </div>
@@ -328,56 +335,23 @@ export function RoomDashboard() {
               onSelectColor={handleTagColorChange}
               align="left"
             >
-              {({ toggle }) => {
-                const tag = getTagColor(dashboardData.room.color)
-                return (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      toggle(e)
-                    }}
-                    className="relative p-1.5 rounded-full hover:bg-dark-800 transition-all cursor-pointer group flex items-center justify-center"
-                    title={tag ? `Tag: ${tag.name} (Click to change)` : 'Add macOS tag color'}
-                    aria-label="Change room tag color"
-                  >
-                    {tag ? (
-                      <span
-                        className={`w-4 h-4 rounded-full ${tag.dotClass || ''} ring-2 ring-dark-900 group-hover:scale-125 transition-transform`}
-                        style={{
-                          backgroundColor: tag.hex,
-                          boxShadow: `0 0 10px ${tag.ambientGlow}`,
-                        }}
-                      />
-                    ) : (
-                      <div className="w-5 h-5 rounded-full border border-dashed border-dark-500 hover:border-foreground flex items-center justify-center transition-colors">
-                        <TagIcon className="w-3 h-3 text-dark-400 group-hover:text-foreground" />
-                      </div>
-                    )}
-                  </button>
-                )
-              }}
+              {({ toggle }) => (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    toggle(e)
+                  }}
+                  className="relative p-1.5 rounded-full hover:bg-dark-800 transition-all cursor-pointer flex items-center justify-center"
+                  title={dashboardData.room.color ? 'Change tag color' : 'Add tag color'}
+                  aria-label="Change room tag color"
+                >
+                  <TagDot color={dashboardData.room.color} size="lg" empty="ring" />
+                </button>
+              )}
             </TagColorPickerPopover>
 
             <h1 className="text-2xl font-bold text-foreground">{dashboardData.room.name}</h1>
-
-            {(() => {
-              const currentTag = getTagColor(dashboardData.room.color)
-              if (!currentTag) return null
-              return (
-                <span
-                  className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium tracking-wide shadow-xs"
-                  style={{
-                    backgroundColor: currentTag.ambientGlow,
-                    color: currentTag.hex,
-                    border: `1px solid ${currentTag.hex}40`,
-                  }}
-                >
-                  <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: currentTag.hex }} />
-                  <span>{currentTag.name}</span>
-                </span>
-              )
-            })()}
 
             {isAdmin && (
               <button
@@ -396,16 +370,9 @@ export function RoomDashboard() {
           )}
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          {/* Tag Color selector dropdown */}
-          <TagColorPickerPopover
-            selectedColor={dashboardData.room.color}
-            onSelectColor={handleTagColorChange}
-            align="right"
-          />
-
           <button
             onClick={() => navigate(`/rooms/${roomId}/ai-builder`)}
-            className="inline-flex items-center gap-2 px-3 py-2 text-sm text-primary-400 hover:text-primary-300 bg-primary-500/10 hover:bg-primary-500/20 rounded-lg transition-colors cursor-pointer"
+            className="inline-flex items-center gap-2 px-3 py-2 text-sm text-brand hover:text-brand bg-brand/10 hover:bg-brand/20 rounded-lg transition-colors cursor-pointer"
             title="Create KPI"
           >
             <SparklesIcon className="w-4 h-4" />
@@ -458,8 +425,8 @@ export function RoomDashboard() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-dark-900 border border-dark-700 rounded-xl p-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-primary-500/20 rounded-lg flex items-center justify-center">
-              <ChartBarIcon className="w-5 h-5 text-primary-400" />
+            <div className="w-10 h-10 bg-brand/20 rounded-lg flex items-center justify-center">
+              <ChartBarIcon className="w-5 h-5 text-brand" />
             </div>
             <div>
               <p className="text-2xl font-bold text-foreground">{roomKpisWithEntries.length}</p>
@@ -470,8 +437,8 @@ export function RoomDashboard() {
 
         <div className="bg-dark-900 border border-dark-700 rounded-xl p-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-success-600/20 rounded-lg flex items-center justify-center">
-              <ChartBarIcon className="w-5 h-5 text-success-400" />
+            <div className="w-10 h-10 bg-dark-800 border border-dark-700 rounded-lg flex items-center justify-center">
+              <ChartBarIcon className="w-5 h-5 text-dark-300" />
             </div>
             <div>
               <p className="text-2xl font-bold text-foreground">{sharedKpisWithEntries.length}</p>
@@ -483,7 +450,7 @@ export function RoomDashboard() {
         <div className="bg-dark-900 border border-dark-700 rounded-xl p-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-dark-800 border border-dark-700 rounded-lg flex items-center justify-center">
-              <ChartBarIcon className="w-5 h-5 text-foreground" />
+              <ChartBarIcon className="w-5 h-5 text-dark-300" />
             </div>
             <div>
               <p className="text-2xl font-bold text-foreground">{dashboardData.room.sub_room_count}</p>
@@ -494,8 +461,8 @@ export function RoomDashboard() {
 
         <div className="bg-dark-900 border border-dark-700 rounded-xl p-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-warning-500/15 rounded-lg flex items-center justify-center">
-              <ChartBarIcon className="w-5 h-5 text-warning-400" />
+            <div className="w-10 h-10 bg-dark-800 border border-dark-700 rounded-lg flex items-center justify-center">
+              <ChartBarIcon className="w-5 h-5 text-dark-300" />
             </div>
             <div>
               <p className="text-2xl font-bold text-foreground">{allKpis.length + aggregatedKpis.length}</p>
@@ -520,6 +487,8 @@ export function RoomDashboard() {
               return (
                 <KPICard
                   key={kpi.id}
+                  roomColor={roomColor}
+                  roomName={dashboardData.room.name}
                   kpiId={kpi.id}
                   name={kpi.name}
                   value={rangeEntries[0]?.calculated_value ?? null}
@@ -554,6 +523,9 @@ export function RoomDashboard() {
                 aggregatedKpi={aggKpi}
                 onClick={() => { setSelectedAggKPI(aggKpi.kpi.id); setSelectedKPI(null) }}
                 isSelected={selectedAggKPI === aggKpi.kpi.id}
+                roomColor={roomColor}
+                roomName={dashboardData.room.name}
+                subRoomColors={subRoomColors}
               />
             ))}
           </div>
@@ -575,6 +547,8 @@ export function RoomDashboard() {
               return (
                 <KPICard
                   key={kpi.id}
+                  roomColor={kpi.room_color || roomColor}
+                  roomName={kpi.room_name}
                   kpiId={kpi.id}
                   name={kpi.name}
                   value={rangeEntries[0]?.calculated_value ?? null}
@@ -608,6 +582,8 @@ export function RoomDashboard() {
               return (
                 <KPICard
                   key={kpi.id}
+                  roomColor={kpi.room_color}
+                  roomName={kpi.room_name}
                   kpiId={kpi.id}
                   name={kpi.name}
                   value={rangeEntries[0]?.calculated_value ?? null}
@@ -657,7 +633,7 @@ export function RoomDashboard() {
                 <p className="text-dark-400">No data to display</p>
                 <Link
                   to="/entries"
-                  className="mt-3 inline-flex items-center gap-2 text-sm text-primary-400 hover:text-primary-300"
+                  className="mt-3 inline-flex items-center gap-2 text-sm text-brand hover:text-brand"
                 >
                   <PlusIcon className="w-4 h-4" />
                   Add your first entry
@@ -689,7 +665,8 @@ export function RoomDashboard() {
       )}
 
       {/* Create Sub-Room Modal */}
-      <CreateRoomModal
+      <RoomFormModal
+        mode="create"
         isOpen={isCreateSubRoomOpen}
         onClose={() => setIsCreateSubRoomOpen(false)}
         onCreated={handleSubRoomCreated}
@@ -698,7 +675,8 @@ export function RoomDashboard() {
 
       {/* Edit Room Modal */}
       {dashboardData && (
-        <EditRoomModal
+        <RoomFormModal
+          mode="edit"
           isOpen={isEditRoomOpen}
           onClose={() => setIsEditRoomOpen(false)}
           room={dashboardData.room}

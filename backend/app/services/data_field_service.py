@@ -2,6 +2,7 @@
 Service for handling DataField operations.
 """
 import re
+from datetime import date
 from typing import Optional
 from uuid import UUID
 
@@ -63,15 +64,59 @@ class DataFieldService:
         """Get all data fields for an org, optionally filtered by room."""
         query = db.query(DataField).filter(DataField.org_id == org_id)
         if room_id:
+            from sqlalchemy import or_
+            from app.models.room_kpi_assignment import RoomKPIAssignment
             query = query.filter(
-                exists().where(
-                    and_(
-                        DataFieldRoom.data_field_id == DataField.id,
-                        DataFieldRoom.room_id == room_id,
-                    )
+                or_(
+                    exists().where(
+                        and_(
+                            DataFieldRoom.data_field_id == DataField.id,
+                            DataFieldRoom.room_id == room_id,
+                        )
+                    ),
+                    exists().where(
+                        and_(
+                            KPIDataField.data_field_id == DataField.id,
+                            RoomKPIAssignment.kpi_id == KPIDataField.kpi_id,
+                            RoomKPIAssignment.room_id == room_id,
+                        )
+                    ),
                 )
             )
         return query.order_by(DataField.name).all()
+
+    @staticmethod
+    def get_field_rooms(
+        db: Session, field_ids: list[UUID], include_kpi_rooms: bool = True
+    ) -> dict[UUID, list[tuple[UUID, str]]]:
+        """
+        Effective rooms per field: rooms it's assigned to directly, plus rooms whose KPIs use it.
+        Returns field_id -> [(room_id, room_name)] sorted by name, without duplicates.
+        """
+        from app.models.room_kpi_assignment import RoomKPIAssignment
+
+        if not field_ids:
+            return {}
+        rows = list(
+            db.query(DataFieldRoom.data_field_id, Room.id, Room.name)
+            .join(Room, DataFieldRoom.room_id == Room.id)
+            .filter(DataFieldRoom.data_field_id.in_(field_ids))
+            .all()
+        )
+        if include_kpi_rooms:
+            rows += (
+                db.query(KPIDataField.data_field_id, Room.id, Room.name)
+                .join(RoomKPIAssignment, RoomKPIAssignment.kpi_id == KPIDataField.kpi_id)
+                .join(Room, Room.id == RoomKPIAssignment.room_id)
+                .filter(KPIDataField.data_field_id.in_(field_ids))
+                .all()
+            )
+        result: dict[UUID, dict[UUID, str]] = {}
+        for fid, rid, rname in rows:
+            result.setdefault(fid, {})[rid] = rname
+        return {
+            fid: sorted(rooms.items(), key=lambda r: r[1].lower()) for fid, rooms in result.items()
+        }
 
     @staticmethod
     def get_accessible_data_fields(
@@ -118,7 +163,15 @@ class DataFieldService:
             has_no_rooms = ~exists().where(
                 DataFieldRoom.data_field_id == DataField.id
             )
-            query = query.filter(or_(has_room_in_list, has_no_rooms))
+            from app.models.room_kpi_assignment import RoomKPIAssignment
+            used_by_room_kpi = exists().where(
+                and_(
+                    KPIDataField.data_field_id == DataField.id,
+                    RoomKPIAssignment.kpi_id == KPIDataField.kpi_id,
+                    RoomKPIAssignment.room_id.in_(all_room_ids),
+                )
+            )
+            query = query.filter(or_(has_room_in_list, has_no_rooms, used_by_room_kpi))
 
         return query.order_by(DataField.name).all()
 
@@ -156,6 +209,13 @@ class DataFieldService:
             db.add(DataFieldRoom(data_field_id=field.id, room_id=rid))
 
     @staticmethod
+    def _resolve_period_start(interval: str, requested: Optional[date], current: Optional[date]) -> Optional[date]:
+        """Weekly/monthly fields need an anchor date (requested > existing > today); others don't."""
+        if interval not in ("weekly", "monthly"):
+            return None
+        return requested or current or date.today()
+
+    @staticmethod
     def create_data_field(
         db: Session,
         org_id: UUID,
@@ -172,6 +232,7 @@ class DataFieldService:
             description=data.description,
             unit=data.unit,
             entry_interval=data.entry_interval,
+            period_start_date=DataFieldService._resolve_period_start(data.entry_interval, data.period_start_date, None),
             created_by=user_id,
         )
         db.add(field)
@@ -200,6 +261,10 @@ class DataFieldService:
             field.unit = data.unit
         if data.entry_interval is not None:
             field.entry_interval = data.entry_interval
+        if data.entry_interval is not None or data.period_start_date is not None:
+            field.period_start_date = DataFieldService._resolve_period_start(
+                field.entry_interval, data.period_start_date, field.period_start_date
+            )
         if data.room_ids is not None:
             DataFieldService._sync_room_assignments(db, field, data.room_ids)
 
@@ -364,21 +429,17 @@ class DataFieldService:
         )
         latest_entry_map = {e.data_field_id: e for e in latest_entries}
 
-        # Batch: get room assignments for all fields
-        room_assignments = (
-            db.query(DataFieldRoom.data_field_id, Room.id, Room.name)
-            .join(Room, DataFieldRoom.room_id == Room.id)
-            .filter(DataFieldRoom.data_field_id.in_(field_ids))
-            .all()
-        )
-        # Build field_id -> list of (room_id, room_name) map
-        field_rooms_map: dict[UUID, list[tuple[UUID, str]]] = {}
-        for fid, rid, rname in room_assignments:
-            field_rooms_map.setdefault(fid, []).append((rid, rname))
+        # Direct room assignments (editable) and rooms inherited from KPIs that use the field
+        field_rooms_map = DataFieldService.get_field_rooms(db, field_ids, include_kpi_rooms=False)
+        effective_rooms_map = DataFieldService.get_field_rooms(db, field_ids)
+        kpi_rooms_map: dict[UUID, list[tuple[UUID, str]]] = {
+            fid: [r for r in rooms if r[0] not in {d[0] for d in field_rooms_map.get(fid, [])}]
+            for fid, rooms in effective_rooms_map.items()
+        }
 
         # Batch: get room paths for all unique rooms
         all_room_ids_set = set()
-        for rooms_list in field_rooms_map.values():
+        for rooms_list in effective_rooms_map.values():
             for rid, _ in rooms_list:
                 all_room_ids_set.add(rid)
         room_path_map: dict[UUID, str] = {}
@@ -395,6 +456,7 @@ class DataFieldService:
             room_ids_list = [rid for rid, _ in rooms_info]
             room_names_list = [rname for _, rname in rooms_info]
             room_paths_list = [room_path_map.get(rid, "") for rid in room_ids_list]
+            kpi_rooms = kpi_rooms_map.get(field.id, [])
 
             kpi_count = kpi_count_map.get(field.id, 0)
             latest_entry = latest_entry_map.get(field.id)
@@ -405,11 +467,14 @@ class DataFieldService:
                 "room_ids": room_ids_list,
                 "room_names": room_names_list,
                 "room_paths": room_paths_list,
+                "kpi_room_ids": [rid for rid, _ in kpi_rooms],
+                "kpi_room_paths": [room_path_map.get(rid, name) for rid, name in kpi_rooms],
                 "name": field.name,
                 "variable_name": field.variable_name,
                 "description": field.description,
                 "unit": field.unit,
                 "entry_interval": field.entry_interval,
+                "period_start_date": field.period_start_date,
                 "created_by": field.created_by,
                 "created_at": field.created_at,
                 "kpi_count": kpi_count,

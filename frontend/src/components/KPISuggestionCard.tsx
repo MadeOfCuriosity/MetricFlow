@@ -10,8 +10,8 @@ import {
 import { DataFieldChipSelector } from './DataFieldChipSelector'
 import { dataFieldsApi } from '../services/dataFields'
 import type { DataField } from '../types/dataField'
+import type { TimePeriod } from '../types/kpi'
 
-type TimePeriod = 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'other'
 
 /**
  * Basic client-side formula validation to catch obvious issues
@@ -135,8 +135,8 @@ export function KPISuggestionCard({
       {/* Header */}
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-primary-500/10 rounded-lg flex items-center justify-center">
-            <ChartBarIcon className="w-5 h-5 text-primary-400" />
+          <div className="w-10 h-10 bg-brand/10 rounded-lg flex items-center justify-center">
+            <ChartBarIcon className="w-5 h-5 text-brand" />
           </div>
           <div>
             <h4 className="text-sm font-semibold text-foreground">{suggestion.name}</h4>
@@ -165,7 +165,7 @@ export function KPISuggestionCard({
           )}
           {suggestion.time_period && (
             <div className="flex items-center gap-1 text-xs text-dark-300">
-              <ClockIcon className="w-4 h-4 text-primary-400" />
+              <ClockIcon className="w-4 h-4 text-brand" />
               <span>{getTimePeriodLabel(suggestion.time_period)}</span>
             </div>
           )}
@@ -180,7 +180,7 @@ export function KPISuggestionCard({
       {/* Formula */}
       <div className={`bg-dark-900 rounded-lg p-3 ${formulaError ? 'border border-warning-500/30' : ''}`}>
         <p className="text-xs text-dark-400 mb-1">Formula</p>
-        <p className="text-sm font-mono text-primary-400">{suggestion.formula}</p>
+        <p className="text-sm font-mono text-brand">{suggestion.formula}</p>
         {formulaError && (
           <div className="flex items-center gap-1.5 mt-2">
             <ExclamationTriangleIcon className="w-3.5 h-3.5 text-warning-400 flex-shrink-0" />

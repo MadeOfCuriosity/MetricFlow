@@ -1,4 +1,5 @@
 import type { DashboardData } from '../../hooks/useDashboardData'
+import { CHART_COLORS } from '../../lib/chartColors'
 
 interface GaugeProgressWidgetProps {
   data: DashboardData
@@ -18,9 +19,9 @@ export function GaugeProgressWidget({ data }: GaugeProgressWidgetProps) {
   const offset = circumference - (percentage / 100) * circumference
 
   const getColor = () => {
-    if (percentage === 100) return '#22c55e' // success
-    if (percentage > 50) return '#5b7fff'   // primary
-    return '#f59e0b'                         // warning
+    if (percentage === 100) return CHART_COLORS.up
+    if (percentage > 50) return CHART_COLORS.brand
+    return CHART_COLORS.warning
   }
 
   return (
@@ -33,7 +34,7 @@ export function GaugeProgressWidget({ data }: GaugeProgressWidgetProps) {
             cy={size / 2}
             r={radius}
             fill="none"
-            stroke="rgb(var(--color-dark-700))"
+            stroke={CHART_COLORS.track}
             strokeWidth={strokeWidth}
           />
           {/* Progress */}

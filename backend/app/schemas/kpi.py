@@ -89,6 +89,7 @@ class KPIResponse(BaseModel):
     created_at: datetime
     data_fields: list[DataFieldBrief] = []
     room_paths: list[str] = []
+    assigned_room_ids: list[UUID] = []
     room_id: Optional[UUID] = None
     room_name: Optional[str] = None
     room_color: Optional[str] = None

@@ -1,5 +1,5 @@
-import { Fragment, useState, useEffect, useCallback } from 'react'
-import { Dialog, Transition } from '@headlessui/react'
+import { useState, useEffect, useCallback } from 'react'
+import { Dialog } from '@headlessui/react'
 import {
   ArrowPathIcon,
   PlusIcon,
@@ -20,6 +20,10 @@ import { DeleteConfirmModal } from '../../components/DeleteConfirmModal'
 import { integrationsApi } from '../../services/integrations'
 import type { Integration, IntegrationProvider } from '../../types/integration'
 import { formatDistanceToNow } from 'date-fns'
+import { getApiError } from '../../lib/apiError'
+import { StatChip } from '../../components/ui/StatChip'
+import { Modal } from '../../components/ui/Modal'
+import { WhatsAppOrgCard } from '../../components/whatsapp/WhatsAppOrgCard'
 
 const PROVIDERS: Record<
   string,
@@ -58,15 +62,15 @@ const STATUS_CONFIG: Record<
 > = {
   connected: {
     icon: CheckCircleIcon,
-    className: 'text-emerald-400',
+    className: 'text-success-400',
     label: 'Connected',
-    badge: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+    badge: 'bg-success-500/10 text-success-400 border-success-500/20',
   },
   error: {
     icon: ExclamationCircleIcon,
-    className: 'text-rose-400',
+    className: 'text-danger-400',
     label: 'Error',
-    badge: 'bg-rose-500/10 text-rose-400 border-rose-500/20',
+    badge: 'bg-danger-500/10 text-danger-400 border-danger-500/20',
   },
   disconnected: {
     icon: XCircleIcon,
@@ -76,9 +80,9 @@ const STATUS_CONFIG: Record<
   },
   pending_auth: {
     icon: ClockIcon,
-    className: 'text-amber-400',
+    className: 'text-warning-400',
     label: 'Pending Auth',
-    badge: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+    badge: 'bg-warning-500/10 text-warning-400 border-warning-500/20',
   },
 }
 
@@ -126,8 +130,7 @@ export function AdminIntegrations() {
       }
       fetchIntegrations()
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { detail?: string } } }
-      showError('Sync Failed', error.response?.data?.detail || 'Failed to trigger sync')
+      showError('Sync Failed', getApiError(err, 'Failed to trigger sync'))
     } finally {
       setSyncingIds((prev) => {
         const next = new Set(prev)
@@ -149,8 +152,7 @@ export function AdminIntegrations() {
       setDeleteIntegration(null)
       fetchIntegrations()
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { detail?: string } } }
-      showError(error.response?.data?.detail || 'Failed to disconnect')
+      showError(getApiError(err, 'Failed to disconnect'))
     } finally {
       setIsDeleting(false)
     }
@@ -175,23 +177,17 @@ export function AdminIntegrations() {
 
   return (
     <div className="space-y-6">
+      <WhatsAppOrgCard />
+
       {/* Header & Badges */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-dark-900 border border-dark-700/70 text-xs">
-            <ArrowPathRoundedSquareIcon className="w-3.5 h-3.5 text-dark-400 stroke-[1.8]" />
-            <span className="text-dark-400">Total:</span>
-            <span className="font-semibold text-foreground">{integrations.length}</span>
-          </div>
+          <StatChip icon={<ArrowPathRoundedSquareIcon className="w-3.5 h-3.5 text-dark-400 stroke-[1.8]" />} label="Total" value={integrations.length} />
 
-          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-dark-900 border border-dark-700/70 text-xs">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-            <span className="text-dark-400">Connected:</span>
-            <span className="font-semibold text-foreground">{connectedCount}</span>
-          </div>
+          <StatChip icon={<span className="w-1.5 h-1.5 rounded-full bg-success-400" />} label="Connected" value={connectedCount} />
 
           {errorCount > 0 && (
-            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-xs text-rose-400">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-danger-500/10 border border-danger-500/20 text-xs text-danger-400">
               <ExclamationTriangleIcon className="w-3.5 h-3.5" />
               <span>{errorCount} Error{errorCount > 1 ? 's' : ''}</span>
             </div>
@@ -201,7 +197,7 @@ export function AdminIntegrations() {
         <button
           type="button"
           onClick={() => setIsPickerOpen(true)}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-foreground text-dark-950 font-semibold hover:opacity-90 transition-opacity text-sm shadow-sm cursor-pointer self-start sm:self-auto"
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary-500 text-white font-semibold hover:opacity-90 transition-opacity text-sm shadow-sm cursor-pointer self-start sm:self-auto"
         >
           <PlusIcon className="w-4 h-4 stroke-[2.5]" />
           <span>Add Integration</span>
@@ -222,7 +218,7 @@ export function AdminIntegrations() {
             <button
               type="button"
               onClick={() => setIsPickerOpen(true)}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-foreground text-dark-950 font-semibold text-xs hover:opacity-90 transition-opacity shadow-sm cursor-pointer"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary-500 text-white font-semibold text-xs hover:opacity-90 transition-opacity shadow-sm cursor-pointer"
             >
               <PlusIcon className="w-4 h-4 stroke-[2.5]" />
               <span>Connect First Integration</span>
@@ -263,7 +259,7 @@ export function AdminIntegrations() {
                               .toUpperCase()}
                           </div>
                           <div className="min-w-0">
-                            <p className="text-sm font-semibold text-foreground truncate group-hover:text-primary-400 transition-colors">
+                            <p className="text-sm font-semibold text-foreground truncate group-hover:text-brand transition-colors">
                               {integration.display_name}
                             </p>
                             <p className="text-xs text-dark-400">
@@ -337,7 +333,7 @@ export function AdminIntegrations() {
                           <button
                             type="button"
                             onClick={() => setDeleteIntegration(integration)}
-                            className="p-1.5 text-dark-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer"
+                            className="p-1.5 text-dark-400 hover:text-danger-400 hover:bg-danger-500/10 rounded-lg transition-colors cursor-pointer"
                             title="Disconnect"
                           >
                             <TrashIcon className="w-4 h-4" />
@@ -354,78 +350,48 @@ export function AdminIntegrations() {
       </div>
 
       {/* Provider Picker Modal */}
-      <Transition appear show={isPickerOpen} as={Fragment}>
-        <Dialog
-          as="div"
-          className="relative z-50"
-          onClose={() => setIsPickerOpen(false)}
-        >
-          <Transition.Child
-            as={Fragment}
-            enter="ease-out duration-300"
-            enterFrom="opacity-0"
-            enterTo="opacity-100"
-            leave="ease-in duration-200"
-            leaveFrom="opacity-100"
-            leaveTo="opacity-0"
-          >
-            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" />
-          </Transition.Child>
-
-          <div className="fixed inset-0 overflow-y-auto">
-            <div className="flex min-h-full items-center justify-center p-4">
-              <Transition.Child
-                as={Fragment}
-                enter="ease-out duration-300"
-                enterFrom="opacity-0 scale-95"
-                enterTo="opacity-100 scale-100"
-                leave="ease-in duration-200"
-                leaveFrom="opacity-100 scale-100"
-                leaveTo="opacity-0 scale-95"
-              >
-                <Dialog.Panel className="w-full max-w-lg transform overflow-hidden rounded-2xl bg-dark-900 border border-dark-700 p-6 shadow-2xl transition-all">
-                  <div className="flex items-center justify-between mb-4">
-                    <div>
-                      <Dialog.Title className="text-base font-bold text-foreground tracking-tight">
-                        Choose Integration Provider
-                      </Dialog.Title>
-                      <p className="text-xs text-dark-400 mt-0.5">Select a data source to connect with your rooms</p>
-                    </div>
-                    <button
-                      onClick={() => setIsPickerOpen(false)}
-                      className="text-dark-400 hover:text-foreground transition-colors cursor-pointer"
-                    >
-                      <XMarkIcon className="h-5 w-5" />
-                    </button>
-                  </div>
-
-                  <div className="space-y-2.5">
-                    {Object.entries(PROVIDERS).map(([key, provider]) => (
-                      <button
-                        key={key}
-                        onClick={() => handleChooseProvider(key)}
-                        className="flex items-center gap-3.5 w-full p-3.5 bg-dark-950/40 hover:bg-dark-800/40 border border-dark-800 rounded-2xl transition-all text-left cursor-pointer group"
-                      >
-                        <div
-                          className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold flex-shrink-0 group-hover:scale-105 transition-transform"
-                          style={{ backgroundColor: provider.color }}
-                        >
-                          {provider.name.charAt(0)}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-semibold text-foreground group-hover:text-primary-400 transition-colors">{provider.name}</p>
-                          <p className="text-[11px] text-dark-400 mt-0.5">{provider.description}</p>
-                        </div>
-                        <span className="text-xs text-dark-400 group-hover:text-foreground transition-colors">Connect &rarr;</span>
-                      </button>
-                    ))}
-                  </div>
-                </Dialog.Panel>
-              </Transition.Child>
-            </div>
+      <Modal
+        isOpen={isPickerOpen}
+        onClose={() => setIsPickerOpen(false)}
+        className="w-full max-w-lg transform overflow-hidden rounded-2xl bg-dark-900 border border-dark-700 p-6 shadow-2xl transition-all"
+      >
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <Dialog.Title className="text-base font-bold text-foreground tracking-tight">
+              Choose Integration Provider
+            </Dialog.Title>
+            <p className="text-xs text-dark-400 mt-0.5">Select a data source to connect with your rooms</p>
           </div>
-        </Dialog>
-      </Transition>
+          <button
+            onClick={() => setIsPickerOpen(false)}
+            className="text-dark-400 hover:text-foreground transition-colors cursor-pointer"
+          >
+            <XMarkIcon className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="space-y-2.5">
+          {Object.entries(PROVIDERS).map(([key, provider]) => (
+            <button
+              key={key}
+              onClick={() => handleChooseProvider(key)}
+              className="flex items-center gap-3.5 w-full p-3.5 bg-dark-950/40 hover:bg-dark-800/40 border border-dark-800 rounded-2xl transition-all text-left cursor-pointer group"
+            >
+              <div
+                className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold flex-shrink-0 group-hover:scale-105 transition-transform"
+                style={{ backgroundColor: provider.color }}
+              >
+                {provider.name.charAt(0)}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-foreground group-hover:text-brand transition-colors">{provider.name}</p>
+                <p className="text-[11px] text-dark-400 mt-0.5">{provider.description}</p>
+              </div>
+              <span className="text-xs text-dark-400 group-hover:text-foreground transition-colors">Connect &rarr;</span>
+            </button>
+          ))}
+        </div>
+      </Modal>
 
       {/* Setup / Edit Modal */}
       {isSetupOpen && setupProvider && (

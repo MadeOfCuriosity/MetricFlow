@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
 import { ExclamationCircleIcon } from '@heroicons/react/24/outline'
+import { Spinner } from '../components/ui/Spinner'
 
 const industries = [
   'Technology',
@@ -111,7 +112,7 @@ export function GoogleOrgSetup() {
                 required
                 value={orgName}
                 onChange={(e) => setOrgName(e.target.value)}
-                className="mt-1 block w-full px-4 py-3 bg-dark-800 border border-dark-600 rounded-lg text-foreground placeholder-dark-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="mt-1 block w-full px-4 py-3 bg-dark-800 border border-dark-600 rounded-lg text-foreground placeholder-dark-400 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
                 placeholder="Acme Corp"
               />
             </div>
@@ -124,7 +125,7 @@ export function GoogleOrgSetup() {
                 id="industry"
                 value={industry}
                 onChange={(e) => setIndustry(e.target.value)}
-                className="mt-1 block w-full px-4 py-3 bg-dark-800 border border-dark-600 rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="mt-1 block w-full px-4 py-3 bg-dark-800 border border-dark-600 rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               >
                 <option value="">Select industry</option>
                 {industries.map((ind) => (
@@ -142,7 +143,7 @@ export function GoogleOrgSetup() {
             >
               {isLoading ? (
                 <div className="flex items-center gap-2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
+                  <Spinner tone="white" />
                   Creating organization...
                 </div>
               ) : (

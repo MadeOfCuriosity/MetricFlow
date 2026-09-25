@@ -20,7 +20,7 @@ export function SettingsActivityPage() {
           </button>
           <div className="h-4 w-px bg-dark-800" />
           <div className="flex items-center gap-2.5">
-            <div className="p-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+            <div className="p-1.5 rounded-lg bg-dark-800 border border-dark-700 text-dark-300">
               <ClockIcon className="w-4 h-4 stroke-[2]" />
             </div>
             <div>

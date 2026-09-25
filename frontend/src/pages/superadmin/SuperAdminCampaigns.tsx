@@ -10,13 +10,14 @@ import {
   CampaignTargetFilter,
   CreateCampaignData,
 } from '../../services/superadmin'
+import { getApiError } from '../../lib/apiError'
 
 function SeverityPill({ severity }: { severity: string }) {
   const map: Record<string, string> = {
-    info: 'bg-primary-500/15 text-primary-400',
+    info: 'bg-brand/15 text-brand',
     warning: 'bg-warning-500/15 text-warning-400',
     success: 'bg-success-500/15 text-success-400',
-    announcement: 'bg-primary-500/15 text-primary-400',
+    announcement: 'bg-brand/15 text-brand',
   }
   return (
     <span className={`text-xs px-2 py-0.5 rounded-full ${map[severity] || map.info}`}>
@@ -61,7 +62,7 @@ export function SuperAdminCampaigns() {
       await superadminService.sendCampaign(c.id)
       load()
     } catch (err: any) {
-      alert(err.response?.data?.detail || 'Failed to send')
+      alert(getApiError(err, 'Failed to send'))
     }
   }
 
@@ -71,7 +72,7 @@ export function SuperAdminCampaigns() {
       await superadminService.deleteCampaign(c.id)
       load()
     } catch (err: any) {
-      alert(err.response?.data?.detail || 'Failed to delete')
+      alert(getApiError(err, 'Failed to delete'))
     }
   }
 
@@ -241,7 +242,7 @@ function ComposeCampaign({
       const r = await superadminService.previewCampaignTarget(target)
       setPreview(r)
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Failed to preview')
+      setError(getApiError(err, 'Failed to preview'))
     }
   }
 
@@ -263,7 +264,7 @@ function ComposeCampaign({
       await superadminService.createCampaign(payload)
       onCreated()
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Failed to create campaign')
+      setError(getApiError(err, 'Failed to create campaign'))
     } finally {
       setSubmitting(false)
     }
@@ -370,7 +371,7 @@ function ComposeCampaign({
               onClick={() => setTargetMode(m)}
               className={`px-3 py-1 text-sm rounded-full border ${
                 targetMode === m
-                  ? 'bg-primary-500 border-primary-500 text-white'
+                  ? 'bg-brand border-brand text-white'
                   : 'border-dark-600 text-dark-200 hover:bg-dark-800'
               }`}
             >

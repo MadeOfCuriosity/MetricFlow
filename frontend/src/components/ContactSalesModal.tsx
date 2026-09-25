@@ -144,7 +144,7 @@ export function ContactSalesModal({
                   onChange={(e) => setName(e.target.value)}
                   required
                   maxLength={255}
-                  className="w-full bg-dark-800 border border-dark-700 rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary-500"
+                  className="w-full bg-dark-800 border border-dark-700 rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-brand"
                 />
               </div>
               <div>
@@ -157,7 +157,7 @@ export function ContactSalesModal({
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   maxLength={255}
-                  className="w-full bg-dark-800 border border-dark-700 rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary-500"
+                  className="w-full bg-dark-800 border border-dark-700 rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-brand"
                 />
               </div>
             </div>
@@ -169,7 +169,7 @@ export function ContactSalesModal({
                   value={company}
                   onChange={(e) => setCompany(e.target.value)}
                   maxLength={255}
-                  className="w-full bg-dark-800 border border-dark-700 rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary-500"
+                  className="w-full bg-dark-800 border border-dark-700 rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-brand"
                 />
               </div>
               <div>
@@ -177,7 +177,7 @@ export function ContactSalesModal({
                 <select
                   value={teamSize}
                   onChange={(e) => setTeamSize(e.target.value)}
-                  className="w-full bg-dark-800 border border-dark-700 rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary-500"
+                  className="w-full bg-dark-800 border border-dark-700 rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-brand"
                 >
                   <option value="">Select…</option>
                   <option value="1-10">1–10</option>
@@ -198,7 +198,7 @@ export function ContactSalesModal({
                 rows={3}
                 maxLength={2000}
                 placeholder="e.g. We need SSO, 50 seats, and Salesforce integration…"
-                className="w-full bg-dark-800 border border-dark-700 rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary-500 resize-none"
+                className="w-full bg-dark-800 border border-dark-700 rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-brand resize-none"
               />
             </div>
             {error && <div className="text-xs text-danger-400">{error}</div>}

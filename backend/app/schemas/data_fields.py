@@ -15,6 +15,8 @@ class DataFieldCreateRequest(BaseModel):
     description: Optional[str] = None
     unit: Optional[str] = Field(None, max_length=50)
     entry_interval: EntryInterval = "daily"
+    # First day of the first weekly/monthly period (defaults to today for those intervals)
+    period_start_date: Optional[date] = None
 
 
 class DataFieldUpdateRequest(BaseModel):
@@ -23,6 +25,7 @@ class DataFieldUpdateRequest(BaseModel):
     unit: Optional[str] = Field(None, max_length=50)
     room_ids: Optional[list[UUID]] = None
     entry_interval: Optional[EntryInterval] = None
+    period_start_date: Optional[date] = None
 
 
 class DataFieldBrief(BaseModel):
@@ -42,11 +45,15 @@ class DataFieldResponse(BaseModel):
     room_ids: list[UUID] = []
     room_names: list[str] = []
     room_paths: list[str] = []
+    # Rooms inherited because a KPI in that room uses this field (read-only)
+    kpi_room_ids: list[UUID] = []
+    kpi_room_paths: list[str] = []
     name: str
     variable_name: str
     description: Optional[str]
     unit: Optional[str]
     entry_interval: str = "daily"
+    period_start_date: Optional[date] = None
     created_by: Optional[UUID]
     created_at: datetime
     kpi_count: int = 0
@@ -104,11 +111,23 @@ class FieldFormItem(BaseModel):
     entry_interval: str = "daily"
     has_entry_today: bool
     today_value: Optional[float] = None
+    # The period this entry belongs to (same day for daily/custom)
+    period_start: Optional[date] = None
+    period_end: Optional[date] = None
+    entered_by_name: Optional[str] = None
+
+
+class AssigneeBrief(BaseModel):
+    id: UUID
+    name: str
 
 
 class RoomFieldGroup(BaseModel):
     room_id: Optional[UUID]
     room_name: str
+    room_color: Optional[str] = None
+    # Users assigned to this room (responsible for completing its entries)
+    assignees: list[AssigneeBrief] = []
     fields: list[FieldFormItem]
 
 
@@ -118,6 +137,25 @@ class TodayFieldFormResponse(BaseModel):
     rooms: list[RoomFieldGroup]
     completed_count: int
     total_count: int
+
+
+# --- Pending (missed) entries ---
+
+class PendingFieldItem(BaseModel):
+    data_field_id: UUID
+    data_field_name: str
+    unit: Optional[str] = None
+    entry_interval: str
+    # The missed period; save with date = period_start
+    period_start: date
+    period_end: date
+    room_names: list[str] = []
+
+
+class PendingEntriesResponse(BaseModel):
+    since: date
+    items: list[PendingFieldItem]
+    total: int
 
 
 # --- Sheet View Schemas ---
@@ -130,6 +168,11 @@ class SheetFieldRow(BaseModel):
     entry_interval: str = "daily"
     values: dict[str, Optional[float]]  # date_str -> value
     mtd: float = 0.0
+    # Weekly/monthly: editable cells only — period start -> period end (inside this month).
+    # None = every day is editable (daily and "no schedule").
+    periods: Optional[dict[str, str]] = None
+    # First day of the first weekly/monthly period (None for daily / no schedule)
+    period_start_date: Optional[date] = None
 
 
 class SheetRoomGroup(BaseModel):

@@ -149,6 +149,7 @@ def get_all_kpis(
                 primary_room_name = entry_room.name
 
         resp.room_paths = sorted(paths)
+        resp.assigned_room_ids = [a.room_id for a in kpi_assigns if a.room_id in org_rooms]
         resp.room_id = primary_room_id
         resp.room_name = primary_room_name
         resp.room_color = resolved_room_color

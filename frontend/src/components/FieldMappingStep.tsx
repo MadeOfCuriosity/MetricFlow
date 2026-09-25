@@ -82,7 +82,7 @@ export function FieldMappingStep({
         <button
           type="button"
           onClick={addRow}
-          className="inline-flex items-center gap-1 text-xs text-primary-400 hover:text-primary-300 transition-colors"
+          className="inline-flex items-center gap-1 text-xs text-brand hover:text-brand transition-colors"
         >
           <PlusIcon className="w-3.5 h-3.5" />
           Add Mapping
@@ -108,7 +108,7 @@ export function FieldMappingStep({
           <select
             value={row.external_field_name}
             onChange={(e) => updateRow(row.id, 'external_field_name', e.target.value)}
-            className="bg-dark-800 border border-dark-600 rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary-500"
+            className="bg-dark-800 border border-dark-600 rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-brand"
           >
             <option value="">Select source field...</option>
             {externalFields.map((f) => (
@@ -125,7 +125,7 @@ export function FieldMappingStep({
           <select
             value={row.data_field_id}
             onChange={(e) => updateRow(row.id, 'data_field_id', e.target.value)}
-            className="bg-dark-800 border border-dark-600 rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary-500"
+            className="bg-dark-800 border border-dark-600 rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-brand"
           >
             <option value="">Select data field...</option>
             {dataFields.map((f) => (
@@ -140,7 +140,7 @@ export function FieldMappingStep({
             <select
               value={row.aggregation}
               onChange={(e) => updateRow(row.id, 'aggregation', e.target.value)}
-              className="bg-dark-800 border border-dark-600 rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary-500 w-28"
+              className="bg-dark-800 border border-dark-600 rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-brand w-28"
             >
               {AGGREGATION_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>{opt.label}</option>

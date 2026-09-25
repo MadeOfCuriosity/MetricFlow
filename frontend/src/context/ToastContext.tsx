@@ -34,7 +34,7 @@ const getToastStyles = (type: ToastType) => {
     case 'success':
       return {
         bg: 'bg-success-500/90',
-        border: 'border-green-700',
+        border: 'border-success-700',
         icon: CheckCircleIcon,
         iconColor: 'text-success-400',
       }

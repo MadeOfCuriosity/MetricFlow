@@ -22,6 +22,8 @@ import {
 import { ActivityHeatmap } from '../../components/ActivityHeatmap'
 import { useToast } from '../../context/ToastContext'
 import { adminService, AdminStats } from '../../services/admin'
+import { SegmentedControl } from '../../components/ui/SegmentedControl'
+import { CHART_COLORS } from '../../lib/chartColors'
 
 interface BarTooltipProps {
   active?: boolean
@@ -39,9 +41,9 @@ function CompletionTooltip({ active, payload, label }: BarTooltipProps) {
           <span
             className={`w-2 h-2 rounded-full ${
               rate >= 100
-                ? 'bg-emerald-400 ring-2 ring-emerald-400/20'
+                ? 'bg-success-400 ring-2 ring-success-400/20'
                 : rate > 0
-                ? 'bg-indigo-400 ring-2 ring-indigo-400/20'
+                ? 'bg-brand ring-2 ring-brand/20'
                 : 'bg-dark-600'
             }`}
           />
@@ -130,7 +132,7 @@ export function AdminDashboard() {
       label: 'Active Integrations',
       value: stats?.active_integrations ?? 0,
       icon: ArrowPathRoundedSquareIcon,
-      link: '#integrations',
+      link: '/settings/integrations',
     },
     {
       label: "Today's Entries",
@@ -195,7 +197,7 @@ export function AdminDashboard() {
           }}
           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-dark-900 hover:bg-dark-800 border border-dark-700/80 hover:border-dark-600 text-xs font-semibold text-dark-300 hover:text-foreground transition-all cursor-pointer shadow-xs"
         >
-          <UserPlusIcon className="w-3.5 h-3.5 text-primary-400 stroke-[2]" />
+          <UserPlusIcon className="w-3.5 h-3.5 text-brand stroke-[2]" />
           <span>Invite User</span>
         </button>
       </div>
@@ -211,38 +213,30 @@ export function AdminDashboard() {
               </h2>
               <p className="text-[11px] text-dark-400 mt-0.5">Tracking submission compliance over time</p>
             </div>
-            <div className="flex items-center p-1 bg-dark-950 border border-dark-800 rounded-xl">
-              {([7, 14, 30] as const).map((d) => (
-                <button
-                  key={d}
-                  type="button"
-                  onClick={() => setChartDays(d)}
-                  className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg transition-all cursor-pointer ${
-                    chartDays === d
-                      ? 'bg-dark-800 text-foreground shadow-sm'
-                      : 'text-dark-400 hover:text-foreground'
-                  }`}
-                >
-                  {d}d
-                </button>
-              ))}
-            </div>
+            <SegmentedControl
+              size="xs"
+              surface="inset"
+              aria-label="Chart range"
+              value={chartDays}
+              onChange={setChartDays}
+              options={([7, 14, 30] as const).map((d) => ({ value: d, label: `${d}d` }))}
+            />
           </div>
 
           {chartData.length > 0 ? (
             <div className="my-auto py-2">
               <ResponsiveContainer width="100%" height={160}>
                 <BarChart data={chartData} margin={{ top: 10, right: 8, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#262626" vertical={false} />
+                  <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} vertical={false} />
                   <XAxis
                     dataKey="date"
-                    tick={{ fontSize: 10, fill: '#737373' }}
+                    tick={{ fontSize: 10, fill: CHART_COLORS.axis }}
                     tickLine={false}
                     axisLine={false}
                     tickFormatter={(v: string) => v.slice(5)}
                   />
                   <YAxis
-                    tick={{ fontSize: 10, fill: '#737373' }}
+                    tick={{ fontSize: 10, fill: CHART_COLORS.axis }}
                     domain={[0, 100]}
                     tickLine={false}
                     axisLine={false}
@@ -250,7 +244,7 @@ export function AdminDashboard() {
                   />
                   <Tooltip
                     content={<CompletionTooltip />}
-                    cursor={{ fill: 'rgba(255, 255, 255, 0.04)', radius: 4 }}
+                    cursor={{ fill: 'rgb(var(--color-dark-700) / 0.4)', radius: 4 }}
                   />
                   <Bar dataKey="rate" radius={[4, 4, 0, 0]} maxBarSize={28}>
                     {chartData.map((entry, index) => (
@@ -258,10 +252,10 @@ export function AdminDashboard() {
                         key={`cell-${index}`}
                         fill={
                           entry.rate >= 100
-                            ? '#10b981'
+                            ? CHART_COLORS.up
                             : entry.rate > 0
-                            ? '#6366f1'
-                            : '#262626'
+                            ? CHART_COLORS.brand
+                            : CHART_COLORS.track
                         }
                       />
                     ))}
@@ -278,11 +272,11 @@ export function AdminDashboard() {
           {/* Indicator legend */}
           <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-dark-800/80 text-[11px] text-dark-400 select-none">
             <span className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block" />
+              <span className="w-2 h-2 rounded-full bg-success-400 inline-block" />
               <span className="text-dark-300">100% Target Met</span>
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-indigo-500 inline-block" />
+              <span className="w-2 h-2 rounded-full bg-brand inline-block" />
               <span className="text-dark-300">Partial Completion</span>
             </span>
             <span className="flex items-center gap-1.5">

@@ -12,8 +12,9 @@ import { useToast } from '../context/ToastContext'
 import { useRoom } from '../context/RoomContext'
 import api from '../services/api'
 import { roomsApi } from '../services/rooms'
+import { getApiError } from '../lib/apiError'
+import type { TimePeriod } from '../types/kpi'
 
-type TimePeriod = 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'other'
 
 interface KPISuggestion {
   name: string
@@ -232,7 +233,7 @@ export function AIBuilder({
       if (err.response?.data?.detail?.includes('already exists')) {
         showError('KPI Exists', 'A KPI with this name already exists')
       } else {
-        showError('Failed to Create', err.response?.data?.detail || 'Could not create the KPI. Please try again.')
+        showError('Failed to Create', getApiError(err, 'Could not create the KPI. Please try again.'))
       }
     } finally {
       setIsAddingKPI(false)
@@ -245,7 +246,7 @@ export function AIBuilder({
       {embedded ? (
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-1">
           <div className="flex items-center gap-2">
-            <SparklesIcon className="w-4 h-4 text-primary-400" />
+            <SparklesIcon className="w-4 h-4 text-brand" />
             <span className="text-sm font-semibold text-foreground">AI KPI Creation</span>
             <span className="text-xs text-dark-400">— Natural language formula builder</span>
           </div>
@@ -322,7 +323,7 @@ export function AIBuilder({
               <button
                 type="button"
                 onClick={onViewAllKpis}
-                className="flex items-center gap-1.5 text-xs font-semibold text-primary-400 hover:text-primary-300 transition-colors cursor-pointer"
+                className="flex items-center gap-1.5 text-xs font-semibold text-brand hover:text-brand transition-colors cursor-pointer"
               >
                 <span>View in All KPIs</span>
                 <ArrowRightIcon className="w-3.5 h-3.5" />
@@ -331,7 +332,7 @@ export function AIBuilder({
             {effectiveRoomId && (
               <Link
                 to={`/rooms/${effectiveRoomId}`}
-                className="flex items-center gap-1.5 text-xs text-primary-400 hover:text-primary-300 transition-colors"
+                className="flex items-center gap-1.5 text-xs text-brand hover:text-brand transition-colors"
               >
                 <ArrowTopRightOnSquareIcon className="w-3.5 h-3.5" />
                 View Room
@@ -339,7 +340,7 @@ export function AIBuilder({
             )}
             <Link
               to="/entries"
-              className="flex items-center gap-1.5 text-xs text-primary-400 hover:text-primary-300 transition-colors"
+              className="flex items-center gap-1.5 text-xs text-brand hover:text-brand transition-colors"
             >
               <ArrowTopRightOnSquareIcon className="w-3.5 h-3.5" />
               Enter Data

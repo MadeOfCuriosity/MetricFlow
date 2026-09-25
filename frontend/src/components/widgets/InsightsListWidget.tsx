@@ -27,7 +27,7 @@ export function InsightsListWidget({ config, data, dateRange }: InsightsListWidg
   return (
     <div className="h-full flex flex-col">
       <div className="flex items-center justify-between mb-3 flex-shrink-0">
-        <Link to="/insights" className="text-xs text-primary-400 hover:text-primary-300">
+        <Link to="/insights" className="text-xs text-brand hover:text-brand">
           View all
         </Link>
       </div>

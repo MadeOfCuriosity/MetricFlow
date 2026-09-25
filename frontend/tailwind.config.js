@@ -1,3 +1,8 @@
+// All colors come from src/styles/theme.css; this file only maps Tailwind names to those variables.
+const v = (name) => `rgb(var(--color-${name}) / <alpha-value>)`
+const scale = (name, steps) => Object.fromEntries(steps.map((s) => [s, v(`${name}-${s}`)]))
+const SHADES = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950]
+
 /** @type {import('tailwindcss').Config} */
 export default {
   content: [
@@ -10,53 +15,18 @@ export default {
       },
       extend: {
       colors: {
-        // Theme-aware surface colors (via CSS variables)
-        dark: {
-          50: 'rgb(var(--color-dark-50) / <alpha-value>)',
-          100: 'rgb(var(--color-dark-100) / <alpha-value>)',
-          200: 'rgb(var(--color-dark-200) / <alpha-value>)',
-          300: 'rgb(var(--color-dark-300) / <alpha-value>)',
-          400: 'rgb(var(--color-dark-400) / <alpha-value>)',
-          500: 'rgb(var(--color-dark-500) / <alpha-value>)',
-          600: 'rgb(var(--color-dark-600) / <alpha-value>)',
-          700: 'rgb(var(--color-dark-700) / <alpha-value>)',
-          800: 'rgb(var(--color-dark-800) / <alpha-value>)',
-          850: 'rgb(var(--color-dark-850) / <alpha-value>)',
-          900: 'rgb(var(--color-dark-900) / <alpha-value>)',
-          950: 'rgb(var(--color-dark-950) / <alpha-value>)',
-        },
-        // Theme-aware foreground (white in dark, near-black in light)
-        foreground: 'rgb(var(--color-foreground) / <alpha-value>)',
-        // Theme-aware primary monochrome accent (via CSS variables)
-        primary: {
-          50: 'rgb(var(--color-primary-50) / <alpha-value>)',
-          100: 'rgb(var(--color-primary-100) / <alpha-value>)',
-          200: 'rgb(var(--color-primary-200) / <alpha-value>)',
-          300: 'rgb(var(--color-primary-300) / <alpha-value>)',
-          400: 'rgb(var(--color-primary-400) / <alpha-value>)',
-          500: 'rgb(var(--color-primary-500) / <alpha-value>)',
-          600: 'rgb(var(--color-primary-600) / <alpha-value>)',
-          700: 'rgb(var(--color-primary-700) / <alpha-value>)',
-          800: 'rgb(var(--color-primary-800) / <alpha-value>)',
-          900: 'rgb(var(--color-primary-900) / <alpha-value>)',
-          950: 'rgb(var(--color-primary-950) / <alpha-value>)',
-        },
-        // Supporting status colors (calibrated for monochrome balance)
-        success: {
-          400: '#34d399',
-          500: '#10b981',
-          600: '#059669',
-        },
-        warning: {
-          400: '#fbbf24',
-          500: '#f59e0b',
-          600: '#d97706',
-        },
-        danger: {
-          400: '#f87171',
-          500: '#ef4444',
-          600: '#dc2626',
-        },
+        // Surfaces & muted text (theme-aware)
+        dark: scale('dark', [50, 100, 200, 300, 400, 500, 600, 700, 800, 850, 900, 950]),
+        // Headings & strong text (white in dark, near-black in light)
+        foreground: v('foreground'),
+        // Monochrome, for buttons
+        primary: scale('primary', SHADES),
+        // Brand accent #cf603e: highlights, charts, active/selected states
+        brand: v('brand'),
+        // Status (the only greens/ambers/reds in the app)
+        success: scale('success', [200, 300, 400, 500, 600, 700]),
+        warning: scale('warning', [300, 400, 500, 600]),
+        danger: scale('danger', [300, 400, 500, 600]),
       },
       borderRadius: {
         'xl': '12px',

@@ -1,10 +1,11 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef } from 'react'
 import {
   CheckCircleIcon,
   PlusCircleIcon,
   ChevronDownIcon,
 } from '@heroicons/react/24/outline'
 import type { DataField } from '../types/dataField'
+import { useDismiss } from '../hooks/useDismiss'
 
 interface DataFieldChipSelectorProps {
   formulaVariables: string[]
@@ -26,16 +27,10 @@ export function DataFieldChipSelector({
   const [search, setSearch] = useState('')
   const dropdownRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setOpenDropdown(null)
-        setSearch('')
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
+  useDismiss([dropdownRef], () => {
+    setOpenDropdown(null)
+    setSearch('')
+  })
 
   const getMatchedField = (variable: string): DataField | undefined => {
     const mappedId = mappings[variable]
@@ -104,7 +99,7 @@ export function DataFieldChipSelector({
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
                       placeholder="Search fields..."
-                      className="w-full px-3 py-1.5 bg-dark-700 border border-dark-600 rounded-lg text-xs text-foreground placeholder-dark-400 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                      className="w-full px-3 py-1.5 bg-dark-700 border border-dark-600 rounded-lg text-xs text-foreground placeholder-dark-400 focus:outline-none focus:ring-1 focus:ring-brand"
                       autoFocus
                     />
                   </div>

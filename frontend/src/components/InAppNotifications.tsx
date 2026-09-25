@@ -9,10 +9,10 @@ import {
 import { notificationsService, ActiveNotification } from '../services/notifications'
 
 const SEVERITY_STYLES: Record<string, { bg: string; icon: any }> = {
-  info: { bg: 'bg-primary-500/10 border-primary-500/30 text-primary-300', icon: InformationCircleIcon },
+  info: { bg: 'bg-brand/10 border-brand/30 text-brand', icon: InformationCircleIcon },
   warning: { bg: 'bg-warning-500/10 border-warning-500/30 text-warning-300', icon: ExclamationTriangleIcon },
   success: { bg: 'bg-success-500/10 border-success-500/30 text-success-300', icon: CheckCircleIcon },
-  announcement: { bg: 'bg-primary-500/10 border-primary-500/30 text-primary-300', icon: MegaphoneIcon },
+  announcement: { bg: 'bg-brand/10 border-brand/30 text-brand', icon: MegaphoneIcon },
 }
 
 export function InAppNotifications() {

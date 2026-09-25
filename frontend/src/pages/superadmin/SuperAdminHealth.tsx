@@ -20,7 +20,7 @@ function Section({
   return (
     <div className="bg-dark-900 border border-dark-700 rounded-xl p-5">
       <div className="flex items-center gap-2 text-sm font-semibold text-foreground mb-3">
-        <Icon className="w-4 h-4 text-primary-400" />
+        <Icon className="w-4 h-4 text-brand" />
         {title}
       </div>
       {children}
@@ -116,7 +116,7 @@ export function SuperAdminHealth() {
                   <td className="py-2">
                     <Link
                       to={`/superadmin/organizations/${f.org_id}`}
-                      className="text-primary-400 hover:underline"
+                      className="text-brand hover:underline"
                     >
                       {f.org_name}
                     </Link>

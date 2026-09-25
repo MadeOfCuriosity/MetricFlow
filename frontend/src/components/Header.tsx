@@ -2,7 +2,6 @@ import { Fragment, useState, useEffect } from 'react'
 import { Menu, Transition, Dialog } from '@headlessui/react'
 import { useNavigate } from 'react-router-dom'
 import {
-  MagnifyingGlassIcon,
   UserCircleIcon,
   ArrowRightOnRectangleIcon,
   Cog6ToothIcon,
@@ -19,6 +18,7 @@ import {
 import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
 import { LiquidBridge } from './LiquidBridge'
+import { MaskIcon } from './ui/MaskIcon'
 
 export function MagicWandIcon({ className = 'w-4 h-4' }: { className?: string }) {
   return (
@@ -49,8 +49,12 @@ interface HeaderProps {
   isAIAgentOpen?: boolean
 }
 
+function DataTableIcon({ className = '' }: { className?: string }) {
+  return <MaskIcon src="/icons/datatable.svg" className={className} />
+}
+
 const profileMenuLinks = [
-  { path: '/data-table', label: 'Data Table', icon: TableCellsIcon, adminOnly: false },
+  { path: '/data-table', label: 'Data Table', icon: DataTableIcon, adminOnly: false },
   { path: '/settings', label: 'Settings', icon: Cog6ToothIcon, adminOnly: false },
 ]
 
@@ -58,7 +62,7 @@ const searchItems = [
   { name: 'Dashboard', path: '/dashboard', icon: HomeIcon, category: 'Navigation' },
   { name: 'Rooms & Departments', path: '/rooms', icon: FolderIcon, category: 'Navigation' },
   { name: 'KPIs & Metrics', path: '/kpis', icon: ChartBarIcon, category: 'Navigation' },
-  { name: 'Data Fields', path: '/data', icon: TableCellsIcon, category: 'Navigation' },
+  { name: 'Data Table', path: '/data-table', icon: TableCellsIcon, category: 'Navigation' },
   { name: 'Daily Data Entries', path: '/entries', icon: TableCellsIcon, category: 'Navigation' },
   { name: 'AI Insights', path: '/insights', icon: LightBulbIcon, category: 'Navigation' },
   { name: 'Room Management', path: '/settings/rooms', icon: FolderIcon, category: 'Admin' },
@@ -156,8 +160,8 @@ export function Header({ onMenuClick, onToggleAIAgent, isAIAgentOpen }: HeaderPr
             className="h-12 w-12 border-t border-b border-solid border-dark-700 bg-dark-900 flex-shrink-0 flex items-center justify-center group cursor-pointer hover:bg-dark-850 transition-colors focus:outline-none"
             title="Search (Cmd+K)"
           >
-            <div className="w-8 h-8 rounded-full flex items-center justify-center group-hover:bg-dark-800 transition-colors">
-              <MagnifyingGlassIcon className="w-4 h-4 text-dark-300 group-hover:text-foreground transition-colors stroke-[2]" />
+            <div className="w-8 h-8 rounded-full flex items-center justify-center">
+              <MaskIcon src="/icons/search.svg" className="w-4 h-4 text-dark-300 group-hover:text-foreground transition-colors" />
             </div>
           </button>
 
@@ -175,13 +179,13 @@ export function Header({ onMenuClick, onToggleAIAgent, isAIAgentOpen }: HeaderPr
             <div
               className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 ${
                 isAIAgentOpen
-                  ? 'bg-foreground text-dark-950'
+                  ? 'bg-brand text-white'
                   : 'text-dark-300 group-hover:text-foreground group-hover:bg-dark-800'
               }`}
             >
               <MagicWandIcon
                 className={`w-4 h-4 transition-transform duration-200 group-hover:rotate-12 ${
-                  isAIAgentOpen ? 'text-dark-950 stroke-[2.2]' : 'stroke-[2]'
+                  isAIAgentOpen ? 'text-white stroke-[2.2]' : 'stroke-[2]'
                 }`}
               />
             </div>
@@ -270,7 +274,7 @@ export function Header({ onMenuClick, onToggleAIAgent, isAIAgentOpen }: HeaderPr
 
         {/* Top Right Corner Beta Tag */}
         <div className="absolute right-4 sm:right-6 top-1/2 -translate-y-1/2 pointer-events-auto flex items-center">
-          <span className="px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-widest text-primary-400 bg-primary-500/10 border border-primary-500/20 rounded-full select-none shadow-sm backdrop-blur-md">
+          <span className="px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-widest text-brand bg-brand/10 border border-brand/20 rounded-full select-none shadow-sm backdrop-blur-md">
             Beta
           </span>
         </div>
@@ -304,7 +308,7 @@ export function Header({ onMenuClick, onToggleAIAgent, isAIAgentOpen }: HeaderPr
               <Dialog.Panel className="mx-auto max-w-xl transform overflow-hidden rounded-2xl bg-dark-900 border border-dark-700 shadow-2xl transition-all">
                 {/* Search Input */}
                 <div className="relative border-b border-dark-700 flex items-center px-4">
-                  <MagnifyingGlassIcon className="h-5 w-5 text-dark-400 mr-3 flex-shrink-0" />
+                  <MaskIcon src="/icons/search.svg" className="h-5 w-5 text-dark-400 mr-3 flex-shrink-0" />
                   <input
                     type="text"
                     value={searchQuery}

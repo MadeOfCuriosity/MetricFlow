@@ -1,11 +1,12 @@
 import { Fragment, useEffect, useState } from 'react'
 import { TrashIcon, ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline'
 import { superadminService, SalesLead } from '../../services/superadmin'
+import { getApiError } from '../../lib/apiError'
 
 const STATUSES = ['new', 'contacted', 'qualified', 'won', 'lost'] as const
 
 const STATUS_COLORS: Record<string, string> = {
-  new: 'bg-primary-500/20 text-primary-300 border-primary-500/30',
+  new: 'bg-brand/20 text-brand border-brand/30',
   contacted: 'bg-warning-500/20 text-warning-300 border-warning-500/30',
   qualified: 'bg-success-500/20 text-success-300 border-success-500/30',
   won: 'bg-success-500/30 text-success-200 border-success-500/50',
@@ -35,7 +36,7 @@ export function SuperAdminLeads() {
         setTotal(res.total)
         setError('')
       })
-      .catch((e) => setError(e.response?.data?.detail || 'Failed to load'))
+      .catch((e) => setError(getApiError(e, 'Failed to load')))
       .finally(() => setLoading(false))
   }
 
@@ -52,7 +53,7 @@ export function SuperAdminLeads() {
       })
       setLeads((prev) => prev.map((l) => (l.id === lead.id ? updated : l)))
     } catch (err: any) {
-      alert(err.response?.data?.detail || 'Failed to update')
+      alert(getApiError(err, 'Failed to update'))
     } finally {
       setSavingId(null)
     }
@@ -65,7 +66,7 @@ export function SuperAdminLeads() {
       const updated = await superadminService.updateLead(lead.id, { notes })
       setLeads((prev) => prev.map((l) => (l.id === lead.id ? updated : l)))
     } catch (err: any) {
-      alert(err.response?.data?.detail || 'Failed to save notes')
+      alert(getApiError(err, 'Failed to save notes'))
     } finally {
       setSavingId(null)
     }
@@ -78,7 +79,7 @@ export function SuperAdminLeads() {
       setLeads((prev) => prev.filter((l) => l.id !== lead.id))
       setTotal((t) => t - 1)
     } catch (err: any) {
-      alert(err.response?.data?.detail || 'Failed to delete')
+      alert(getApiError(err, 'Failed to delete'))
     }
   }
 
@@ -100,12 +101,12 @@ export function SuperAdminLeads() {
             if (e.key === 'Enter') load()
           }}
           placeholder="Search by name, email, company…"
-          className="flex-1 min-w-[240px] bg-dark-800 border border-dark-700 rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary-500"
+          className="flex-1 min-w-[240px] bg-dark-800 border border-dark-700 rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-brand"
         />
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="bg-dark-800 border border-dark-700 rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary-500"
+          className="bg-dark-800 border border-dark-700 rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-brand"
         >
           <option value="">All statuses</option>
           {STATUSES.map((s) => (
@@ -170,7 +171,7 @@ export function SuperAdminLeads() {
                         <div className="text-foreground font-medium">{l.name}</div>
                         <a
                           href={`mailto:${l.email}`}
-                          className="text-xs text-primary-400 hover:underline"
+                          className="text-xs text-brand hover:underline"
                         >
                           {l.email}
                         </a>
@@ -243,7 +244,7 @@ export function SuperAdminLeads() {
                                 onBlur={(e) => handleNotesBlur(l, e.target.value)}
                                 rows={4}
                                 placeholder="Notes save on blur…"
-                                className="w-full bg-dark-800 border border-dark-700 rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary-500 resize-none"
+                                className="w-full bg-dark-800 border border-dark-700 rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-brand resize-none"
                               />
                             </div>
                           </div>

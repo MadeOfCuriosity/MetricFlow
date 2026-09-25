@@ -186,7 +186,7 @@ export function AdminAIAgent({
               setInternalIsOpen(true)
             }
           }}
-          className="fixed bottom-6 right-6 z-40 h-12 px-5 bg-foreground text-dark-950 hover:opacity-90 rounded-full shadow-lg border border-dark-700 flex items-center gap-2 transition-all hover:scale-105 animate-float hover:[animation-play-state:paused]"
+          className="fixed bottom-6 right-6 z-40 h-12 px-5 bg-primary-500 text-white hover:opacity-90 rounded-full shadow-lg border border-dark-700 flex items-center gap-2 transition-all hover:scale-105 animate-float hover:[animation-play-state:paused]"
         >
           <span className="text-sm font-medium">Ask</span>
           <img src={resolvedTheme === 'light' ? '/visualise_dark.png' : '/visualise.png'} alt="" className="w-5 h-5" />
@@ -241,8 +241,8 @@ export function AdminAIAgent({
           <div className="flex-1 overflow-y-auto p-4 space-y-3">
             {messages.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-center px-2">
-                <div className="w-12 h-12 bg-primary-500/10 rounded-2xl flex items-center justify-center mb-4">
-                  <RobotIcon className="w-6 h-6 text-primary-400" />
+                <div className="w-12 h-12 bg-brand/10 rounded-2xl flex items-center justify-center mb-4">
+                  <RobotIcon className="w-6 h-6 text-brand" />
                 </div>
                 <h3 className="text-sm font-semibold text-foreground mb-1">
                   Admin AI Assistant
@@ -272,8 +272,8 @@ export function AdminAIAgent({
                     }`}
                   >
                     {message.role === 'assistant' && (
-                      <div className="flex-shrink-0 w-6 h-6 bg-primary-500/10 rounded-md flex items-center justify-center mt-0.5">
-                        <RobotIcon className="w-3 h-3 text-primary-400" />
+                      <div className="flex-shrink-0 w-6 h-6 bg-brand/10 rounded-md flex items-center justify-center mt-0.5">
+                        <RobotIcon className="w-3 h-3 text-brand" />
                       </div>
                     )}
 
@@ -281,7 +281,7 @@ export function AdminAIAgent({
                       <div
                         className={`rounded-xl px-3 py-2 ${
                           message.role === 'user'
-                            ? 'border border-primary-500 text-foreground'
+                            ? 'border border-brand text-foreground'
                             : 'bg-dark-800 text-dark-200'
                         }`}
                       >
@@ -310,18 +310,18 @@ export function AdminAIAgent({
                 {/* Loading indicator */}
                 {isLoading && (
                   <div className="flex gap-2">
-                    <div className="flex-shrink-0 w-6 h-6 bg-primary-500/10 rounded-md flex items-center justify-center">
-                      <RobotIcon className="w-3 h-3 text-primary-400" />
+                    <div className="flex-shrink-0 w-6 h-6 bg-brand/10 rounded-md flex items-center justify-center">
+                      <RobotIcon className="w-3 h-3 text-brand" />
                     </div>
                     <div className="bg-dark-800 rounded-xl px-3 py-2">
                       <div className="flex items-center gap-1.5">
-                        <div className="w-1.5 h-1.5 bg-primary-400 rounded-full animate-bounce" />
+                        <div className="w-1.5 h-1.5 bg-brand rounded-full animate-bounce" />
                         <div
-                          className="w-1.5 h-1.5 bg-primary-400 rounded-full animate-bounce"
+                          className="w-1.5 h-1.5 bg-brand rounded-full animate-bounce"
                           style={{ animationDelay: '0.1s' }}
                         />
                         <div
-                          className="w-1.5 h-1.5 bg-primary-400 rounded-full animate-bounce"
+                          className="w-1.5 h-1.5 bg-brand rounded-full animate-bounce"
                           style={{ animationDelay: '0.2s' }}
                         />
                       </div>
@@ -344,7 +344,7 @@ export function AdminAIAgent({
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Ask about your data..."
                 disabled={isLoading}
-                className="flex-1 px-3 py-2 bg-dark-800 border border-dark-600 rounded-lg text-xs text-foreground placeholder-dark-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50"
+                className="flex-1 px-3 py-2 bg-dark-800 border border-dark-600 rounded-lg text-xs text-foreground placeholder-dark-400 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent disabled:opacity-50"
               />
               <button
                 type="submit"

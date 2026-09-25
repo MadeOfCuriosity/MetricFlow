@@ -6,11 +6,16 @@ export interface DataField {
   room_ids: string[]
   room_names: string[]
   room_paths: string[]
+  /** Rooms inherited because a KPI in that room uses this field (read-only) */
+  kpi_room_ids?: string[]
+  kpi_room_paths?: string[]
   name: string
   variable_name: string
   description: string | null
   unit: string | null
   entry_interval: EntryInterval
+  /** First day of the first weekly/monthly period (yyyy-MM-dd); null for daily/custom */
+  period_start_date?: string | null
   created_by: string | null
   created_at: string
   kpi_count: number
@@ -37,6 +42,7 @@ export interface CreateDataFieldData {
   description?: string
   unit?: string
   entry_interval?: EntryInterval
+  period_start_date?: string
 }
 
 export interface UpdateDataFieldData {
@@ -45,6 +51,7 @@ export interface UpdateDataFieldData {
   unit?: string
   room_ids?: string[]
   entry_interval?: EntryInterval
+  period_start_date?: string
 }
 
 // Per-field entry types
@@ -86,11 +93,24 @@ export interface FieldFormItem {
   entry_interval: EntryInterval
   has_entry_today: boolean
   today_value: number | null
+  /** The period this value belongs to (same day for daily/custom) */
+  period_start?: string | null
+  period_end?: string | null
+  /** Who saved the current value */
+  entered_by_name?: string | null
+}
+
+export interface RoomAssignee {
+  id: string
+  name: string
 }
 
 export interface RoomFieldGroup {
   room_id: string | null
   room_name: string
+  room_color?: string | null
+  /** Users assigned to the room — responsible for completing its entries */
+  assignees?: RoomAssignee[]
   fields: FieldFormItem[]
 }
 
@@ -111,6 +131,10 @@ export interface SheetFieldRow {
   entry_interval: EntryInterval
   values: Record<string, number | null>
   mtd: number
+  /** Weekly/monthly: editable cells only — period start -> period end. null = every day */
+  periods?: Record<string, string> | null
+  /** First day of the first weekly/monthly period */
+  period_start_date?: string | null
 }
 
 export interface SheetRoomGroup {
@@ -178,3 +202,20 @@ export interface CSVImportResponse {
 }
 
 
+
+// Missed entries of scheduled fields (save with date = period_start)
+export interface PendingFieldItem {
+  data_field_id: string
+  data_field_name: string
+  unit: string | null
+  entry_interval: EntryInterval
+  period_start: string
+  period_end: string
+  room_names: string[]
+}
+
+export interface PendingEntriesResponse {
+  since: string
+  items: PendingFieldItem[]
+  total: number
+}

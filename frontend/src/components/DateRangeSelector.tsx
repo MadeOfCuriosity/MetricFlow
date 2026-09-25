@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef } from 'react'
 import {
   format,
   subDays,
@@ -16,6 +16,7 @@ import {
   isAfter,
 } from 'date-fns'
 import { ChevronLeftIcon, ChevronRightIcon, CalendarDaysIcon } from '@heroicons/react/24/outline'
+import { useDismiss } from '../hooks/useDismiss'
 
 export type DateRangePreset = 'all' | 'today' | 'weekly' | 'monthly' | 'quarterly' | 'custom'
 
@@ -84,15 +85,7 @@ function CalendarPicker({ value, onChange, label, minDate, maxDate }: CalendarPi
   )
   const containerRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setIsOpen(false)
-      }
-    }
-    if (isOpen) document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [isOpen])
+  useDismiss([containerRef], () => setIsOpen(false), { enabled: isOpen })
 
   const selectedDate = value ? new Date(value + 'T00:00:00') : null
 
@@ -179,13 +172,13 @@ function CalendarPicker({ value, onChange, label, minDate, maxDate }: CalendarPi
                     ${disabled ? 'text-dark-600 cursor-not-allowed' : 'cursor-pointer'}
                     ${!inMonth && !disabled ? 'text-dark-600' : ''}
                     ${inMonth && !selected && !disabled ? 'text-dark-200 hover:bg-dark-700' : ''}
-                    ${selected ? 'bg-primary-500 text-white font-semibold' : ''}
-                    ${today && !selected ? 'font-semibold text-primary-400' : ''}
+                    ${selected ? 'bg-brand text-white font-semibold' : ''}
+                    ${today && !selected ? 'font-semibold text-brand' : ''}
                   `}
                 >
                   {format(day, 'd')}
                   {today && !selected && (
-                    <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-primary-400" />
+                    <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-brand" />
                   )}
                 </button>
               )
@@ -212,7 +205,7 @@ function CalendarPicker({ value, onChange, label, minDate, maxDate }: CalendarPi
                 setViewMonth(new Date())
                 setIsOpen(false)
               }}
-              className="text-xs text-primary-400 hover:text-primary-300 font-medium transition-colors"
+              className="text-xs text-brand hover:text-brand font-medium transition-colors"
             >
               Today
             </button>
@@ -249,7 +242,7 @@ export function DateRangeSelector({ onChange, defaultPreset = 'all' }: DateRange
           onClick={() => handlePresetClick(key)}
           className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
             activePreset === key
-              ? 'bg-foreground text-dark-950 font-semibold shadow-sm'
+              ? 'bg-brand text-white font-semibold shadow-sm'
               : 'bg-dark-800 text-dark-300 hover:bg-dark-700 hover:text-foreground'
           }`}
         >
@@ -275,7 +268,7 @@ export function DateRangeSelector({ onChange, defaultPreset = 'all' }: DateRange
           <button
             onClick={handleCustomApply}
             disabled={!customStart || !customEnd}
-            className="px-3 py-1.5 rounded-lg text-sm font-medium bg-foreground text-dark-950 hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+            className="px-3 py-1.5 rounded-lg text-sm font-medium bg-primary-500 text-white hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
           >
             Apply
           </button>

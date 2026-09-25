@@ -30,6 +30,8 @@ function DashboardContent() {
   } = useDashboard()
 
   const { width, containerRef } = useContainerWidth({ initialWidth: 1200 })
+  const { resolvedTheme } = useTheme()
+  const isDark = resolvedTheme === 'dark'
   const [addModalOpen, setAddModalOpen] = useState(false)
   const [configWidget, setConfigWidget] = useState<WidgetConfig | null>(null)
 
@@ -64,7 +66,7 @@ function DashboardContent() {
       <div className="space-y-8 max-w-7xl mx-auto pb-12">
         <div className="flex flex-col items-center justify-center py-16 px-4 bg-dark-900/40 border border-dark-700 rounded-2xl text-center">
           <div className="w-14 h-14 rounded-2xl bg-dark-800 border border-dark-700 flex items-center justify-center mb-4">
-            <ChartBarIcon className="w-7 h-7 text-rose-400 stroke-[1.5]" />
+            <ChartBarIcon className="w-7 h-7 text-dark-400 stroke-[1.5]" />
           </div>
           <h2 className="text-lg font-semibold text-foreground mb-1">Couldn't load your dashboard</h2>
           <p className="text-xs text-dark-300 max-w-md mb-6">
@@ -72,7 +74,7 @@ function DashboardContent() {
           </p>
           <button
             onClick={() => window.location.reload()}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-foreground text-dark-950 font-semibold hover:opacity-90 transition-opacity text-sm shadow-sm cursor-pointer"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary-500 text-white font-semibold hover:opacity-90 transition-opacity text-sm shadow-sm cursor-pointer"
           >
             <ArrowPathIcon className="w-4 h-4 stroke-[2]" />
             <span>Retry</span>
@@ -107,7 +109,7 @@ function DashboardContent() {
           </p>
           <Link
             to="/kpis"
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-foreground text-dark-950 font-semibold hover:opacity-90 transition-opacity text-sm shadow-sm cursor-pointer"
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary-500 text-white font-semibold hover:opacity-90 transition-opacity text-sm shadow-sm cursor-pointer"
           >
             <PlusIcon className="w-4 h-4 stroke-[2.5]" />
             <span>Add KPIs</span>
@@ -117,8 +119,6 @@ function DashboardContent() {
     )
   }
 
-  const { resolvedTheme } = useTheme()
-  const isDark = resolvedTheme === 'dark'
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-32">
@@ -161,7 +161,7 @@ function DashboardContent() {
 
           <Link
             to="/entries"
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-foreground text-dark-950 font-semibold hover:opacity-90 transition-opacity text-sm shadow-sm cursor-pointer"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary-500 text-white font-semibold hover:opacity-90 transition-opacity text-sm shadow-sm cursor-pointer"
           >
             <PlusIcon className="w-4 h-4 stroke-[2.5]" />
             <span>Enter Data</span>
@@ -207,7 +207,7 @@ function DashboardContent() {
                 : 'bg-black/[0.05] border border-black/[0.1] text-dark-200'
             }`}
           >
-            <span className="w-1.5 h-1.5 rounded-full bg-primary-500 animate-pulse" />
+            <span className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse" />
             <span>Drag or resize cards</span>
           </div>
         )}
@@ -237,7 +237,7 @@ function DashboardContent() {
             <button
               type="button"
               onClick={() => setAddModalOpen(true)}
-              className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold bg-foreground text-dark-950 rounded-xl hover:opacity-90 transition-opacity shadow-sm cursor-pointer"
+              className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold bg-primary-500 text-white rounded-xl hover:opacity-90 transition-opacity shadow-sm cursor-pointer"
             >
               <PlusIcon className="w-3.5 h-3.5 stroke-[2.5]" />
               <span>Add Widget</span>

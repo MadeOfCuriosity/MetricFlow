@@ -31,6 +31,7 @@ export function GlassmorphicFolder({
   const paperBlurId = `pb_${id}`
   const frontFlapClipId = `ffc_${id}`
   const upperClipId = `uc_${id}`
+  const tintGradId = `tg_${id}`
 
   const renderPapers = (isBlurred = false) => (
     <>
@@ -120,38 +121,30 @@ export function GlassmorphicFolder({
         className="w-full h-full overflow-visible"
       >
         <defs>
-          {/* Back folder body gradient */}
+          {/* Back folder body gradient (neutral glass; tag tint is layered on top) */}
           <linearGradient id={backGradId} x1="82" y1="22" x2="82" y2="142" gradientUnits="userSpaceOnUse">
             {isLight ? (
-              tag ? (
-                <>
-                  <stop offset="0%" stopColor={tag.lightBackTop} stopOpacity="0.95" />
-                  <stop offset="55%" stopColor={tag.lightBackBottom} stopOpacity="0.85" />
-                  <stop offset="100%" stopColor={tag.lightTintBottom} stopOpacity="0.80" />
-                </>
-              ) : (
-                <>
-                  <stop offset="0%" stopColor="#ffffff" stopOpacity="0.96" />
-                  <stop offset="50%" stopColor="#f1f5f9" stopOpacity="0.90" />
-                  <stop offset="100%" stopColor="#e2e8f0" stopOpacity="0.92" />
-                </>
-              )
+              <>
+                <stop offset="0%" stopColor="#ffffff" stopOpacity="0.96" />
+                <stop offset="50%" stopColor="#f1f5f9" stopOpacity="0.90" />
+                <stop offset="100%" stopColor="#e2e8f0" stopOpacity="0.92" />
+              </>
             ) : (
-              tag ? (
-                <>
-                  <stop offset="0%" stopColor={tag.glassTintTop} stopOpacity="0.85" />
-                  <stop offset="45%" stopColor={tag.glassTintBottom} stopOpacity="0.75" />
-                  <stop offset="100%" stopColor="#121316" stopOpacity="0.95" />
-                </>
-              ) : (
-                <>
-                  <stop offset="0%" stopColor="#2c2e37" />
-                  <stop offset="50%" stopColor="#1e2026" />
-                  <stop offset="100%" stopColor="#121316" />
-                </>
-              )
+              <>
+                <stop offset="0%" stopColor="#2c2e37" />
+                <stop offset="50%" stopColor="#1e2026" />
+                <stop offset="100%" stopColor="#121316" />
+              </>
             )}
           </linearGradient>
+
+          {/* Light tag tint wash (matches KPICard: tag color at low alpha fading out by ~60%) */}
+          {tag && (
+            <linearGradient id={tintGradId} x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor={tag.hex} stopOpacity={isLight ? 0.26 : 0.32} />
+              <stop offset="75%" stopColor={tag.hex} stopOpacity="0.04" />
+            </linearGradient>
+          )}
 
           {/* Back folder stroke specular highlight */}
           <linearGradient id={backStrokeId} x1="82" y1="22" x2="82" y2="142" gradientUnits="userSpaceOnUse">
@@ -162,8 +155,8 @@ export function GlassmorphicFolder({
               </>
             ) : (
               <>
-                <stop offset="0%" stopColor={tag ? tag.glassRim : '#525562'} stopOpacity={tag ? 0.90 : 0.80} />
-                <stop offset="100%" stopColor={tag ? tag.hex : '#1e2026'} stopOpacity={tag ? 0.50 : 0.40} />
+                <stop offset="0%" stopColor={tag ? tag.glassRim : '#525562'} stopOpacity={tag ? 0.7 : 0.80} />
+                <stop offset="100%" stopColor={tag ? tag.hex : '#1e2026'} stopOpacity={tag ? 0.25 : 0.40} />
               </>
             )}
           </linearGradient>
@@ -186,36 +179,20 @@ export function GlassmorphicFolder({
             <stop offset="100%" stopColor={isLight ? '#f8fafc' : '#f5f7fa'} />
           </linearGradient>
 
-          {/* Front Frosted Glass Flap Gradient: Translucent matte etched glass */}
+          {/* Front Frosted Glass Flap Gradient: Translucent matte etched glass (neutral) */}
           <linearGradient id={frontGlassGradId} x1="20" y1="48" x2="144" y2="142" gradientUnits="userSpaceOnUse">
             {isLight ? (
-              tag ? (
-                <>
-                  <stop offset="0%" stopColor={tag.lightTintTop} stopOpacity="0.70" />
-                  <stop offset="45%" stopColor={tag.lightTintBottom} stopOpacity="0.52" />
-                  <stop offset="100%" stopColor={tag.hex} stopOpacity="0.58" />
-                </>
-              ) : (
-                <>
-                  <stop offset="0%" stopColor="#ffffff" stopOpacity="0.72" />
-                  <stop offset="40%" stopColor="#f8fafc" stopOpacity="0.52" />
-                  <stop offset="100%" stopColor="#e2e8f0" stopOpacity="0.62" />
-                </>
-              )
+              <>
+                <stop offset="0%" stopColor="#ffffff" stopOpacity="0.72" />
+                <stop offset="40%" stopColor="#f8fafc" stopOpacity="0.52" />
+                <stop offset="100%" stopColor="#e2e8f0" stopOpacity="0.62" />
+              </>
             ) : (
-              tag ? (
-                <>
-                  <stop offset="0%" stopColor={tag.glassTintTop} stopOpacity="0.78" />
-                  <stop offset="45%" stopColor={tag.glassTintBottom} stopOpacity="0.62" />
-                  <stop offset="100%" stopColor={tag.hex} stopOpacity="0.68" />
-                </>
-              ) : (
-                <>
-                  <stop offset="0%" stopColor="#4f5362" stopOpacity="0.58" />
-                  <stop offset="40%" stopColor="#2a2c37" stopOpacity="0.44" />
-                  <stop offset="100%" stopColor="#15161c" stopOpacity="0.56" />
-                </>
-              )
+              <>
+                <stop offset="0%" stopColor="#4f5362" stopOpacity="0.58" />
+                <stop offset="40%" stopColor="#2a2c37" stopOpacity="0.44" />
+                <stop offset="100%" stopColor="#15161c" stopOpacity="0.56" />
+              </>
             )}
           </linearGradient>
 
@@ -238,9 +215,9 @@ export function GlassmorphicFolder({
             ) : (
               tag ? (
                 <>
-                  <stop offset="0%" stopColor={tag.glassRim} stopOpacity="0.75" />
-                  <stop offset="50%" stopColor={tag.hex} stopOpacity="0.38" />
-                  <stop offset="100%" stopColor="#ffffff" stopOpacity="0.15" />
+                  <stop offset="0%" stopColor={tag.glassRim} stopOpacity="0.5" />
+                  <stop offset="50%" stopColor={tag.hex} stopOpacity="0.2" />
+                  <stop offset="100%" stopColor="#ffffff" stopOpacity="0.08" />
                 </>
               ) : (
                 <>
@@ -259,7 +236,7 @@ export function GlassmorphicFolder({
               dy={isLight ? 8 : 10}
               stdDeviation={isLight ? 10 : 12}
               floodColor={isLight ? (tag ? tag.hex : '#0f172a') : '#000000'}
-              floodOpacity={isLight ? (tag ? 0.14 : 0.07) : 0.45}
+              floodOpacity={isLight ? (tag ? 0.08 : 0.07) : 0.45}
             />
           </filter>
 
@@ -314,17 +291,8 @@ export function GlassmorphicFolder({
           filter={`url(#${folderShadowId})`}
         />
 
-        {/* Ambient Top Colored Diffusion if tag present */}
-        {tag && (
-          <circle
-            cx="116"
-            cy="40"
-            r="32"
-            fill={isLight ? tag.lightTintTop : tag.hex}
-            opacity={isLight ? 0.36 : 0.30}
-            filter={`url(#${paperBlurId})`}
-          />
-        )}
+        {/* Light tag tint over back plate */}
+        {tag && <rect x="16" y="22" width="132" height="120" rx="24" fill={`url(#${tintGradId})`} />}
 
         {/* 2. Paper Stack: Interactive lift on hover */}
         <g
@@ -353,17 +321,11 @@ export function GlassmorphicFolder({
           filter={`url(#${flapShadowId})`}
         />
 
-        {/* Soft Frosted Tint Wash if tag present */}
+        {/* Light tag tint over front flap */}
         {tag && (
-          <ellipse
-            cx="100"
-            cy="90"
-            rx="52"
-            ry="40"
-            fill={isLight ? tag.lightTintTop : tag.hex}
-            opacity={isLight ? 0.28 : 0.24}
-            filter={`url(#${paperBlurId})`}
-            clipPath={`url(#${frontFlapClipId})`}
+          <path
+            d="M 12 70 C 12 56 20 48 32 48 L 68 48 C 76 48 84 54 90 59 C 95 63 100 66 108 66 L 134 66 C 145 66 152 73 152 84 L 152 122 C 152 134 142 142 130 142 L 34 142 C 22 142 12 134 12 122 Z"
+            fill={`url(#${tintGradId})`}
           />
         )}
 
@@ -372,6 +334,7 @@ export function GlassmorphicFolder({
           d="M 18 60 C 22 50 27 49 34 49 L 68 49 C 75 49 83 54.5 89 59.5 C 94 63.5 100 67 108 67 L 134 67 C 143 67 148 71 150 78"
           stroke={tag ? tag.glassRim : (isLight ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 255, 255, 0.45)')}
           strokeWidth="1.2"
+          strokeOpacity={tag ? 0.75 : 1}
           strokeLinecap="round"
           fill="none"
         />
@@ -384,7 +347,7 @@ export function GlassmorphicFolder({
           style={{
             background: isLight ? tag.lightGlow : tag.ambientGlow,
             filter: 'blur(16px)',
-            opacity: isHovered ? 0.95 : 0.65,
+            opacity: isHovered ? 0.55 : 0.32,
             transform: isHovered ? 'scale(1.06)' : 'scale(1)',
           }}
         />

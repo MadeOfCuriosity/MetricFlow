@@ -100,8 +100,8 @@ export function SettingsUsage() {
       <div className="bg-dark-900 border border-dark-700 rounded-2xl p-6 sm:p-8 space-y-6 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-dark-800">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center">
-              <ChartBarSquareIcon className="w-5 h-5 text-purple-400 stroke-[2]" />
+            <div className="w-10 h-10 rounded-xl bg-dark-800 border border-dark-700 flex items-center justify-center">
+              <ChartBarSquareIcon className="w-5 h-5 text-dark-300 stroke-[2]" />
             </div>
             <div>
               <h2 className="text-base font-bold text-foreground tracking-tight">Usage &amp; Quotas</h2>
@@ -114,7 +114,7 @@ export function SettingsUsage() {
           <button
             type="button"
             onClick={scrollToUpgrade}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-foreground text-dark-950 font-semibold hover:opacity-90 transition-opacity text-xs sm:text-sm shadow-sm cursor-pointer self-start sm:self-auto"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary-500 text-white font-semibold hover:opacity-90 transition-opacity text-xs sm:text-sm shadow-sm cursor-pointer self-start sm:self-auto"
           >
             <ArrowTrendingUpIcon className="w-4 h-4 stroke-[2.5]" />
             <span>Increase Quotas</span>
@@ -125,7 +125,7 @@ export function SettingsUsage() {
         <div className="p-5 bg-dark-950/40 border border-dark-800 rounded-2xl space-y-3">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-              <SparklesIcon className="w-5 h-5 text-primary-400" />
+              <SparklesIcon className="w-5 h-5 text-brand" />
               <span className="text-sm font-bold text-foreground">AI Intelligence Calls (Today)</span>
             </div>
             <div className="flex items-center gap-2 text-xs text-dark-400">
@@ -144,7 +144,7 @@ export function SettingsUsage() {
             <div className="w-full h-2.5 bg-dark-800 rounded-full overflow-hidden">
               <div
                 className={`h-full transition-all duration-500 rounded-full ${
-                  aiPercent > 85 ? 'bg-rose-500' : aiPercent > 60 ? 'bg-amber-500' : 'bg-primary-500'
+                  aiPercent > 85 ? 'bg-danger-500' : aiPercent > 60 ? 'bg-warning-500' : 'bg-brand'
                 }`}
                 style={{ width: `${aiPercent}%` }}
               />
@@ -159,7 +159,7 @@ export function SettingsUsage() {
         <div className="bg-dark-900 border border-dark-700 rounded-2xl p-5 space-y-3 shadow-sm">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
-              <UsersIcon className="w-4 h-4 text-primary-400" />
+              <UsersIcon className="w-4 h-4 text-brand" />
               <span>Team Seats</span>
             </div>
             <span className="text-xs font-bold text-foreground">
@@ -168,7 +168,7 @@ export function SettingsUsage() {
           </div>
           <div className="w-full h-2 bg-dark-800 rounded-full overflow-hidden">
             <div
-              className="h-full bg-primary-500 rounded-full transition-all duration-500"
+              className="h-full bg-brand rounded-full transition-all duration-500"
               style={{ width: `${usersLimit === 9999 ? 20 : usersPercent}%` }}
             />
           </div>
@@ -183,7 +183,7 @@ export function SettingsUsage() {
         <div className="bg-dark-900 border border-dark-700 rounded-2xl p-5 space-y-3 shadow-sm">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
-              <BoltIcon className="w-4 h-4 text-emerald-400" />
+              <BoltIcon className="w-4 h-4 text-dark-400" />
               <span>Tracked KPIs</span>
             </div>
             <span className="text-xs font-bold text-foreground">
@@ -192,7 +192,7 @@ export function SettingsUsage() {
           </div>
           <div className="w-full h-2 bg-dark-800 rounded-full overflow-hidden">
             <div
-              className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+              className="h-full bg-success-500 rounded-full transition-all duration-500"
               style={{ width: `${kpisLimit === 9999 ? 25 : kpisPercent}%` }}
             />
           </div>
@@ -205,7 +205,7 @@ export function SettingsUsage() {
         <div className="bg-dark-900 border border-dark-700 rounded-2xl p-5 space-y-3 shadow-sm">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
-              <ArrowPathRoundedSquareIcon className="w-4 h-4 text-cyan-400" />
+              <ArrowPathRoundedSquareIcon className="w-4 h-4 text-dark-400" />
               <span>Connected Integrations</span>
             </div>
             <span className="text-xs font-bold text-foreground">
@@ -214,7 +214,7 @@ export function SettingsUsage() {
           </div>
           <div className="w-full h-2 bg-dark-800 rounded-full overflow-hidden">
             <div
-              className="h-full bg-cyan-500 rounded-full transition-all duration-500"
+              className="h-full bg-brand rounded-full transition-all duration-500"
               style={{ width: `${integrationsLimit === 9999 ? 30 : integrationsPercent}%` }}
             />
           </div>
@@ -225,7 +225,7 @@ export function SettingsUsage() {
         <div className="bg-dark-900 border border-dark-700 rounded-2xl p-5 space-y-3 shadow-sm">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
-              <FolderIcon className="w-4 h-4 text-purple-400" />
+              <FolderIcon className="w-4 h-4 text-dark-400" />
               <span>Departmental Rooms</span>
             </div>
             <span className="text-xs font-bold text-foreground">
@@ -234,7 +234,7 @@ export function SettingsUsage() {
           </div>
           <div className="w-full h-2 bg-dark-800 rounded-full overflow-hidden">
             <div
-              className="h-full bg-purple-500 rounded-full transition-all duration-500"
+              className="h-full bg-brand rounded-full transition-all duration-500"
               style={{ width: `${roomsLimit === 9999 ? 20 : roomsPercent}%` }}
             />
           </div>
@@ -248,7 +248,7 @@ export function SettingsUsage() {
         <div className="grid sm:grid-cols-2 gap-4">
           <div className="p-4 bg-dark-950/40 border border-dark-800 rounded-2xl flex items-center gap-3">
             <div className="p-2.5 rounded-xl bg-dark-800 border border-dark-700">
-              <CircleStackIcon className="w-5 h-5 text-emerald-400" />
+              <CircleStackIcon className="w-5 h-5 text-dark-300" />
             </div>
             <div>
               <span className="text-xs font-semibold text-foreground">Total Data Entries</span>
@@ -259,7 +259,7 @@ export function SettingsUsage() {
 
           <div className="p-4 bg-dark-950/40 border border-dark-800 rounded-2xl flex items-center gap-3">
             <div className="p-2.5 rounded-xl bg-dark-800 border border-dark-700">
-              <BoltIcon className="w-5 h-5 text-amber-400" />
+              <BoltIcon className="w-5 h-5 text-dark-300" />
             </div>
             <div>
               <span className="text-xs font-semibold text-foreground">Calculation Engine</span>
@@ -271,7 +271,7 @@ export function SettingsUsage() {
       </div>
 
       {/* Upgrade CTA banner */}
-      <div className="bg-gradient-to-r from-primary-950/40 via-dark-900 to-purple-950/40 border border-primary-500/20 rounded-2xl p-6 sm:p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+      <div className="bg-gradient-to-r from-brand/10 via-dark-900 to-dark-900 border border-brand/20 rounded-2xl p-6 sm:p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
         <div>
           <h3 className="text-sm font-bold text-foreground tracking-tight">Need higher capacity or custom limits?</h3>
           <p className="text-xs text-dark-300 mt-1 max-w-xl">
@@ -281,7 +281,7 @@ export function SettingsUsage() {
         <button
           type="button"
           onClick={scrollToUpgrade}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-foreground text-dark-950 font-semibold hover:opacity-90 transition-opacity text-xs sm:text-sm shadow-sm cursor-pointer self-start sm:self-auto flex-shrink-0"
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary-500 text-white font-semibold hover:opacity-90 transition-opacity text-xs sm:text-sm shadow-sm cursor-pointer self-start sm:self-auto flex-shrink-0"
         >
           <span>Upgrade Workspace</span>
           <ArrowTrendingUpIcon className="w-4 h-4 stroke-[2.5]" />

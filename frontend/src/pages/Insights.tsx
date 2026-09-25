@@ -12,6 +12,8 @@ import { InsightCard, Skeleton, DateRangeSelector } from '../components'
 import type { DateRange } from '../components'
 import { useToast } from '../context/ToastContext'
 import api from '../services/api'
+import { SegmentedControl } from '../components/ui/SegmentedControl'
+import { StatChip } from '../components/ui/StatChip'
 
 interface Insight {
   id: string
@@ -154,7 +156,7 @@ export function Insights() {
             </div>
             <div className="w-full bg-dark-800 rounded-full h-2 mb-4 overflow-hidden border border-dark-700/60">
               <div
-                className="bg-primary-500 h-2 rounded-full transition-all duration-300"
+                className="bg-brand h-2 rounded-full transition-all duration-300"
                 style={{
                   width: `${Math.min(((stats?.days_of_data || 0) / 7) * 100, 100)}%`,
                 }}
@@ -162,7 +164,7 @@ export function Insights() {
             </div>
             <button
               onClick={() => navigate('/entries')}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-foreground text-dark-950 font-semibold rounded-xl hover:opacity-90 transition-opacity text-sm shadow-sm cursor-pointer"
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-primary-500 text-white font-semibold rounded-xl hover:opacity-90 transition-opacity text-sm shadow-sm cursor-pointer"
             >
               <CalendarDaysIcon className="w-4 h-4 stroke-[2.5]" />
               <span>Enter Today's Data</span>
@@ -172,7 +174,7 @@ export function Insights() {
           <button
             onClick={handleRefresh}
             disabled={isRefreshing}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-foreground text-dark-950 font-semibold hover:opacity-90 transition-opacity text-sm shadow-sm cursor-pointer disabled:opacity-50"
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary-500 text-white font-semibold hover:opacity-90 transition-opacity text-sm shadow-sm cursor-pointer disabled:opacity-50"
           >
             {isRefreshing ? (
               <ArrowPathIcon className="w-4 h-4 animate-spin stroke-[2.5]" />
@@ -199,7 +201,7 @@ export function Insights() {
       </p>
       <button
         onClick={() => navigate('/kpis')}
-        className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-foreground text-dark-950 font-semibold hover:opacity-90 transition-opacity text-sm shadow-sm cursor-pointer"
+        className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary-500 text-white font-semibold hover:opacity-90 transition-opacity text-sm shadow-sm cursor-pointer"
       >
         <ChartBarIcon className="w-4 h-4 stroke-[2.5]" />
         <span>Configure KPIs</span>
@@ -222,7 +224,7 @@ export function Insights() {
             type="button"
             onClick={handleRefresh}
             disabled={isRefreshing}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-foreground text-dark-950 font-semibold hover:opacity-90 transition-opacity text-sm shadow-sm cursor-pointer disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary-500 text-white font-semibold hover:opacity-90 transition-opacity text-sm shadow-sm cursor-pointer disabled:opacity-50"
           >
             <ArrowPathIcon className={`w-4 h-4 stroke-[2.5] ${isRefreshing ? 'animate-spin' : ''}`} />
             <span>{isRefreshing ? 'Analyzing...' : 'Refresh Insights'}</span>
@@ -232,83 +234,54 @@ export function Insights() {
 
       {/* Subtle Summary Stat Badges (Rooms Style) */}
       <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
-        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-dark-900 border border-dark-700/70 text-xs">
-          <LightBulbIcon className="w-3.5 h-3.5 text-dark-400 stroke-[1.8]" />
-          <span className="text-dark-400">Total Insights:</span>
-          <span className="font-semibold text-foreground">{totalInsightsCount}</span>
-        </div>
+        <StatChip icon={<LightBulbIcon className="w-3.5 h-3.5 text-dark-400 stroke-[1.8]" />} label="Total Insights" value={totalInsightsCount} />
 
-        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-dark-900 border border-dark-700/70 text-xs">
-          <span className="w-1.5 h-1.5 rounded-full bg-rose-400" />
-          <span className="text-dark-400">High Priority:</span>
-          <span className="font-semibold text-foreground">{highPriorityCount}</span>
-        </div>
+        <StatChip icon={<span className="w-1.5 h-1.5 rounded-full bg-danger-400" />} label="High Priority" value={highPriorityCount} />
 
-        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-dark-900 border border-dark-700/70 text-xs">
-          <ChartBarIcon className="w-3.5 h-3.5 text-dark-400 stroke-[1.8]" />
-          <span className="text-dark-400">KPIs Tracked:</span>
-          <span className="font-semibold text-foreground">{stats?.kpis_tracked || 0}</span>
-        </div>
+        <StatChip icon={<ChartBarIcon className="w-3.5 h-3.5 text-dark-400 stroke-[1.8]" />} label="KPIs Tracked" value={stats?.kpis_tracked || 0} />
 
-        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-dark-900 border border-dark-700/70 text-xs">
-          <CalendarDaysIcon className="w-3.5 h-3.5 text-dark-400 stroke-[1.8]" />
-          <span className="text-dark-400">History:</span>
-          <span className="font-semibold text-foreground">{stats?.days_of_data || 0} days</span>
-        </div>
+        <StatChip icon={<CalendarDaysIcon className="w-3.5 h-3.5 text-dark-400 stroke-[1.8]" />} label="History" value={`${stats?.days_of_data || 0} days`} />
       </div>
 
       {/* Toolbar: Priority Capsule Segment & Date Range */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
         {/* Priority Segment Tabs */}
-        <div className="flex items-center p-1 bg-dark-900 border border-dark-700 rounded-xl overflow-x-auto">
-          <button
-            type="button"
-            onClick={() => setPriorityFilter('all')}
-            className={`px-3 py-1 text-xs font-medium rounded-lg transition-colors cursor-pointer ${
-              priorityFilter === 'all'
-                ? 'bg-dark-800 text-foreground shadow-sm'
-                : 'text-dark-400 hover:text-foreground'
-            }`}
-          >
-            All ({totalInsightsCount})
-          </button>
-          <button
-            type="button"
-            onClick={() => setPriorityFilter('high')}
-            className={`px-3 py-1 text-xs font-medium rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 ${
-              priorityFilter === 'high'
-                ? 'bg-dark-800 text-foreground shadow-sm'
-                : 'text-dark-400 hover:text-foreground'
-            }`}
-          >
-            <span className="w-1.5 h-1.5 rounded-full bg-rose-400" />
-            <span>High ({highPriorityCount})</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setPriorityFilter('medium')}
-            className={`px-3 py-1 text-xs font-medium rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 ${
-              priorityFilter === 'medium'
-                ? 'bg-dark-800 text-foreground shadow-sm'
-                : 'text-dark-400 hover:text-foreground'
-            }`}
-          >
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-            <span>Medium ({mediumPriorityCount})</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setPriorityFilter('low')}
-            className={`px-3 py-1 text-xs font-medium rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 ${
-              priorityFilter === 'low'
-                ? 'bg-dark-800 text-foreground shadow-sm'
-                : 'text-dark-400 hover:text-foreground'
-            }`}
-          >
-            <span className="w-1.5 h-1.5 rounded-full bg-primary-400" />
-            <span>Low ({lowPriorityCount})</span>
-          </button>
-        </div>
+        <SegmentedControl
+          className="overflow-x-auto"
+          aria-label="Priority filter"
+          value={priorityFilter}
+          onChange={setPriorityFilter}
+          options={[
+            { value: 'all', label: `All (${totalInsightsCount})` },
+            {
+              value: 'high',
+              label: (
+                <>
+                  <span className="w-1.5 h-1.5 rounded-full bg-danger-400" />
+                  <span>High ({highPriorityCount})</span>
+                </>
+              ),
+            },
+            {
+              value: 'medium',
+              label: (
+                <>
+                  <span className="w-1.5 h-1.5 rounded-full bg-warning-400" />
+                  <span>Medium ({mediumPriorityCount})</span>
+                </>
+              ),
+            },
+            {
+              value: 'low',
+              label: (
+                <>
+                  <span className="w-1.5 h-1.5 rounded-full bg-brand" />
+                  <span>Low ({lowPriorityCount})</span>
+                </>
+              ),
+            },
+          ]}
+        />
 
         {/* Date Range Selector */}
         <DateRangeSelector

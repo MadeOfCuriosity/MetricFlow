@@ -1,6 +1,9 @@
-import { useState, useRef, useEffect, ReactNode } from 'react'
-import { CheckIcon, XMarkIcon } from '@heroicons/react/24/outline'
-import { MAC_TAG_COLORS, getTagColor } from '../constants/tagColors'
+import { useState, useRef, useEffect, useLayoutEffect, ReactNode, useCallback } from 'react'
+import { createPortal } from 'react-dom'
+import { XMarkIcon } from '@heroicons/react/24/outline'
+import { TagColorPalette } from './TagColorPalette'
+import { TagDot } from './ui/Tag'
+import { useDismiss } from '../hooks/useDismiss'
 
 interface TagColorPickerPopoverProps {
   selectedColor?: string | null
@@ -9,6 +12,9 @@ interface TagColorPickerPopoverProps {
   children?: (props: { isOpen: boolean; toggle: (e: React.MouseEvent) => void }) => ReactNode
 }
 
+const POPOVER_WIDTH = 316 // 9 swatches (28px) + gaps + padding
+const VIEWPORT_MARGIN = 12
+
 export function TagColorPickerPopover({
   selectedColor = null,
   onSelectColor,
@@ -16,45 +22,66 @@ export function TagColorPickerPopover({
   children,
 }: TagColorPickerPopoverProps) {
   const [isOpen, setIsOpen] = useState(false)
+  const [position, setPosition] = useState<{ top: number; left: number } | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  const popoverRef = useRef<HTMLDivElement>(null)
+
+  // The popover is portaled to <body> so hover-only toolbars, clickable cards and
+  // transformed/clipped parents can't hide it or swallow drags inside it.
+  const reposition = useCallback(() => {
+    const anchor = containerRef.current?.getBoundingClientRect()
+    if (!anchor) return
+    const height = popoverRef.current?.offsetHeight ?? 0
+    let left =
+      align === 'right'
+        ? anchor.right - POPOVER_WIDTH
+        : align === 'center'
+          ? anchor.left + anchor.width / 2 - POPOVER_WIDTH / 2
+          : anchor.left
+    left = Math.min(Math.max(left, VIEWPORT_MARGIN), window.innerWidth - POPOVER_WIDTH - VIEWPORT_MARGIN)
+    let top = anchor.bottom + 8
+    if (height && top + height > window.innerHeight - VIEWPORT_MARGIN && anchor.top - 8 - height > VIEWPORT_MARGIN) {
+      top = anchor.top - 8 - height
+    }
+    setPosition({ top, left })
+  }, [align])
+
+  useLayoutEffect(() => {
+    if (!isOpen) return
+    reposition()
+    // Re-anchor when the content grows (e.g. the custom picker expands)
+    const el = popoverRef.current
+    if (!el || typeof ResizeObserver === 'undefined') return
+    const ro = new ResizeObserver(() => reposition())
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [isOpen, reposition])
+
+  useDismiss([containerRef, popoverRef], () => setIsOpen(false), { enabled: isOpen, escape: true })
 
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-        setIsOpen(false)
-      }
+    if (!isOpen) {
+      setPosition(null)
+      return
     }
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') {
-        setIsOpen(false)
-      }
-    }
-
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside)
-      document.addEventListener('keydown', handleKeyDown)
-    }
+    window.addEventListener('resize', reposition)
+    window.addEventListener('scroll', reposition, true)
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-      document.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('resize', reposition)
+      window.removeEventListener('scroll', reposition, true)
     }
-  }, [isOpen])
+  }, [isOpen, reposition])
 
   const handlePick = (colorId: string | null, e?: React.SyntheticEvent) => {
     e?.stopPropagation()
-    onSelectColor(colorId)
+    if (colorId !== selectedColor) onSelectColor(colorId)
     setIsOpen(false)
   }
 
-  const currentTag = getTagColor(selectedColor)
-  const isCustom = !!(selectedColor && selectedColor.startsWith('#'))
 
-  const alignClasses = {
-    left: 'left-0 origin-top-left',
-    right: 'right-0 origin-top-right',
-    center: 'left-1/2 -translate-x-1/2 origin-top',
-  }[align]
+  // React events bubble through portals to the trigger's ancestors (e.g. a room card's
+  // onClick that navigates), so stop them at the popover boundary.
+  const stop = (e: React.SyntheticEvent) => e.stopPropagation()
 
   return (
     <div className="relative inline-block" ref={containerRef}>
@@ -73,121 +100,49 @@ export function TagColorPickerPopover({
             e.stopPropagation()
             setIsOpen((prev) => !prev)
           }}
-          className="flex items-center gap-1.5 px-3 py-2 text-sm text-slate-700 dark:text-dark-200 hover:text-foreground bg-slate-100 dark:bg-dark-800/80 hover:bg-slate-200 dark:hover:bg-dark-750 border border-slate-200 dark:border-dark-700/80 rounded-lg transition-colors cursor-pointer"
+          className="flex items-center gap-1.5 px-3 py-2 text-sm text-dark-200 hover:text-foreground bg-dark-800/80 hover:bg-dark-750 border border-dark-700/80 rounded-lg transition-colors cursor-pointer"
           title="Set room tag color"
         >
-          {currentTag ? (
-            <span
-              className={`w-2.5 h-2.5 rounded-full ${currentTag.dotClass || ''}`}
-              style={{ backgroundColor: currentTag.hex }}
-            />
-          ) : (
-            <span className="w-2.5 h-2.5 rounded-full border border-dashed border-slate-400 dark:border-dark-400" />
-          )}
-          <span>{currentTag ? `${currentTag.name} Tag` : 'Tag Color'}</span>
+          <TagDot color={selectedColor} size="md" empty="ring" />
+          <span>Tag Color</span>
         </button>
       )}
 
-      {isOpen && (
-        <div
-          onClick={(e) => e.stopPropagation()}
-          className={`absolute top-full mt-2 z-50 ${alignClasses} w-72 rounded-2xl bg-white dark:bg-dark-900 border border-slate-200 dark:border-dark-700 p-3 shadow-2xl backdrop-blur-md animate-in fade-in duration-150`}
-        >
-          <div className="flex items-center justify-between mb-2.5 pb-2 border-b border-slate-200 dark:border-dark-700">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-dark-400">
-              macOS Tag & Color
-            </span>
-            {selectedColor && (
-              <button
-                type="button"
-                onClick={(e) => handlePick(null, e)}
-                className="text-[11px] text-slate-400 hover:text-danger-500 dark:text-dark-400 dark:hover:text-danger-400 transition-colors cursor-pointer flex items-center gap-0.5"
-              >
-                <XMarkIcon className="w-3 h-3" />
-                <span>Clear</span>
-              </button>
-            )}
-          </div>
-
-          <div className="flex items-center justify-between gap-1.5">
-            {/* None / Clear option */}
-            <button
-              type="button"
-              onClick={(e) => handlePick(null, e)}
-              title="No color"
-              className={`w-6 h-6 rounded-full flex items-center justify-center border transition-all cursor-pointer ${
-                !selectedColor
-                  ? 'border-foreground/80 bg-slate-200 dark:bg-dark-700 text-foreground scale-110 shadow-xs'
-                  : 'border-slate-200 dark:border-dark-700 bg-slate-100 dark:bg-dark-800 text-slate-500 dark:text-dark-400 hover:border-slate-400 dark:hover:border-dark-500 hover:text-slate-800 dark:hover:text-dark-200'
-              }`}
-            >
-              <span className="text-[10px] leading-none">✕</span>
-            </button>
-
-            <div className="h-4 w-px bg-slate-200 dark:bg-dark-700 mx-0.5" />
-
-            {/* 7 macOS Colors */}
-            {MAC_TAG_COLORS.map((tag) => {
-              const isSelected = selectedColor === tag.id
-              return (
+      {isOpen &&
+        createPortal(
+          <div
+            ref={popoverRef}
+            onClick={stop}
+            onMouseDown={stop}
+            onPointerDown={stop}
+            onDoubleClick={stop}
+            style={{
+              position: 'fixed',
+              top: position?.top ?? -9999,
+              left: position?.left ?? -9999,
+              width: POPOVER_WIDTH,
+              visibility: position ? 'visible' : 'hidden',
+            }}
+            className="z-[100] rounded-2xl bg-dark-900/95 border border-dark-700 p-3.5 shadow-2xl backdrop-blur-xl select-none"
+          >
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-medium text-dark-300">Tag color</span>
+              {selectedColor && (
                 <button
-                  key={tag.id}
                   type="button"
-                  onClick={(e) => handlePick(isSelected ? null : tag.id, e)}
-                  title={tag.name}
-                  className={`relative w-6 h-6 rounded-full transition-all cursor-pointer flex items-center justify-center ${
-                    isSelected
-                      ? 'ring-2 ring-offset-2 ring-offset-white dark:ring-offset-dark-900 ring-foreground scale-115'
-                      : 'hover:scale-110 opacity-85 hover:opacity-100'
-                  }`}
-                  style={{
-                    backgroundColor: tag.hex,
-                    boxShadow: isSelected ? `0 0 10px ${tag.ambientGlow}` : undefined,
-                  }}
+                  onClick={(e) => handlePick(null, e)}
+                  className="text-[11px] text-dark-400 hover:text-foreground transition-colors cursor-pointer flex items-center gap-1"
                 >
-                  {isSelected && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-white shadow-xs" />
-                  )}
+                  <XMarkIcon className="w-3 h-3" />
+                  <span>Clear</span>
                 </button>
-              )
-            })}
-
-            <div className="h-4 w-px bg-slate-200 dark:bg-dark-700 mx-0.5" />
-
-            {/* Simple Native Color Picker */}
-            <label
-              title={isCustom ? `Custom: ${selectedColor}` : 'Custom color picker'}
-              onClick={(e) => e.stopPropagation()}
-              className={`relative w-6 h-6 rounded-full transition-all cursor-pointer flex items-center justify-center overflow-hidden border ${
-                isCustom
-                  ? 'ring-2 ring-offset-2 ring-offset-white dark:ring-offset-dark-900 ring-foreground scale-115 border-foreground shadow-md'
-                  : 'border-slate-300 dark:border-dark-600 hover:border-slate-400 dark:hover:border-dark-400 hover:scale-110 opacity-90 hover:opacity-100'
-              }`}
-              style={
-                isCustom
-                  ? { backgroundColor: selectedColor || undefined }
-                  : {
-                      background:
-                        'conic-gradient(from 180deg at 50% 50%, #f87171 0deg, #facc15 72deg, #4ade80 144deg, #60a5fa 216deg, #c084fc 288deg, #f87171 360deg)',
-                    }
-              }
-            >
-              <input
-                type="color"
-                value={selectedColor && selectedColor.startsWith('#') ? selectedColor : '#60a5fa'}
-                onChange={(e) => handlePick(e.target.value, e)}
-                onClick={(e) => e.stopPropagation()}
-                className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-              />
-              {isCustom ? (
-                <CheckIcon className="w-3.5 h-3.5 text-white stroke-[3] drop-shadow-md" />
-              ) : (
-                <span className="w-2 h-2 rounded-full bg-slate-900/40 dark:bg-dark-950/40 pointer-events-none" />
               )}
-            </label>
-          </div>
-        </div>
-      )}
+            </div>
+
+            <TagColorPalette value={selectedColor} onChange={(c) => handlePick(c)} />
+          </div>,
+          document.body
+        )}
     </div>
   )
 }

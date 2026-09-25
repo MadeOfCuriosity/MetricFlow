@@ -9,6 +9,7 @@ import {
 import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../context/ToastContext'
 import { subscriptionsService, Subscription as SubscriptionRecord } from '../../services/subscriptions'
+import { getApiError } from '../../lib/apiError'
 
 const PLAN_DISPLAY: Record<string, { name: string; desc: string; color: string; badge: string }> = {
   free: {
@@ -20,32 +21,32 @@ const PLAN_DISPLAY: Record<string, { name: string; desc: string; color: string; 
   team: {
     name: 'Team Tier',
     desc: 'For growing teams with 30 KPIs, 8 users, and 25 AI queries/day.',
-    color: 'border-primary-500/30 bg-primary-500/5',
-    badge: 'bg-primary-500/10 text-primary-400 border-primary-500/20',
+    color: 'border-brand/30 bg-brand/5',
+    badge: 'bg-brand/10 text-brand border-brand/20',
   },
   team_annual: {
     name: 'Team Tier (Annual)',
     desc: 'For growing teams with 30 KPIs, 8 users, and 25 AI queries/day.',
-    color: 'border-primary-500/30 bg-primary-500/5',
-    badge: 'bg-primary-500/10 text-primary-400 border-primary-500/20',
+    color: 'border-brand/30 bg-brand/5',
+    badge: 'bg-brand/10 text-brand border-brand/20',
   },
   business: {
     name: 'Business Tier',
     desc: 'Unlimited KPIs, 25 users, all integrations, and 50 AI queries/day.',
-    color: 'border-purple-500/30 bg-purple-500/5',
-    badge: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
+    color: 'border-brand/30 bg-brand/5',
+    badge: 'bg-brand/10 text-brand border-brand/20',
   },
   business_annual: {
     name: 'Business Tier (Annual)',
     desc: 'Unlimited KPIs, 25 users, all integrations, and 50 AI queries/day.',
-    color: 'border-purple-500/30 bg-purple-500/5',
-    badge: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
+    color: 'border-brand/30 bg-brand/5',
+    badge: 'bg-brand/10 text-brand border-brand/20',
   },
   enterprise: {
     name: 'Enterprise Tier',
     desc: 'Dedicated infrastructure, custom integrations, SAML SSO, and 24/7 SLA.',
-    color: 'border-amber-500/30 bg-amber-500/5',
-    badge: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+    color: 'border-brand/30 bg-brand/5',
+    badge: 'bg-brand/10 text-brand border-brand/20',
   },
 }
 
@@ -86,8 +87,7 @@ export function SettingsPlan() {
       setCurrentSub(updated)
       success('Subscription updated', 'Your subscription will cancel at the end of the current period.')
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { detail?: string } } }
-      toastError(error?.response?.data?.detail || 'Failed to cancel subscription')
+      toastError(getApiError(err, 'Failed to cancel subscription'))
     } finally {
       setIsCancelling(false)
     }
@@ -129,8 +129,8 @@ export function SettingsPlan() {
       <div className="bg-dark-900 border border-dark-700 rounded-2xl p-6 sm:p-8 space-y-6 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-dark-800">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-primary-500/10 border border-primary-500/20 flex items-center justify-center">
-              <CreditCardIcon className="w-5 h-5 text-primary-400 stroke-[2]" />
+            <div className="w-10 h-10 rounded-xl bg-brand/10 border border-brand/20 flex items-center justify-center">
+              <CreditCardIcon className="w-5 h-5 text-brand stroke-[2]" />
             </div>
             <div>
               <h2 className="text-base font-bold text-foreground tracking-tight">Subscription &amp; Plan</h2>
@@ -143,7 +143,7 @@ export function SettingsPlan() {
           <button
             type="button"
             onClick={scrollToUpgrade}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-foreground text-dark-950 font-semibold hover:opacity-90 transition-opacity text-xs sm:text-sm shadow-sm cursor-pointer self-start sm:self-auto"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary-500 text-white font-semibold hover:opacity-90 transition-opacity text-xs sm:text-sm shadow-sm cursor-pointer self-start sm:self-auto"
           >
             <ArrowTrendingUpIcon className="w-4 h-4 stroke-[2.5]" />
             <span>Upgrade Plan</span>
@@ -159,8 +159,8 @@ export function SettingsPlan() {
                 <span
                   className={`px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-md border ${
                     planStatus === 'active'
-                      ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                      : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                      ? 'bg-success-500/10 text-success-400 border-success-500/20'
+                      : 'bg-brand/10 text-brand border-brand/20'
                   }`}
                 >
                   {planStatus}
@@ -175,7 +175,7 @@ export function SettingsPlan() {
                   type="button"
                   onClick={handleCancel}
                   disabled={isCancelling}
-                  className="px-3.5 py-2 text-xs font-medium rounded-xl border border-dark-700 bg-dark-800/80 hover:bg-rose-500/10 hover:border-rose-500/30 hover:text-rose-400 text-dark-300 transition-colors cursor-pointer disabled:opacity-50"
+                  className="px-3.5 py-2 text-xs font-medium rounded-xl border border-dark-700 bg-dark-800/80 hover:bg-danger-500/10 hover:border-danger-500/30 hover:text-danger-400 text-dark-300 transition-colors cursor-pointer disabled:opacity-50"
                 >
                   {isCancelling ? 'Cancelling...' : 'Cancel Subscription'}
                 </button>
@@ -219,7 +219,7 @@ export function SettingsPlan() {
       {/* Payment & Security */}
       <div className="bg-dark-900 border border-dark-700 rounded-2xl p-6 sm:p-8 space-y-4 shadow-sm">
         <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
-          <ShieldCheckIcon className="w-4 h-4 text-emerald-400" />
+          <ShieldCheckIcon className="w-4 h-4 text-dark-400" />
           <span>Billing &amp; Payment Security</span>
         </div>
         <p className="text-xs text-dark-300 leading-relaxed">

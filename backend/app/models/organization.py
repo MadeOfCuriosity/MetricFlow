@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Column, String, DateTime
+from sqlalchemy import Boolean, Column, String, DateTime
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
@@ -16,6 +16,9 @@ class Organization(Base):
     industry = Column(String(100), nullable=True)
     website = Column(String(255), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    # IANA zone (e.g. "Asia/Kolkata"); decides what "today" means for entries and WhatsApp
+    timezone = Column(String(64), nullable=True)
+    whatsapp_enabled = Column(Boolean, nullable=False, default=False, server_default="false")
 
     # Active plan — mirrored from the latest active Subscription so entitlements
     # can be checked without a join on every request.

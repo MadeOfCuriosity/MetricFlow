@@ -72,7 +72,7 @@ export function SuperAdminLayout() {
               />
               <div>
                 <div className="text-sm font-semibold text-foreground">Visualize</div>
-                <div className="text-xs text-primary-400 -mt-0.5">Platform Admin</div>
+                <div className="text-xs text-brand -mt-0.5">Platform Admin</div>
               </div>
             </div>
 
@@ -110,7 +110,7 @@ export function SuperAdminLayout() {
               className={({ isActive }) =>
                 `flex items-center gap-2 px-1 py-3 text-sm font-medium border-b-2 whitespace-nowrap transition-colors ${
                   isActive
-                    ? 'border-primary-500 text-primary-400'
+                    ? 'border-brand text-brand'
                     : 'border-transparent text-dark-300 hover:text-foreground hover:border-dark-500'
                 }`
               }

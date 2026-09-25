@@ -1,19 +1,27 @@
-import { Fragment } from 'react'
+import { Fragment, type ComponentType } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import {
-  HomeIcon,
-  ChartBarIcon,
-  LightBulbIcon,
-  FolderIcon,
-} from '@heroicons/react/24/outline'
+import { LightBulbIcon } from '@heroicons/react/24/outline'
+import { LightBulbIcon as LightBulbIconSolid } from '@heroicons/react/24/solid'
 import { LiquidBridge } from './LiquidBridge'
+import { MaskIcon } from './ui/MaskIcon'
 
-const dockItems = [
-  { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
-  { name: 'KPIs', href: '/kpis', icon: ChartBarIcon },
-  { name: 'Insights', href: '/insights', icon: LightBulbIcon },
-  { name: 'Rooms', href: '/rooms', icon: FolderIcon },
+type DockIcon = string | ComponentType<{ className?: string }>
+
+const dockItems: { name: string; href: string; icon: DockIcon; activeIcon: DockIcon }[] = [
+  { name: 'Dashboard', href: '/dashboard', icon: '/icons/home.svg', activeIcon: '/icons/home-filled.svg' },
+  { name: 'KPIs', href: '/kpis', icon: '/icons/kpi.svg', activeIcon: '/icons/kpi-filled.svg' },
+  { name: 'Insights', href: '/insights', icon: LightBulbIcon, activeIcon: LightBulbIconSolid },
+  { name: 'Rooms', href: '/rooms', icon: '/icons/room.svg', activeIcon: '/icons/room-fiiled.svg' },
 ]
+
+// Renders an SVG file as a CSS mask so it inherits the current text color.
+function DockIconView({ icon, className }: { icon: DockIcon; className: string }) {
+  if (typeof icon !== 'string') {
+    const Icon = icon
+    return <Icon className={className} />
+  }
+  return <MaskIcon src={icon} className={className} />
+}
 
 export function AppDock() {
   const navigate = useNavigate()
@@ -69,14 +77,13 @@ export function AppDock() {
                 <div
                   className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 ${
                     isActive
-                      ? 'bg-foreground text-dark-950'
-                      : 'text-dark-300 group-hover:text-foreground group-hover:bg-dark-800/80'
+                      ? 'text-foreground'
+                      : 'text-dark-300 group-hover:text-foreground'
                   }`}
                 >
-                  <item.icon
-                    className={`w-4 h-4 ${
-                      isActive ? 'text-dark-950 stroke-[2.2]' : 'stroke-[2]'
-                    }`}
+                  <DockIconView
+                    icon={isActive ? item.activeIcon : item.icon}
+                    className="w-4 h-4"
                   />
                 </div>
               </button>

@@ -9,6 +9,7 @@ import {
   TooltipProps,
 } from 'recharts'
 import { format } from 'date-fns'
+import { CHART_COLORS } from '../lib/chartColors'
 
 interface DataPoint {
   date: string
@@ -46,7 +47,7 @@ export function TrendChart({
 }: TrendChartProps) {
   // Supporting status colors for positive/negative trends
   const isPositive = data.length >= 2 && data[data.length - 1].value >= data[0].value
-  const lineColor = isPositive ? '#10b981' : '#ef4444'
+  const lineColor = isPositive ? CHART_COLORS.up : CHART_COLORS.down
   const gradientId = `gradient-${kpiName.replace(/\s+/g, '-')}`
 
   if (data.length === 0) {
@@ -76,20 +77,20 @@ export function TrendChart({
           {showGrid && (
             <CartesianGrid
               strokeDasharray="3 3"
-              stroke="rgb(var(--color-dark-700))"
+              stroke={CHART_COLORS.grid}
               vertical={false}
             />
           )}
           <XAxis
             dataKey="date"
             tickFormatter={(date) => format(new Date(date), 'MMM d')}
-            stroke="rgb(var(--color-dark-400))"
+            stroke={CHART_COLORS.axis}
             fontSize={12}
             tickLine={false}
             axisLine={false}
           />
           <YAxis
-            stroke="rgb(var(--color-dark-400))"
+            stroke={CHART_COLORS.axis}
             fontSize={12}
             tickLine={false}
             axisLine={false}
@@ -107,7 +108,7 @@ export function TrendChart({
             activeDot={{
               r: 6,
               fill: lineColor,
-              stroke: 'rgb(var(--color-dark-800))',
+              stroke: CHART_COLORS.dotRing,
               strokeWidth: 2,
             }}
             fill={`url(#${gradientId})`}

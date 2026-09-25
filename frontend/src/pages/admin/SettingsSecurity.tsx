@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { EyeIcon, EyeSlashIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline'
 import { authService } from '../../services/auth'
 import { useToast } from '../../context/ToastContext'
+import { getApiError } from '../../lib/apiError'
 
 export function SettingsSecurity() {
   const { success } = useToast()
@@ -37,8 +38,7 @@ export function SettingsSecurity() {
       setNewPassword('')
       setConfirmPassword('')
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { detail?: string } } }
-      setPasswordError(error.response?.data?.detail || 'Failed to change password')
+      setPasswordError(getApiError(err, 'Failed to change password'))
     } finally {
       setIsChangingPassword(false)
     }
@@ -53,7 +53,7 @@ export function SettingsSecurity() {
 
       <form onSubmit={handleChangePassword} className="space-y-4">
         {passwordError && (
-          <div className="flex items-center gap-3 p-4 bg-rose-500/10 border border-rose-500/20 rounded-2xl text-rose-400 text-xs font-semibold">
+          <div className="flex items-center gap-3 p-4 bg-danger-500/10 border border-danger-500/20 rounded-2xl text-danger-400 text-xs font-semibold">
             <ExclamationTriangleIcon className="w-4 h-4 flex-shrink-0" />
             <span>{passwordError}</span>
           </div>
@@ -128,7 +128,7 @@ export function SettingsSecurity() {
           <button
             type="submit"
             disabled={isChangingPassword || !currentPassword || !newPassword || !confirmPassword}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-foreground text-dark-950 font-semibold hover:opacity-90 transition-opacity text-sm shadow-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary-500 text-white font-semibold hover:opacity-90 transition-opacity text-sm shadow-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             {isChangingPassword ? 'Updating Password...' : 'Update Password'}
           </button>
@@ -136,13 +136,13 @@ export function SettingsSecurity() {
       </form>
 
       <div className="pt-6 border-t border-dark-800/80">
-        <h3 className="text-xs font-bold text-rose-400 uppercase tracking-wider mb-1">Danger Zone</h3>
+        <h3 className="text-xs font-bold text-danger-400 uppercase tracking-wider mb-1">Danger Zone</h3>
         <p className="text-xs text-dark-400 mb-4">
           Permanently delete your account and all associated access rights.
         </p>
         <button
           type="button"
-          className="px-4 py-2 bg-rose-500/10 text-rose-400 border border-rose-500/20 rounded-xl text-xs font-semibold hover:bg-rose-500/20 transition-colors cursor-pointer"
+          className="px-4 py-2 bg-danger-500/10 text-danger-400 border border-danger-500/20 rounded-xl text-xs font-semibold hover:bg-danger-500/20 transition-colors cursor-pointer"
         >
           Delete Account
         </button>

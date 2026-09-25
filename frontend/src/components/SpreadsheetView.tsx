@@ -1,5 +1,5 @@
-import { useState, useRef, useCallback, useEffect, useMemo } from 'react'
-import { format, parse } from 'date-fns'
+import { Fragment, useState, useRef, useCallback, useEffect, useMemo } from 'react'
+import { format, parse, parseISO } from 'date-fns'
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
@@ -9,6 +9,8 @@ import {
 } from '@heroicons/react/24/outline'
 import { dataFieldsApi } from '../services/dataFields'
 import type { SheetViewResponse, SheetFieldRow, FieldEntryInput } from '../types/dataField'
+import { Spinner } from './ui/Spinner'
+import { INTERVAL_LABELS } from './IntervalBadge'
 
 // Cell key: "fieldId:dateStr"
 type CellKey = string
@@ -19,9 +21,11 @@ function makeCellKey(fieldId: string, dateStr: string): CellKey {
 interface SpreadsheetViewProps {
   searchQuery: string
   selectedRoom: string
+  /** Called with the data field id when a field name is clicked */
+  onFieldClick?: (fieldId: string) => void
 }
 
-export function SpreadsheetView({ searchQuery, selectedRoom }: SpreadsheetViewProps) {
+export function SpreadsheetView({ searchQuery, selectedRoom, onFieldClick }: SpreadsheetViewProps) {
   const [currentMonth, setCurrentMonth] = useState(() => format(new Date(), 'yyyy-MM'))
   const [sheetData, setSheetData] = useState<SheetViewResponse | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -141,7 +145,19 @@ export function SpreadsheetView({ searchQuery, selectedRoom }: SpreadsheetViewPr
     [dirtyValues, sheetData]
   )
 
+  // Weekly/monthly rows only accept values on each period's start date
+  const fieldById = useMemo(() => {
+    const map = new Map<string, SheetFieldRow>()
+    sheetData?.room_groups.forEach((g) => g.fields.forEach((f) => map.set(f.data_field_id, f)))
+    return map
+  }, [sheetData])
+  const isCellActive = (fieldId: string, dateStr: string) => {
+    const periods = fieldById.get(fieldId)?.periods
+    return !periods || dateStr in periods
+  }
+
   const startEditing = (fieldId: string, dateStr: string) => {
+    if (!isCellActive(fieldId, dateStr)) return
     const key = makeCellKey(fieldId, dateStr)
     const currentVal = getCellValue(fieldId, dateStr)
     setEditingCell(key)
@@ -211,12 +227,19 @@ export function SpreadsheetView({ searchQuery, selectedRoom }: SpreadsheetViewPr
     let newFieldIdx = fieldIndex
     let newDateIdx = dateIndex
 
+    // Step over muted cells (weekly/monthly rows between their period dates)
     if (direction === 'right' || direction === 'left') {
-      newDateIdx = direction === 'right' ? dateIndex + 1 : dateIndex - 1
-      if (newDateIdx < 0 || newDateIdx >= sheetData.dates.length) return
+      const step = direction === 'right' ? 1 : -1
+      do {
+        newDateIdx += step
+        if (newDateIdx < 0 || newDateIdx >= sheetData.dates.length) return
+      } while (!isCellActive(currentFieldId, sheetData.dates[newDateIdx]))
     } else {
-      newFieldIdx = direction === 'down' ? fieldIndex + 1 : fieldIndex - 1
-      if (newFieldIdx < 0 || newFieldIdx >= allFieldIds.length) return
+      const step = direction === 'down' ? 1 : -1
+      do {
+        newFieldIdx += step
+        if (newFieldIdx < 0 || newFieldIdx >= allFieldIds.length) return
+      } while (!isCellActive(allFieldIds[newFieldIdx], currentDate))
     }
 
     commitEdit()
@@ -340,13 +363,13 @@ export function SpreadsheetView({ searchQuery, selectedRoom }: SpreadsheetViewPr
             disabled={!hasDirtyValues || isSaving}
             className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
               hasDirtyValues
-                ? 'bg-foreground text-dark-950 hover:opacity-90 shadow-sm'
+                ? 'bg-primary-500 text-white hover:opacity-90 shadow-sm'
                 : 'bg-dark-900 border border-dark-800 text-dark-500 cursor-not-allowed'
             }`}
           >
             {isSaving ? (
               <>
-                <div className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-dark-950/30 border-t-dark-950" />
+                <Spinner size="xs" tone="white" />
                 <span>Saving...</span>
               </>
             ) : (
@@ -365,22 +388,22 @@ export function SpreadsheetView({ searchQuery, selectedRoom }: SpreadsheetViewPr
 
       {/* Status messages */}
       {saveStatus === 'success' && saveMessage && (
-        <div className="flex items-center gap-3 p-3.5 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl">
-          <CheckCircleIcon className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-          <p className="text-xs font-semibold text-emerald-400">{saveMessage}</p>
+        <div className="flex items-center gap-3 p-3.5 bg-success-500/10 border border-success-500/20 rounded-2xl">
+          <CheckCircleIcon className="w-4 h-4 text-success-400 flex-shrink-0" />
+          <p className="text-xs font-semibold text-success-400">{saveMessage}</p>
         </div>
       )}
       {saveStatus === 'error' && saveMessage && (
-        <div className="flex items-center gap-3 p-3.5 bg-rose-500/10 border border-rose-500/20 rounded-2xl">
-          <ExclamationTriangleIcon className="w-4 h-4 text-rose-400 flex-shrink-0" />
-          <p className="text-xs font-semibold text-rose-400">{saveMessage}</p>
+        <div className="flex items-center gap-3 p-3.5 bg-danger-500/10 border border-danger-500/20 rounded-2xl">
+          <ExclamationTriangleIcon className="w-4 h-4 text-danger-400 flex-shrink-0" />
+          <p className="text-xs font-semibold text-danger-400">{saveMessage}</p>
         </div>
       )}
 
       {/* Loading */}
       {isLoading && (
         <div className="flex items-center justify-center h-64 bg-dark-900 border border-dark-700 rounded-2xl">
-          <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary-500 border-t-transparent" />
+          <Spinner size="md" />
         </div>
       )}
 
@@ -388,12 +411,12 @@ export function SpreadsheetView({ searchQuery, selectedRoom }: SpreadsheetViewPr
       {!isLoading && sheetData && visibleRoomGroups.length === 0 && (
         <div className="bg-dark-900 border border-dashed border-dark-700/80 rounded-2xl p-12 text-center">
           <h3 className="text-base font-semibold text-foreground mb-1">
-            {searchQuery ? 'No matching fields' : 'No daily data fields'}
+            {searchQuery ? 'No matching fields' : 'No data fields'}
           </h3>
           <p className="text-xs text-dark-300">
             {searchQuery
               ? `No fields match "${searchQuery}". Try a different search.`
-              : 'The sheet view tracks fields with a daily entry frequency. Create daily data fields to use this view.'}
+              : 'Create data fields to start tracking them here.'}
           </p>
         </div>
       )}
@@ -421,7 +444,7 @@ export function SpreadsheetView({ searchQuery, selectedRoom }: SpreadsheetViewPr
                     <th
                       key={dateStr}
                       className={`px-2 py-2 text-center min-w-[72px] border-r border-dark-800 ${
-                        isTodayDate(dateStr) ? 'bg-primary-500/10' : 'bg-dark-950/40'
+                        isTodayDate(dateStr) ? 'bg-brand/10' : 'bg-dark-950/40'
                       }`}
                     >
                       <div className="text-[10px] text-dark-400 font-semibold uppercase">
@@ -429,7 +452,7 @@ export function SpreadsheetView({ searchQuery, selectedRoom }: SpreadsheetViewPr
                       </div>
                       <div
                         className={`text-xs font-bold ${
-                          isTodayDate(dateStr) ? 'text-primary-400' : 'text-dark-200'
+                          isTodayDate(dateStr) ? 'text-brand' : 'text-dark-200'
                         }`}
                       >
                         {formatDayHeader(dateStr)}
@@ -440,7 +463,7 @@ export function SpreadsheetView({ searchQuery, selectedRoom }: SpreadsheetViewPr
               </thead>
               <tbody>
                 {visibleRoomGroups.map((group) => (
-                  <div key={`group-${group.room_id || 'unassigned'}`} style={{ display: 'contents' }}>
+                  <Fragment key={`group-${group.room_id || 'unassigned'}`}>
                     {/* Room header row */}
                     <tr className="border-b border-dark-700 bg-dark-950/40">
                       <td
@@ -466,12 +489,36 @@ export function SpreadsheetView({ searchQuery, selectedRoom }: SpreadsheetViewPr
                           {/* Field name - sticky */}
                           <td className="sticky left-0 z-10 bg-dark-900 px-4 py-2.5 border-r border-dark-700">
                             <div className="flex items-center gap-2">
-                              <span
-                                className="text-xs font-semibold text-foreground truncate max-w-[140px]"
-                                title={field.name}
-                              >
-                                {field.name}
-                              </span>
+                              {onFieldClick ? (
+                                <button
+                                  type="button"
+                                  onClick={() => onFieldClick(field.data_field_id)}
+                                  className="text-xs font-semibold text-foreground truncate max-w-[140px] text-left hover:text-brand hover:underline underline-offset-2 transition-colors cursor-pointer"
+                                  title={`${field.name} — view details`}
+                                >
+                                  {field.name}
+                                </button>
+                              ) : (
+                                <span
+                                  className="text-xs font-semibold text-foreground truncate max-w-[140px]"
+                                  title={field.name}
+                                >
+                                  {field.name}
+                                </span>
+                              )}
+                              {field.entry_interval !== 'daily' && (
+                                <span
+                                  className="text-[9px] font-semibold uppercase tracking-wider text-dark-300 bg-dark-800 px-1 py-0.5 rounded border border-dark-700 flex-shrink-0"
+                                  title={INTERVAL_LABELS[field.entry_interval]}
+                                >
+                                  {field.entry_interval === 'weekly' ? 'Wk' : field.entry_interval === 'monthly' ? 'Mo' : 'Any'}
+                                </span>
+                              )}
+                              {field.period_start_date && field.period_start_date > format(new Date(), 'yyyy-MM-dd') && (
+                                <span className="text-[10px] text-warning-400/80 flex-shrink-0 whitespace-nowrap">
+                                  starts {format(parseISO(field.period_start_date), 'MMM d')}
+                                </span>
+                              )}
                               {field.unit && (
                                 <span className="text-[10px] text-dark-400 bg-dark-800 px-1.5 py-0.5 rounded border border-dark-700 flex-shrink-0 font-medium">
                                   {field.unit}
@@ -497,17 +544,39 @@ export function SpreadsheetView({ searchQuery, selectedRoom }: SpreadsheetViewPr
                             const val = getCellValue(field.data_field_id, dateStr)
                             const hasSavedValue = field.values[dateStr] != null
                             const todayCol = isTodayDate(dateStr)
+                            const periodEnd = field.periods?.[dateStr]
+
+                            if (field.periods && !periodEnd) {
+                              const startsLater = !!field.period_start_date && dateStr < field.period_start_date
+                              return (
+                                <td
+                                  key={dateStr}
+                                  className="border-r border-dark-800/50 bg-dark-950/60 bg-[repeating-linear-gradient(135deg,transparent_0_6px,rgba(255,255,255,0.025)_6px_7px)] cursor-not-allowed"
+                                  title={
+                                    startsLater
+                                      ? `Starts ${format(parseISO(field.period_start_date!), 'MMM d')}`
+                                      : `${INTERVAL_LABELS[field.entry_interval]} field — values go on the period start date`
+                                  }
+                                  aria-disabled="true"
+                                />
+                              )
+                            }
 
                             return (
                               <td
+                                title={
+                                  periodEnd
+                                    ? `${INTERVAL_LABELS[field.entry_interval]}: ${format(parseISO(dateStr), 'MMM d')} – ${format(parseISO(periodEnd), 'MMM d')}`
+                                    : undefined
+                                }
                                 key={dateStr}
                                 className={`px-0 py-0 text-center border-r border-dark-800/50 transition-colors cursor-pointer ${
-                                  todayCol ? 'bg-primary-500/[0.04]' : ''
+                                  todayCol ? 'bg-brand/[0.04]' : ''
                                 } ${
                                   isDirty
-                                    ? 'bg-primary-500/[0.12]'
+                                    ? 'bg-brand/[0.12]'
                                     : hasSavedValue
-                                    ? 'bg-emerald-500/[0.05]'
+                                    ? 'bg-brand/[0.05]'
                                     : ''
                                 }`}
                                 onClick={() =>
@@ -523,14 +592,14 @@ export function SpreadsheetView({ searchQuery, selectedRoom }: SpreadsheetViewPr
                                     onChange={(e) => setEditValue(e.target.value)}
                                     onBlur={commitEdit}
                                     onKeyDown={handleKeyDown}
-                                    className="w-full h-full px-2 py-2 text-xs text-center text-foreground bg-primary-500/15 border-2 border-primary-500 outline-none tabular-nums"
+                                    className="w-full h-full px-2 py-2 text-xs text-center text-foreground bg-brand/15 border-2 border-brand outline-none tabular-nums"
                                     style={{ minHeight: '34px' }}
                                   />
                                 ) : (
                                   <div
                                     className={`px-2 py-2 text-xs tabular-nums min-h-[34px] flex items-center justify-center ${
                                       isDirty
-                                        ? 'text-primary-300 font-semibold'
+                                        ? 'text-brand font-semibold'
                                         : val != null
                                         ? 'text-foreground'
                                         : 'text-dark-600'
@@ -545,7 +614,7 @@ export function SpreadsheetView({ searchQuery, selectedRoom }: SpreadsheetViewPr
                         </tr>
                       )
                     })}
-                  </div>
+                  </Fragment>
                 ))}
               </tbody>
             </table>
@@ -556,7 +625,7 @@ export function SpreadsheetView({ searchQuery, selectedRoom }: SpreadsheetViewPr
               {sheetData.total_filled} of {sheetData.total_cells} cells recorded
             </span>
             {hasDirtyValues && (
-              <span className="text-primary-400 font-semibold">
+              <span className="text-brand font-semibold">
                 {dirtyValues.size} unsaved change{dirtyValues.size !== 1 ? 's' : ''}
               </span>
             )}

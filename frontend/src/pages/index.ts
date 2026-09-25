@@ -1,7 +1,6 @@
 export { default as Landing } from './Landing'
 export { default as Privacy } from './Privacy'
 export { default as Terms } from './Terms'
-export { Subscription } from './Subscription'
 export { Login } from './Login'
 export { Register } from './Register'
 export { Dashboard } from './Dashboard'
@@ -13,18 +12,13 @@ export { AIBuilder } from './AIBuilder'
 export { Insights } from './Insights'
 export { Rooms } from './Rooms'
 export { RoomDashboard } from './RoomDashboard'
-export { UserManagement } from './UserManagement'
-export { Data } from './Data'
-export { Integrations } from './Integrations'
 export { GoogleOrgSetup } from './GoogleOrgSetup'
 export {
   SettingsLayout,
   AdminDashboard,
-  AdminRooms,
   AdminIntegrations,
   AdminActivity,
   AdminUsers,
-  AdminOrganization,
   SettingsProfile,
   SettingsMyActivity,
   SettingsNotifications,

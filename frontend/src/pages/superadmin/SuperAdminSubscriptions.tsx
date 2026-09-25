@@ -35,7 +35,7 @@ export function SuperAdminSubscriptions() {
             setOffset(0)
             setStatusFilter(e.target.value)
           }}
-          className="px-3 py-2 bg-dark-800 border border-dark-600 rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary-500"
+          className="px-3 py-2 bg-dark-800 border border-dark-600 rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-brand"
         >
           <option value="">All statuses</option>
           <option value="active">Active</option>
@@ -82,7 +82,7 @@ export function SuperAdminSubscriptions() {
                     <td className="px-4 py-3">
                       <Link
                         to={`/superadmin/organizations/${s.org_id}`}
-                        className="text-primary-400 hover:underline"
+                        className="text-brand hover:underline"
                       >
                         {s.org_name}
                       </Link>

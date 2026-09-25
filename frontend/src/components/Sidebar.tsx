@@ -10,7 +10,7 @@ import {
 import { useRoom } from '../context/RoomContext'
 import { useAuth } from '../context/AuthContext'
 import { RoomTreeNode } from '../types/room'
-import { CreateRoomModal } from './CreateRoomModal'
+import { RoomFormModal } from './RoomFormModal'
 
 interface RoomTreeItemProps {
   room: RoomTreeNode
@@ -194,7 +194,8 @@ export function Sidebar({ className, onCollapse, footer }: SidebarProps = {}) {
 
       {/* Create Room Modal - Only for Admin */}
       {isAdmin && (
-        <CreateRoomModal
+        <RoomFormModal
+          mode="create"
           isOpen={isCreateModalOpen}
           onClose={() => setIsCreateModalOpen(false)}
           onCreated={handleRoomCreated}

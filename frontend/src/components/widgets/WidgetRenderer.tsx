@@ -2,8 +2,7 @@ import type { WidgetConfig } from '../../types/dashboard'
 import { useDashboard } from '../../context/DashboardContext'
 import { StatNumberWidget } from './StatNumberWidget'
 import { LineChartWidget } from './LineChartWidget'
-import { BarChartWidget } from './BarChartWidget'
-import { AreaChartWidget } from './AreaChartWidget'
+import { SeriesChartWidget } from './SeriesChartWidget'
 import { GaugeProgressWidget } from './GaugeProgressWidget'
 import { InsightsListWidget } from './InsightsListWidget'
 import { KPICardsWidget } from './KPICardsWidget'
@@ -47,7 +46,8 @@ export function WidgetRenderer({ config }: WidgetRendererProps) {
       )
     case 'bar-chart':
       return (
-        <BarChartWidget
+        <SeriesChartWidget
+          variant="bar"
           config={config}
           data={data}
           selectedKPI={selectedKPI}
@@ -56,7 +56,8 @@ export function WidgetRenderer({ config }: WidgetRendererProps) {
       )
     case 'area-chart':
       return (
-        <AreaChartWidget
+        <SeriesChartWidget
+          variant="area"
           config={config}
           data={data}
           selectedKPI={selectedKPI}

@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect, Fragment } from 'react'
-import { Dialog, Transition } from '@headlessui/react'
+import { useState, useRef, useEffect } from 'react'
+import { Dialog } from '@headlessui/react'
 import {
   XMarkIcon,
   ArrowUpTrayIcon,
@@ -21,6 +21,8 @@ import type {
   CSVLayoutType,
   DataField,
 } from '../types/dataField'
+import { getApiError } from '../lib/apiError'
+import { Modal } from './ui/Modal'
 
 interface CSVImportModalProps {
   isOpen: boolean
@@ -32,51 +34,28 @@ const LAYOUT_LABELS: Record<CSVLayoutType, { title: string; desc: string; badge:
   columnar: {
     title: 'Columnar Time-Series',
     desc: 'Each row is a date; columns are metrics (e.g., Date, Revenue, Signups)',
-    badge: 'bg-primary-500/10 text-primary-400 border-primary-500/20',
+    badge: 'bg-brand/10 text-brand border-brand/20',
   },
   statement: {
     title: 'Financial Statement (P&L / Report)',
     desc: 'Metric line items (Sales, Gross Profit, Expenses, Net Earnings) for a single reporting period',
-    badge: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+    badge: 'bg-success-500/10 text-success-400 border-success-500/20',
   },
   matrix: {
     title: 'Matrix / Transposed',
     desc: 'Each row is a metric field; columns are dates (e.g., field, 2026-01-01, 2026-01-02)',
-    badge: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20',
+    badge: 'bg-dark-800 text-dark-300 border-dark-700',
   },
   long: {
     title: 'Normalized / Long (EAV)',
     desc: 'Each row has Date, Field Name, and Value (e.g., Date, Metric, Amount)',
-    badge: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20',
+    badge: 'bg-dark-800 text-dark-300 border-dark-700',
   },
   transactional: {
     title: 'Transactional Logs',
     desc: 'Multiple rows per date to be aggregated (e.g., Sum daily amounts)',
-    badge: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+    badge: 'bg-warning-500/10 text-warning-400 border-warning-500/20',
   },
-}
-
-function formatApiErrorMessage(err: unknown, fallback: string = 'An error occurred'): string {
-  if (!err) return fallback
-  if (typeof err === 'string') return err
-  const errObj = err as any
-  const detail = errObj.response?.data?.detail ?? errObj.detail ?? errObj.message
-  if (typeof detail === 'string') return detail
-  if (Array.isArray(detail)) {
-    return detail
-      .map((item: any) => {
-        if (typeof item === 'string') return item
-        if (item && typeof item === 'object') {
-          return item.msg || item.message || JSON.stringify(item)
-        }
-        return String(item)
-      })
-      .join(', ')
-  }
-  if (detail && typeof detail === 'object') {
-    return detail.msg || detail.message || JSON.stringify(detail)
-  }
-  return fallback
 }
 
 export function CSVImportModal({ isOpen, onClose, onImported }: CSVImportModalProps) {
@@ -204,7 +183,7 @@ export function CSVImportModal({ isOpen, onClose, onImported }: CSVImportModalPr
       const data = await dataFieldsApi.analyzeCSV(selectedFile, sheetName, headerRowIndex)
       applyAnalysis(data)
     } catch (err: unknown) {
-      setError(formatApiErrorMessage(err, 'Failed to parse file. Please verify it is a valid CSV or Excel file.'))
+      setError(getApiError(err, 'Failed to parse file. Please verify it is a valid CSV or Excel file.', { includeMessage: true }))
     } finally {
       setIsAnalyzing(false)
     }
@@ -268,7 +247,7 @@ export function CSVImportModal({ isOpen, onClose, onImported }: CSVImportModalPr
       const data = await dataFieldsApi.importCSV(file, config)
       setResult(data)
     } catch (err: unknown) {
-      setError(formatApiErrorMessage(err, 'Import failed. Please verify your file format.'))
+      setError(getApiError(err, 'Import failed. Please verify your file format.', { includeMessage: true }))
     } finally {
       setIsUploading(false)
     }
@@ -279,7 +258,7 @@ export function CSVImportModal({ isOpen, onClose, onImported }: CSVImportModalPr
     try {
       await dataFieldsApi.downloadTemplate()
     } catch (err: unknown) {
-      setError(formatApiErrorMessage(err, 'Failed to download template.'))
+      setError(getApiError(err, 'Failed to download template.', { includeMessage: true }))
     } finally {
       setIsDownloadingTemplate(false)
     }
@@ -291,608 +270,582 @@ export function CSVImportModal({ isOpen, onClose, onImported }: CSVImportModalPr
   }
 
   return (
-    <Transition appear show={isOpen} as={Fragment}>
-      <Dialog as="div" className="relative z-50" onClose={handleClose}>
-        <Transition.Child
-          as={Fragment}
-          enter="ease-out duration-300"
-          enterFrom="opacity-0"
-          enterTo="opacity-100"
-          leave="ease-in duration-200"
-          leaveFrom="opacity-100"
-          leaveTo="opacity-0"
-        >
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" />
-        </Transition.Child>
-
-        <div className="fixed inset-0 overflow-y-auto">
-          <div className="flex min-h-full items-center justify-center p-4">
-            <Transition.Child
-              as={Fragment}
-              enter="ease-out duration-300"
-              enterFrom="opacity-0 scale-95"
-              enterTo="opacity-100 scale-100"
-              leave="ease-in duration-200"
-              leaveFrom="opacity-100 scale-100"
-              leaveTo="opacity-0 scale-95"
-            >
-              <Dialog.Panel className="w-full max-w-3xl transform overflow-hidden rounded-2xl bg-dark-800 border border-dark-700 p-6 shadow-2xl transition-all">
-                <div className="flex items-center justify-between pb-4 border-b border-dark-700/60 mb-4">
-                  <div className="flex items-center gap-2.5">
-                    <div className="p-2 rounded-lg bg-primary-500/10 text-primary-400 border border-primary-500/20">
-                      <TableCellsIcon className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <Dialog.Title className="text-lg font-semibold text-foreground">
-                        Universal CSV & Excel Import
-                      </Dialog.Title>
-                      <p className="text-xs text-dark-400">
-                        Import financial statements (P&L), Excel spreadsheets (.xlsx), time-series, or logs
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={handleClose}
-                    className="p-1 rounded-lg text-dark-400 hover:text-foreground hover:bg-dark-700/50 transition-colors"
-                  >
-                    <XMarkIcon className="h-5 w-5" />
-                  </button>
-                </div>
-
-                {/* Error Banner */}
-                {error && (
-                  <div className="mb-4 p-3.5 bg-danger-500/10 border border-danger-500/20 rounded-xl text-danger-400 text-sm flex items-start gap-2.5">
-                    <ExclamationTriangleIcon className="w-5 h-5 flex-shrink-0 mt-0.5" />
-                    <span className="flex-1 leading-relaxed">{error}</span>
-                  </div>
-                )}
-
-                {/* Step 3: Success Results Summary */}
-                {result && (
-                  <div className="space-y-4">
-                    <div className="p-4 bg-success-500/10 border border-success-500/20 rounded-xl">
-                      <div className="flex items-start gap-3">
-                        <CheckCircleIcon className="w-6 h-6 text-success-400 flex-shrink-0 mt-0.5" />
-                        <div>
-                          <p className="font-semibold text-success-400 text-base">Import Completed Successfully</p>
-                          <p className="text-success-400/90 text-sm mt-1">
-                            Processed <span className="font-medium">{result.rows_processed}</span> rows, created/updated{' '}
-                            <span className="font-semibold">{result.entries_created}</span> data entries
-                            {result.kpis_recalculated > 0 && (
-                              <>, and auto-recalculated <span className="font-semibold">{result.kpis_recalculated}</span> dependent KPIs</>
-                            )}.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {result.fields_created && result.fields_created.length > 0 && (
-                      <div className="p-3.5 bg-primary-500/10 border border-primary-500/20 rounded-xl text-sm">
-                        <p className="font-medium text-primary-400 mb-1 flex items-center gap-1.5">
-                          <SparklesIcon className="w-4 h-4" />
-                          {result.fields_created.length} New Field{result.fields_created.length !== 1 ? 's' : ''} Auto-Created:
-                        </p>
-                        <p className="text-primary-300 text-xs leading-relaxed">
-                          {result.fields_created.join(', ')}
-                        </p>
-                      </div>
-                    )}
-
-                    {result.errors.length > 0 && (
-                      <div className="p-3.5 bg-danger-500/10 border border-danger-500/20 rounded-xl text-sm">
-                        <p className="font-medium text-danger-400 mb-1.5">
-                          {result.errors.length} Notice{result.errors.length !== 1 ? 's' : ''} / Warning{result.errors.length !== 1 ? 's' : ''}:
-                        </p>
-                        <div className="max-h-36 overflow-y-auto space-y-1 text-xs text-danger-300/90 font-mono bg-dark-900/60 p-2.5 rounded-lg border border-danger-500/10">
-                          {result.errors.map((err, i) => (
-                            <p key={i}>
-                              {err.row ? `Row ${err.row}: ` : ''}{err.error}
-                            </p>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="flex justify-end gap-3 pt-3 border-t border-dark-700/60">
-                      <button
-                        onClick={handleReset}
-                        className="px-4 py-2 text-sm font-medium text-dark-300 hover:text-foreground transition-colors"
-                      >
-                        Import Another File
-                      </button>
-                      <button
-                        onClick={handleClose}
-                        className="px-5 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-500 rounded-xl shadow-lg shadow-primary-500/20 transition-all"
-                      >
-                        Done
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* Step 1: Upload / Drop Zone */}
-                {!result && !analysis && (
-                  <div className="space-y-4">
-                    <div
-                      onDrop={handleDrop}
-                      onDragOver={(e) => {
-                        e.preventDefault()
-                        setIsDragOver(true)
-                      }}
-                      onDragLeave={() => setIsDragOver(false)}
-                      onClick={() => fileInputRef.current?.click()}
-                      className={`border-2 border-dashed rounded-2xl p-9 text-center cursor-pointer transition-all ${
-                        isDragOver
-                          ? 'border-primary-500 bg-primary-500/10 scale-[0.99]'
-                          : 'border-dark-600 hover:border-primary-500/60 hover:bg-dark-700/40'
-                      }`}
-                    >
-                      <ArrowUpTrayIcon className="w-12 h-12 text-primary-400/80 mx-auto mb-3" />
-                      <p className="text-base text-foreground font-medium">
-                        Drop your CSV or Excel file here, or <span className="text-primary-400 underline decoration-primary-500/40">browse files</span>
-                      </p>
-                      <p className="text-xs text-dark-400 mt-1.5 max-w-lg mx-auto">
-                        Supports P&L financial reports (Zoho, QuickBooks), multi-sheet Excel (.xlsx), time-series tables, matrices, and transaction logs.
-                      </p>
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept=".csv,.xlsx,.xls,.xlsm,.txt,.tsv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv,text/plain"
-                        onChange={(e) => {
-                          const f = e.target.files?.[0]
-                          if (f) handleFileSelect(f)
-                        }}
-                        className="hidden"
-                      />
-                    </div>
-
-                    {isAnalyzing && (
-                      <div className="flex items-center justify-center gap-2 p-4 text-xs text-primary-400 font-medium">
-                        <div className="w-4 h-4 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
-                        Analyzing structure, sheets & detecting layout...
-                      </div>
-                    )}
-
-                    <div className="flex items-center justify-between pt-2">
-                      <button
-                        type="button"
-                        onClick={handleDownloadTemplate}
-                        disabled={isDownloadingTemplate}
-                        className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-medium text-dark-300 hover:text-foreground border border-dark-600 hover:border-dark-500 rounded-xl transition-colors disabled:opacity-50"
-                      >
-                        <ArrowDownTrayIcon className="w-4 h-4" />
-                        {isDownloadingTemplate ? 'Downloading...' : 'Download Standard Template'}
-                      </button>
-                      <span className="text-[11px] text-dark-400">
-                        Supports .csv, .xlsx (multi-sheet), .xls
-                      </span>
-                    </div>
-                  </div>
-                )}
-
-                {/* Step 2: Preview & Column Mapping Wizard */}
-                {!result && analysis && (
-                  <div className="space-y-4">
-                    {/* Header info banner */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 bg-dark-900/60 border border-dark-700/80 rounded-xl">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <DocumentTextIcon className="w-8 h-8 text-primary-400 flex-shrink-0" />
-                        <div className="min-w-0">
-                          <p className="text-sm font-semibold text-foreground truncate">{file?.name}</p>
-                          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                            <span className="text-xs text-dark-400">
-                              {analysis.total_rows} rows • {analysis.headers.length} cols
-                            </span>
-                            <span className={`px-2 py-0.5 text-[10px] font-medium rounded-full border ${LAYOUT_LABELS[layout]?.badge || ''}`}>
-                              {LAYOUT_LABELS[layout]?.title || layout}
-                            </span>
-                            {layout === 'statement' && (
-                              <span className="text-xs text-emerald-400 flex items-center gap-1 font-mono">
-                                <CalendarDaysIcon className="w-3.5 h-3.5" />
-                                Period: {statementDate}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setShowAdvancedMapping(!showAdvancedMapping)}
-                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
-                            showAdvancedMapping
-                              ? 'bg-primary-500/10 text-primary-400 border-primary-500/30'
-                              : 'text-dark-300 hover:text-foreground border-dark-600 hover:border-dark-500'
-                          }`}
-                        >
-                          <AdjustmentsHorizontalIcon className="w-4 h-4" />
-                          {showAdvancedMapping ? 'Hide Mapping' : 'Customize Mapping'}
-                        </button>
-                        <button
-                          onClick={handleReset}
-                          className="text-xs text-dark-400 hover:text-dark-200 px-2 py-1"
-                        >
-                          Change File
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Header Row Detection Notice + Picker */}
-                    <div className="p-3 bg-dark-900/60 border border-dark-700/80 rounded-xl">
-                      <div className="flex items-center justify-between gap-3 flex-wrap">
-                        <p className="text-xs text-dark-300">
-                          Detected header row: <span className="font-mono text-foreground">row {analysis.header_row_index + 1}</span>
-                          {analysis.rows_before_header.length > 0 && (
-                            <span className="text-dark-400"> — {analysis.rows_before_header.length} row{analysis.rows_before_header.length !== 1 ? 's' : ''} above it skipped as banner text</span>
-                          )}
-                        </p>
-                        <button
-                          type="button"
-                          onClick={() => setShowHeaderPicker(!showHeaderPicker)}
-                          className="inline-flex items-center gap-1.5 text-xs font-medium text-primary-400 hover:text-primary-300"
-                        >
-                          <PencilSquareIcon className="w-3.5 h-3.5" />
-                          {showHeaderPicker ? 'Cancel' : "That's not right — pick the header row"}
-                        </button>
-                      </div>
-
-                      {showHeaderPicker && (
-                        <div className="mt-3 border border-dark-700 rounded-lg divide-y divide-dark-700 bg-dark-800/60 overflow-hidden">
-                          {[
-                            ...analysis.rows_before_header.map((cells, i) => ({
-                              cells,
-                              absoluteIndex: analysis.header_row_index - analysis.rows_before_header.length + i,
-                              isCurrentHeader: false,
-                            })),
-                            { cells: analysis.headers, absoluteIndex: analysis.header_row_index, isCurrentHeader: true },
-                            ...analysis.preview_rows.slice(0, 2).map((cells, i) => ({
-                              cells,
-                              absoluteIndex: analysis.header_row_index + 1 + i,
-                              isCurrentHeader: false,
-                            })),
-                          ].map(({ cells, absoluteIndex, isCurrentHeader }) => (
-                            <button
-                              key={absoluteIndex}
-                              type="button"
-                              onClick={() => handlePickHeaderRow(absoluteIndex)}
-                              className={`w-full flex items-center gap-3 px-3 py-2 text-left text-xs transition-colors ${
-                                isCurrentHeader ? 'bg-primary-500/10' : 'hover:bg-dark-700/40'
-                              }`}
-                            >
-                              <span className={`px-1.5 py-0.5 rounded text-[10px] font-mono flex-shrink-0 ${isCurrentHeader ? 'bg-primary-500/20 text-primary-300' : 'bg-dark-700 text-dark-400'}`}>
-                                row {absoluteIndex + 1}
-                              </span>
-                              <span className="font-mono text-dark-200 truncate">
-                                {cells.slice(0, 6).join(' | ')}
-                              </span>
-                              {isCurrentHeader && (
-                                <span className="ml-auto text-[10px] text-primary-400 flex-shrink-0">current header</span>
-                              )}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Multi-Sheet Selector Tabs (For Excel Files) */}
-                    {sheets.length > 1 && (
-                      <div className="flex items-center gap-2 overflow-x-auto pb-1 border-b border-dark-700/60">
-                        <span className="text-xs text-dark-400 font-medium whitespace-nowrap mr-1">Sheets:</span>
-                        {sheets.map((sheet) => (
-                          <button
-                            key={sheet}
-                            type="button"
-                            onClick={() => handleSheetChange(sheet)}
-                            className={`px-3 py-1 text-xs rounded-lg font-medium transition-all whitespace-nowrap ${
-                              selectedSheet === sheet
-                                ? 'bg-primary-500/20 text-primary-300 border border-primary-500/40 shadow-sm'
-                                : 'bg-dark-800 text-dark-300 hover:text-foreground hover:bg-dark-700 border border-dark-700'
-                            }`}
-                          >
-                            {sheet}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Mapping Configuration Box */}
-                    {showAdvancedMapping && (
-                      <div className="p-4 bg-dark-900/80 border border-dark-700 rounded-xl space-y-4 animate-in fade-in duration-200">
-                        <p className="text-xs font-semibold text-foreground uppercase tracking-wider flex items-center gap-1.5">
-                          <AdjustmentsHorizontalIcon className="w-4 h-4 text-primary-400" />
-                          Structure & Mapping Settings
-                        </p>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                          {/* Layout Selector */}
-                          <div>
-                            <label className="block text-xs font-medium text-dark-300 mb-1">Layout Type</label>
-                            <select
-                              value={layout}
-                              onChange={(e) => setLayout(e.target.value as CSVLayoutType)}
-                              className="w-full text-xs bg-dark-800 border border-dark-600 rounded-lg px-2.5 py-1.5 text-foreground focus:outline-none focus:border-primary-500"
-                            >
-                              <option value="statement">Financial Statement / P&L (Key-Value)</option>
-                              <option value="columnar">Columnar Time-Series (Date in rows)</option>
-                              <option value="matrix">Matrix (Date in columns)</option>
-                              <option value="long">Long / EAV (Date, Field, Value)</option>
-                              <option value="transactional">Transactional Logs (Aggregate daily)</option>
-                            </select>
-                          </div>
-
-                          {/* Statement Date Selector (for financial statements) */}
-                          {layout === 'statement' && (
-                            <div>
-                              <label className="block text-xs font-medium text-dark-300 mb-1">Statement Date</label>
-                              <input
-                                type="date"
-                                value={statementDate}
-                                onChange={(e) => setStatementDate(e.target.value)}
-                                className="w-full text-xs bg-dark-800 border border-dark-600 rounded-lg px-2.5 py-1.5 text-foreground focus:outline-none focus:border-primary-500"
-                              />
-                            </div>
-                          )}
-
-                          {/* Date Column (for columnar/transactional) */}
-                          {layout !== 'matrix' && layout !== 'statement' && (
-                            <div>
-                              <label className="block text-xs font-medium text-dark-300 mb-1">Date Column</label>
-                              <select
-                                value={dateColumn}
-                                onChange={(e) => setDateColumn(e.target.value)}
-                                className="w-full text-xs bg-dark-800 border border-dark-600 rounded-lg px-2.5 py-1.5 text-foreground focus:outline-none focus:border-primary-500"
-                              >
-                                {analysis.headers.map((h) => (
-                                  <option key={h} value={h}>{h}</option>
-                                ))}
-                              </select>
-                            </div>
-                          )}
-
-                          {/* Room Column */}
-                          <div>
-                            <label className="block text-xs font-medium text-dark-300 mb-1">Room Column (Optional)</label>
-                            <select
-                              value={roomColumn}
-                              onChange={(e) => setRoomColumn(e.target.value)}
-                              className="w-full text-xs bg-dark-800 border border-dark-600 rounded-lg px-2.5 py-1.5 text-foreground focus:outline-none focus:border-primary-500"
-                            >
-                              <option value="">None (Global Org)</option>
-                              {analysis.headers.map((h) => (
-                                <option key={h} value={h}>{h}</option>
-                              ))}
-                            </select>
-                          </div>
-
-                          {/* Date Format (non-statement) */}
-                          {layout !== 'statement' && (
-                            <div>
-                              <label className="block text-xs font-medium text-dark-300 mb-1">Date Format</label>
-                              <select
-                                value={dateFormat}
-                                onChange={(e) => setDateFormat(e.target.value)}
-                                className="w-full text-xs bg-dark-800 border border-dark-600 rounded-lg px-2.5 py-1.5 text-foreground focus:outline-none focus:border-primary-500"
-                              >
-                                <option value="">Auto-Detect Format</option>
-                                <option value="%Y-%m-%d">YYYY-MM-DD (2026-01-15)</option>
-                                <option value="%d/%m/%Y">DD/MM/YYYY (15/01/2026)</option>
-                                <option value="%m/%d/%Y">MM/DD/YYYY (01/15/2026)</option>
-                              </select>
-                            </div>
-                          )}
-
-                          {/* Aggregation */}
-                          {(layout === 'transactional' || layout === 'columnar') && (
-                            <div>
-                              <label className="block text-xs font-medium text-dark-300 mb-1">Daily Aggregation</label>
-                              <select
-                                value={aggregation}
-                                onChange={(e) => setAggregation(e.target.value as 'sum' | 'avg' | 'min' | 'max' | 'count' | 'latest')}
-                                className="w-full text-xs bg-dark-800 border border-dark-600 rounded-lg px-2.5 py-1.5 text-foreground focus:outline-none focus:border-primary-500"
-                              >
-                                <option value="sum">Sum (Total daily sum)</option>
-                                <option value="avg">Average (Mean)</option>
-                                <option value="min">Minimum</option>
-                                <option value="max">Maximum</option>
-                                <option value="count">Count</option>
-                                <option value="latest">Latest</option>
-                              </select>
-                            </div>
-                          )}
-
-                          {/* Long / EAV Field & Value Columns */}
-                          {layout === 'long' && (
-                            <>
-                              <div>
-                                <label className="block text-xs font-medium text-dark-300 mb-1">Field Name Column</label>
-                                <select
-                                  value={fieldColumn}
-                                  onChange={(e) => setFieldColumn(e.target.value)}
-                                  className="w-full text-xs bg-dark-800 border border-dark-600 rounded-lg px-2.5 py-1.5 text-foreground focus:outline-none focus:border-primary-500"
-                                >
-                                  <option value="">Auto-Detect</option>
-                                  {analysis.headers.map((h) => (
-                                    <option key={h} value={h}>{h}</option>
-                                  ))}
-                                </select>
-                              </div>
-                              <div>
-                                <label className="block text-xs font-medium text-dark-300 mb-1">Value Column</label>
-                                <select
-                                  value={valueColumn}
-                                  onChange={(e) => setValueColumn(e.target.value)}
-                                  className="w-full text-xs bg-dark-800 border border-dark-600 rounded-lg px-2.5 py-1.5 text-foreground focus:outline-none focus:border-primary-500"
-                                >
-                                  <option value="">Auto-Detect</option>
-                                  {analysis.headers.map((h) => (
-                                    <option key={h} value={h}>{h}</option>
-                                  ))}
-                                </select>
-                              </div>
-                            </>
-                          )}
-                        </div>
-
-                        {/* Metric Line Items Mapping (for Financial Statements & Columnar) */}
-                        <div className="pt-2 border-t border-dark-700/60">
-                          <p className="text-xs font-medium text-dark-300 mb-2">
-                            {layout === 'statement' ? 'Financial Line Items Found:' : 'Metric Columns Mapping:'}
-                          </p>
-                          <div className="max-h-52 overflow-y-auto border border-dark-700 rounded-lg divide-y divide-dark-700 bg-dark-800/60">
-                            {Object.entries(columnMappings).map(([headerName, mapping]) => (
-                              <div key={headerName} className="flex items-center gap-3 p-2.5 text-xs">
-                                <span className="w-1/3 font-mono font-medium text-dark-200 truncate" title={headerName}>
-                                  {headerName}
-                                </span>
-
-                                <select
-                                  value={mapping.action}
-                                  onChange={(e) => {
-                                    const action = e.target.value as any
-                                    setColumnMappings((prev) => ({
-                                      ...prev,
-                                      [headerName]: { ...mapping, action },
-                                    }))
-                                  }}
-                                  className="w-28 bg-dark-900 border border-dark-600 rounded px-2 py-1 text-foreground"
-                                >
-                                  <option value="auto">Auto</option>
-                                  <option value="map">Map Existing</option>
-                                  <option value="create">Create New</option>
-                                  <option value="ignore">Skip</option>
-                                </select>
-
-                                {mapping.action === 'map' ? (
-                                  <select
-                                    value={mapping.target_field_id}
-                                    onChange={(e) => {
-                                      const target_field_id = e.target.value
-                                      const f = existingFields.find((ef) => ef.id === target_field_id)
-                                      setColumnMappings((prev) => ({
-                                        ...prev,
-                                        [headerName]: {
-                                          ...mapping,
-                                          target_field_id,
-                                          target_field_name: f ? f.name : mapping.target_field_name,
-                                        },
-                                      }))
-                                    }}
-                                    className="flex-1 bg-dark-900 border border-dark-600 rounded px-2 py-1 text-foreground"
-                                  >
-                                    <option value="">Select Existing Field</option>
-                                    {existingFields.map((f) => (
-                                      <option key={f.id} value={f.id}>
-                                        {f.name} ({f.variable_name})
-                                      </option>
-                                    ))}
-                                  </select>
-                                ) : mapping.action === 'create' ? (
-                                  <input
-                                    type="text"
-                                    value={mapping.target_field_name}
-                                    onChange={(e) => {
-                                      const target_field_name = e.target.value
-                                      setColumnMappings((prev) => ({
-                                        ...prev,
-                                        [headerName]: { ...mapping, target_field_name },
-                                      }))
-                                    }}
-                                    placeholder="New field name..."
-                                    className="flex-1 bg-dark-900 border border-dark-600 rounded px-2 py-1 text-foreground"
-                                  />
-                                ) : mapping.action === 'ignore' ? (
-                                  <span className="flex-1 text-dark-500 italic">Will be skipped</span>
-                                ) : (
-                                  <span className="flex-1 text-dark-400">
-                                    Will map to existing or auto-create field
-                                  </span>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Preview Table */}
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <p className="text-xs font-medium text-dark-300">
-                          Data Preview (First {Math.min(6, analysis.preview_rows.length)} of {analysis.total_rows} rows)
-                        </p>
-                        <p className="text-[11px] text-dark-400">{LAYOUT_LABELS[layout]?.desc}</p>
-                      </div>
-
-                      <div className="overflow-x-auto border border-dark-700/80 rounded-xl bg-dark-900/40">
-                        <table className="w-full text-xs">
-                          <thead>
-                            <tr className="border-b border-dark-700 bg-dark-900/80">
-                              {analysis.headers.map((h, i) => (
-                                <th key={i} className="px-3 py-2.5 text-left font-medium text-dark-200 whitespace-nowrap">
-                                  {h}
-                                </th>
-                              ))}
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-dark-700/60">
-                            {analysis.preview_rows.map((row, rIdx) => (
-                              <tr key={rIdx} className="hover:bg-dark-700/30">
-                                {analysis.headers.map((_, cIdx) => (
-                                  <td key={cIdx} className="px-3 py-2 text-dark-300 whitespace-nowrap font-mono text-[11px]">
-                                    {row[cIdx] || ''}
-                                  </td>
-                                ))}
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-
-                    {/* Actions */}
-                    <div className="flex items-center justify-between pt-3 border-t border-dark-700/60">
-                      <button
-                        type="button"
-                        onClick={handleClose}
-                        className="px-4 py-2 text-sm font-medium text-dark-300 hover:text-foreground transition-colors"
-                      >
-                        Cancel
-                      </button>
-
-                      <div className="flex items-center gap-3">
-                        {!showAdvancedMapping && (
-                          <button
-                            type="button"
-                            onClick={() => setShowAdvancedMapping(true)}
-                            className="px-4 py-2 text-xs font-medium text-dark-300 hover:text-foreground border border-dark-600 rounded-xl transition-colors"
-                          >
-                            Review & Map Columns
-                          </button>
-                        )}
-                        <button
-                          onClick={() => handleImport(showAdvancedMapping)}
-                          disabled={isUploading}
-                          className="px-5 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-500 rounded-xl shadow-lg shadow-primary-500/25 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
-                        >
-                          {isUploading ? (
-                            <>
-                              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                              Importing...
-                            </>
-                          ) : (
-                            `Import ${Object.keys(columnMappings).length || analysis.total_rows} Metrics`
-                          )}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </Dialog.Panel>
-            </Transition.Child>
+    <Modal
+      isOpen={isOpen}
+      onClose={handleClose}
+      className="w-full max-w-3xl transform overflow-hidden rounded-2xl bg-dark-800 border border-dark-700 p-6 shadow-2xl transition-all"
+    >
+      <div className="flex items-center justify-between pb-4 border-b border-dark-700/60 mb-4">
+        <div className="flex items-center gap-2.5">
+          <div className="p-2 rounded-lg bg-brand/10 text-brand border border-brand/20">
+            <TableCellsIcon className="w-5 h-5" />
+          </div>
+          <div>
+            <Dialog.Title className="text-lg font-semibold text-foreground">
+              Universal CSV & Excel Import
+            </Dialog.Title>
+            <p className="text-xs text-dark-400">
+              Import financial statements (P&L), Excel spreadsheets (.xlsx), time-series, or logs
+            </p>
           </div>
         </div>
-      </Dialog>
-    </Transition>
+        <button
+          onClick={handleClose}
+          className="p-1 rounded-lg text-dark-400 hover:text-foreground hover:bg-dark-700/50 transition-colors"
+        >
+          <XMarkIcon className="h-5 w-5" />
+        </button>
+      </div>
+
+      {/* Error Banner */}
+      {error && (
+        <div className="mb-4 p-3.5 bg-danger-500/10 border border-danger-500/20 rounded-xl text-danger-400 text-sm flex items-start gap-2.5">
+          <ExclamationTriangleIcon className="w-5 h-5 flex-shrink-0 mt-0.5" />
+          <span className="flex-1 leading-relaxed">{error}</span>
+        </div>
+      )}
+
+      {/* Step 3: Success Results Summary */}
+      {result && (
+        <div className="space-y-4">
+          <div className="p-4 bg-success-500/10 border border-success-500/20 rounded-xl">
+            <div className="flex items-start gap-3">
+              <CheckCircleIcon className="w-6 h-6 text-success-400 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold text-success-400 text-base">Import Completed Successfully</p>
+                <p className="text-success-400/90 text-sm mt-1">
+                  Processed <span className="font-medium">{result.rows_processed}</span> rows, created/updated{' '}
+                  <span className="font-semibold">{result.entries_created}</span> data entries
+                  {result.kpis_recalculated > 0 && (
+                    <>, and auto-recalculated <span className="font-semibold">{result.kpis_recalculated}</span> dependent KPIs</>
+                  )}.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {result.fields_created && result.fields_created.length > 0 && (
+            <div className="p-3.5 bg-brand/10 border border-brand/20 rounded-xl text-sm">
+              <p className="font-medium text-brand mb-1 flex items-center gap-1.5">
+                <SparklesIcon className="w-4 h-4" />
+                {result.fields_created.length} New Field{result.fields_created.length !== 1 ? 's' : ''} Auto-Created:
+              </p>
+              <p className="text-brand text-xs leading-relaxed">
+                {result.fields_created.join(', ')}
+              </p>
+            </div>
+          )}
+
+          {result.errors.length > 0 && (
+            <div className="p-3.5 bg-danger-500/10 border border-danger-500/20 rounded-xl text-sm">
+              <p className="font-medium text-danger-400 mb-1.5">
+                {result.errors.length} Notice{result.errors.length !== 1 ? 's' : ''} / Warning{result.errors.length !== 1 ? 's' : ''}:
+              </p>
+              <div className="max-h-36 overflow-y-auto space-y-1 text-xs text-danger-300/90 font-mono bg-dark-900/60 p-2.5 rounded-lg border border-danger-500/10">
+                {result.errors.map((err, i) => (
+                  <p key={i}>
+                    {err.row ? `Row ${err.row}: ` : ''}{err.error}
+                  </p>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="flex justify-end gap-3 pt-3 border-t border-dark-700/60">
+            <button
+              onClick={handleReset}
+              className="px-4 py-2 text-sm font-medium text-dark-300 hover:text-foreground transition-colors"
+            >
+              Import Another File
+            </button>
+            <button
+              onClick={handleClose}
+              className="px-5 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-500 rounded-xl shadow-lg shadow-primary-500/20 transition-all"
+            >
+              Done
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Step 1: Upload / Drop Zone */}
+      {!result && !analysis && (
+        <div className="space-y-4">
+          <div
+            onDrop={handleDrop}
+            onDragOver={(e) => {
+              e.preventDefault()
+              setIsDragOver(true)
+            }}
+            onDragLeave={() => setIsDragOver(false)}
+            onClick={() => fileInputRef.current?.click()}
+            className={`border-2 border-dashed rounded-2xl p-9 text-center cursor-pointer transition-all ${
+              isDragOver
+                ? 'border-brand bg-brand/10 scale-[0.99]'
+                : 'border-dark-600 hover:border-brand/60 hover:bg-dark-700/40'
+            }`}
+          >
+            <ArrowUpTrayIcon className="w-12 h-12 text-brand/80 mx-auto mb-3" />
+            <p className="text-base text-foreground font-medium">
+              Drop your CSV or Excel file here, or <span className="text-brand underline decoration-brand/40">browse files</span>
+            </p>
+            <p className="text-xs text-dark-400 mt-1.5 max-w-lg mx-auto">
+              Supports P&L financial reports (Zoho, QuickBooks), multi-sheet Excel (.xlsx), time-series tables, matrices, and transaction logs.
+            </p>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".csv,.xlsx,.xls,.xlsm,.txt,.tsv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv,text/plain"
+              onChange={(e) => {
+                const f = e.target.files?.[0]
+                if (f) handleFileSelect(f)
+              }}
+              className="hidden"
+            />
+          </div>
+
+          {isAnalyzing && (
+            <div className="flex items-center justify-center gap-2 p-4 text-xs text-brand font-medium">
+              <div className="w-4 h-4 border-2 border-brand border-t-transparent rounded-full animate-spin" />
+              Analyzing structure, sheets & detecting layout...
+            </div>
+          )}
+
+          <div className="flex items-center justify-between pt-2">
+            <button
+              type="button"
+              onClick={handleDownloadTemplate}
+              disabled={isDownloadingTemplate}
+              className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-medium text-dark-300 hover:text-foreground border border-dark-600 hover:border-dark-500 rounded-xl transition-colors disabled:opacity-50"
+            >
+              <ArrowDownTrayIcon className="w-4 h-4" />
+              {isDownloadingTemplate ? 'Downloading...' : 'Download Standard Template'}
+            </button>
+            <span className="text-[11px] text-dark-400">
+              Supports .csv, .xlsx (multi-sheet), .xls
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Step 2: Preview & Column Mapping Wizard */}
+      {!result && analysis && (
+        <div className="space-y-4">
+          {/* Header info banner */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 bg-dark-900/60 border border-dark-700/80 rounded-xl">
+            <div className="flex items-center gap-3 min-w-0">
+              <DocumentTextIcon className="w-8 h-8 text-brand flex-shrink-0" />
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-foreground truncate">{file?.name}</p>
+                <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                  <span className="text-xs text-dark-400">
+                    {analysis.total_rows} rows • {analysis.headers.length} cols
+                  </span>
+                  <span className={`px-2 py-0.5 text-[10px] font-medium rounded-full border ${LAYOUT_LABELS[layout]?.badge || ''}`}>
+                    {LAYOUT_LABELS[layout]?.title || layout}
+                  </span>
+                  {layout === 'statement' && (
+                    <span className="text-xs text-success-400 flex items-center gap-1 font-mono">
+                      <CalendarDaysIcon className="w-3.5 h-3.5" />
+                      Period: {statementDate}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setShowAdvancedMapping(!showAdvancedMapping)}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
+                  showAdvancedMapping
+                    ? 'bg-brand/10 text-brand border-brand/30'
+                    : 'text-dark-300 hover:text-foreground border-dark-600 hover:border-dark-500'
+                }`}
+              >
+                <AdjustmentsHorizontalIcon className="w-4 h-4" />
+                {showAdvancedMapping ? 'Hide Mapping' : 'Customize Mapping'}
+              </button>
+              <button
+                onClick={handleReset}
+                className="text-xs text-dark-400 hover:text-dark-200 px-2 py-1"
+              >
+                Change File
+              </button>
+            </div>
+          </div>
+
+          {/* Header Row Detection Notice + Picker */}
+          <div className="p-3 bg-dark-900/60 border border-dark-700/80 rounded-xl">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <p className="text-xs text-dark-300">
+                Detected header row: <span className="font-mono text-foreground">row {analysis.header_row_index + 1}</span>
+                {analysis.rows_before_header.length > 0 && (
+                  <span className="text-dark-400"> — {analysis.rows_before_header.length} row{analysis.rows_before_header.length !== 1 ? 's' : ''} above it skipped as banner text</span>
+                )}
+              </p>
+              <button
+                type="button"
+                onClick={() => setShowHeaderPicker(!showHeaderPicker)}
+                className="inline-flex items-center gap-1.5 text-xs font-medium text-brand hover:text-brand"
+              >
+                <PencilSquareIcon className="w-3.5 h-3.5" />
+                {showHeaderPicker ? 'Cancel' : "That's not right — pick the header row"}
+              </button>
+            </div>
+
+            {showHeaderPicker && (
+              <div className="mt-3 border border-dark-700 rounded-lg divide-y divide-dark-700 bg-dark-800/60 overflow-hidden">
+                {[
+                  ...analysis.rows_before_header.map((cells, i) => ({
+                    cells,
+                    absoluteIndex: analysis.header_row_index - analysis.rows_before_header.length + i,
+                    isCurrentHeader: false,
+                  })),
+                  { cells: analysis.headers, absoluteIndex: analysis.header_row_index, isCurrentHeader: true },
+                  ...analysis.preview_rows.slice(0, 2).map((cells, i) => ({
+                    cells,
+                    absoluteIndex: analysis.header_row_index + 1 + i,
+                    isCurrentHeader: false,
+                  })),
+                ].map(({ cells, absoluteIndex, isCurrentHeader }) => (
+                  <button
+                    key={absoluteIndex}
+                    type="button"
+                    onClick={() => handlePickHeaderRow(absoluteIndex)}
+                    className={`w-full flex items-center gap-3 px-3 py-2 text-left text-xs transition-colors ${
+                      isCurrentHeader ? 'bg-brand/10' : 'hover:bg-dark-700/40'
+                    }`}
+                  >
+                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-mono flex-shrink-0 ${isCurrentHeader ? 'bg-brand/20 text-brand' : 'bg-dark-700 text-dark-400'}`}>
+                      row {absoluteIndex + 1}
+                    </span>
+                    <span className="font-mono text-dark-200 truncate">
+                      {cells.slice(0, 6).join(' | ')}
+                    </span>
+                    {isCurrentHeader && (
+                      <span className="ml-auto text-[10px] text-brand flex-shrink-0">current header</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Multi-Sheet Selector Tabs (For Excel Files) */}
+          {sheets.length > 1 && (
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 border-b border-dark-700/60">
+              <span className="text-xs text-dark-400 font-medium whitespace-nowrap mr-1">Sheets:</span>
+              {sheets.map((sheet) => (
+                <button
+                  key={sheet}
+                  type="button"
+                  onClick={() => handleSheetChange(sheet)}
+                  className={`px-3 py-1 text-xs rounded-lg font-medium transition-all whitespace-nowrap ${
+                    selectedSheet === sheet
+                      ? 'bg-brand/20 text-brand border border-brand/40 shadow-sm'
+                      : 'bg-dark-800 text-dark-300 hover:text-foreground hover:bg-dark-700 border border-dark-700'
+                  }`}
+                >
+                  {sheet}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Mapping Configuration Box */}
+          {showAdvancedMapping && (
+            <div className="p-4 bg-dark-900/80 border border-dark-700 rounded-xl space-y-4 animate-in fade-in duration-200">
+              <p className="text-xs font-semibold text-foreground uppercase tracking-wider flex items-center gap-1.5">
+                <AdjustmentsHorizontalIcon className="w-4 h-4 text-brand" />
+                Structure & Mapping Settings
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {/* Layout Selector */}
+                <div>
+                  <label className="block text-xs font-medium text-dark-300 mb-1">Layout Type</label>
+                  <select
+                    value={layout}
+                    onChange={(e) => setLayout(e.target.value as CSVLayoutType)}
+                    className="w-full text-xs bg-dark-800 border border-dark-600 rounded-lg px-2.5 py-1.5 text-foreground focus:outline-none focus:border-brand"
+                  >
+                    <option value="statement">Financial Statement / P&L (Key-Value)</option>
+                    <option value="columnar">Columnar Time-Series (Date in rows)</option>
+                    <option value="matrix">Matrix (Date in columns)</option>
+                    <option value="long">Long / EAV (Date, Field, Value)</option>
+                    <option value="transactional">Transactional Logs (Aggregate daily)</option>
+                  </select>
+                </div>
+
+                {/* Statement Date Selector (for financial statements) */}
+                {layout === 'statement' && (
+                  <div>
+                    <label className="block text-xs font-medium text-dark-300 mb-1">Statement Date</label>
+                    <input
+                      type="date"
+                      value={statementDate}
+                      onChange={(e) => setStatementDate(e.target.value)}
+                      className="w-full text-xs bg-dark-800 border border-dark-600 rounded-lg px-2.5 py-1.5 text-foreground focus:outline-none focus:border-brand"
+                    />
+                  </div>
+                )}
+
+                {/* Date Column (for columnar/transactional) */}
+                {layout !== 'matrix' && layout !== 'statement' && (
+                  <div>
+                    <label className="block text-xs font-medium text-dark-300 mb-1">Date Column</label>
+                    <select
+                      value={dateColumn}
+                      onChange={(e) => setDateColumn(e.target.value)}
+                      className="w-full text-xs bg-dark-800 border border-dark-600 rounded-lg px-2.5 py-1.5 text-foreground focus:outline-none focus:border-brand"
+                    >
+                      {analysis.headers.map((h) => (
+                        <option key={h} value={h}>{h}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {/* Room Column */}
+                <div>
+                  <label className="block text-xs font-medium text-dark-300 mb-1">Room Column (Optional)</label>
+                  <select
+                    value={roomColumn}
+                    onChange={(e) => setRoomColumn(e.target.value)}
+                    className="w-full text-xs bg-dark-800 border border-dark-600 rounded-lg px-2.5 py-1.5 text-foreground focus:outline-none focus:border-brand"
+                  >
+                    <option value="">None (Global Org)</option>
+                    {analysis.headers.map((h) => (
+                      <option key={h} value={h}>{h}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Date Format (non-statement) */}
+                {layout !== 'statement' && (
+                  <div>
+                    <label className="block text-xs font-medium text-dark-300 mb-1">Date Format</label>
+                    <select
+                      value={dateFormat}
+                      onChange={(e) => setDateFormat(e.target.value)}
+                      className="w-full text-xs bg-dark-800 border border-dark-600 rounded-lg px-2.5 py-1.5 text-foreground focus:outline-none focus:border-brand"
+                    >
+                      <option value="">Auto-Detect Format</option>
+                      <option value="%Y-%m-%d">YYYY-MM-DD (2026-01-15)</option>
+                      <option value="%d/%m/%Y">DD/MM/YYYY (15/01/2026)</option>
+                      <option value="%m/%d/%Y">MM/DD/YYYY (01/15/2026)</option>
+                    </select>
+                  </div>
+                )}
+
+                {/* Aggregation */}
+                {(layout === 'transactional' || layout === 'columnar') && (
+                  <div>
+                    <label className="block text-xs font-medium text-dark-300 mb-1">Daily Aggregation</label>
+                    <select
+                      value={aggregation}
+                      onChange={(e) => setAggregation(e.target.value as 'sum' | 'avg' | 'min' | 'max' | 'count' | 'latest')}
+                      className="w-full text-xs bg-dark-800 border border-dark-600 rounded-lg px-2.5 py-1.5 text-foreground focus:outline-none focus:border-brand"
+                    >
+                      <option value="sum">Sum (Total daily sum)</option>
+                      <option value="avg">Average (Mean)</option>
+                      <option value="min">Minimum</option>
+                      <option value="max">Maximum</option>
+                      <option value="count">Count</option>
+                      <option value="latest">Latest</option>
+                    </select>
+                  </div>
+                )}
+
+                {/* Long / EAV Field & Value Columns */}
+                {layout === 'long' && (
+                  <>
+                    <div>
+                      <label className="block text-xs font-medium text-dark-300 mb-1">Field Name Column</label>
+                      <select
+                        value={fieldColumn}
+                        onChange={(e) => setFieldColumn(e.target.value)}
+                        className="w-full text-xs bg-dark-800 border border-dark-600 rounded-lg px-2.5 py-1.5 text-foreground focus:outline-none focus:border-brand"
+                      >
+                        <option value="">Auto-Detect</option>
+                        {analysis.headers.map((h) => (
+                          <option key={h} value={h}>{h}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-dark-300 mb-1">Value Column</label>
+                      <select
+                        value={valueColumn}
+                        onChange={(e) => setValueColumn(e.target.value)}
+                        className="w-full text-xs bg-dark-800 border border-dark-600 rounded-lg px-2.5 py-1.5 text-foreground focus:outline-none focus:border-brand"
+                      >
+                        <option value="">Auto-Detect</option>
+                        {analysis.headers.map((h) => (
+                          <option key={h} value={h}>{h}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Metric Line Items Mapping (for Financial Statements & Columnar) */}
+              <div className="pt-2 border-t border-dark-700/60">
+                <p className="text-xs font-medium text-dark-300 mb-2">
+                  {layout === 'statement' ? 'Financial Line Items Found:' : 'Metric Columns Mapping:'}
+                </p>
+                <div className="max-h-52 overflow-y-auto border border-dark-700 rounded-lg divide-y divide-dark-700 bg-dark-800/60">
+                  {Object.entries(columnMappings).map(([headerName, mapping]) => (
+                    <div key={headerName} className="flex items-center gap-3 p-2.5 text-xs">
+                      <span className="w-1/3 font-mono font-medium text-dark-200 truncate" title={headerName}>
+                        {headerName}
+                      </span>
+
+                      <select
+                        value={mapping.action}
+                        onChange={(e) => {
+                          const action = e.target.value as any
+                          setColumnMappings((prev) => ({
+                            ...prev,
+                            [headerName]: { ...mapping, action },
+                          }))
+                        }}
+                        className="w-28 bg-dark-900 border border-dark-600 rounded px-2 py-1 text-foreground"
+                      >
+                        <option value="auto">Auto</option>
+                        <option value="map">Map Existing</option>
+                        <option value="create">Create New</option>
+                        <option value="ignore">Skip</option>
+                      </select>
+
+                      {mapping.action === 'map' ? (
+                        <select
+                          value={mapping.target_field_id}
+                          onChange={(e) => {
+                            const target_field_id = e.target.value
+                            const f = existingFields.find((ef) => ef.id === target_field_id)
+                            setColumnMappings((prev) => ({
+                              ...prev,
+                              [headerName]: {
+                                ...mapping,
+                                target_field_id,
+                                target_field_name: f ? f.name : mapping.target_field_name,
+                              },
+                            }))
+                          }}
+                          className="flex-1 bg-dark-900 border border-dark-600 rounded px-2 py-1 text-foreground"
+                        >
+                          <option value="">Select Existing Field</option>
+                          {existingFields.map((f) => (
+                            <option key={f.id} value={f.id}>
+                              {f.name} ({f.variable_name})
+                            </option>
+                          ))}
+                        </select>
+                      ) : mapping.action === 'create' ? (
+                        <input
+                          type="text"
+                          value={mapping.target_field_name}
+                          onChange={(e) => {
+                            const target_field_name = e.target.value
+                            setColumnMappings((prev) => ({
+                              ...prev,
+                              [headerName]: { ...mapping, target_field_name },
+                            }))
+                          }}
+                          placeholder="New field name..."
+                          className="flex-1 bg-dark-900 border border-dark-600 rounded px-2 py-1 text-foreground"
+                        />
+                      ) : mapping.action === 'ignore' ? (
+                        <span className="flex-1 text-dark-500 italic">Will be skipped</span>
+                      ) : (
+                        <span className="flex-1 text-dark-400">
+                          Will map to existing or auto-create field
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Preview Table */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs font-medium text-dark-300">
+                Data Preview (First {Math.min(6, analysis.preview_rows.length)} of {analysis.total_rows} rows)
+              </p>
+              <p className="text-[11px] text-dark-400">{LAYOUT_LABELS[layout]?.desc}</p>
+            </div>
+
+            <div className="overflow-x-auto border border-dark-700/80 rounded-xl bg-dark-900/40">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-dark-700 bg-dark-900/80">
+                    {analysis.headers.map((h, i) => (
+                      <th key={i} className="px-3 py-2.5 text-left font-medium text-dark-200 whitespace-nowrap">
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-dark-700/60">
+                  {analysis.preview_rows.map((row, rIdx) => (
+                    <tr key={rIdx} className="hover:bg-dark-700/30">
+                      {analysis.headers.map((_, cIdx) => (
+                        <td key={cIdx} className="px-3 py-2 text-dark-300 whitespace-nowrap font-mono text-[11px]">
+                          {row[cIdx] || ''}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center justify-between pt-3 border-t border-dark-700/60">
+            <button
+              type="button"
+              onClick={handleClose}
+              className="px-4 py-2 text-sm font-medium text-dark-300 hover:text-foreground transition-colors"
+            >
+              Cancel
+            </button>
+
+            <div className="flex items-center gap-3">
+              {!showAdvancedMapping && (
+                <button
+                  type="button"
+                  onClick={() => setShowAdvancedMapping(true)}
+                  className="px-4 py-2 text-xs font-medium text-dark-300 hover:text-foreground border border-dark-600 rounded-xl transition-colors"
+                >
+                  Review & Map Columns
+                </button>
+              )}
+              <button
+                onClick={() => handleImport(showAdvancedMapping)}
+                disabled={isUploading}
+                className="px-5 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-500 rounded-xl shadow-lg shadow-primary-500/25 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+              >
+                {isUploading ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Importing...
+                  </>
+                ) : (
+                  `Import ${Object.keys(columnMappings).length || analysis.total_rows} Metrics`
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </Modal>
   )
 }

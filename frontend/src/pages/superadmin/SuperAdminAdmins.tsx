@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { PlusIcon, TrashIcon } from '@heroicons/react/24/outline'
 import { superadminService, SuperAdmin } from '../../services/superadmin'
+import { getApiError } from '../../lib/apiError'
 
 export function SuperAdminAdmins() {
   const [admins, setAdmins] = useState<SuperAdmin[]>([])
@@ -38,7 +39,7 @@ export function SuperAdminAdmins() {
       setShowAdd(false)
       load()
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Failed to add admin')
+      setError(getApiError(err, 'Failed to add admin'))
     } finally {
       setSubmitting(false)
     }
@@ -49,7 +50,7 @@ export function SuperAdminAdmins() {
       await superadminService.updateAdmin(a.id, { is_active: !a.is_active })
       load()
     } catch (err: any) {
-      alert(err.response?.data?.detail || 'Failed to update admin')
+      alert(getApiError(err, 'Failed to update admin'))
     }
   }
 
@@ -59,7 +60,7 @@ export function SuperAdminAdmins() {
       await superadminService.deleteAdmin(a.id)
       load()
     } catch (err: any) {
-      alert(err.response?.data?.detail || 'Failed to delete admin')
+      alert(getApiError(err, 'Failed to delete admin'))
     }
   }
 
@@ -100,7 +101,7 @@ export function SuperAdminAdmins() {
                 value={newEmail}
                 onChange={(e) => setNewEmail(e.target.value)}
                 placeholder="person@company.com"
-                className="w-full px-3 py-2 bg-dark-800 border border-dark-600 rounded-lg text-foreground placeholder-dark-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="w-full px-3 py-2 bg-dark-800 border border-dark-600 rounded-lg text-foreground placeholder-dark-400 focus:outline-none focus:ring-2 focus:ring-brand"
               />
             </div>
             <div>
@@ -109,7 +110,7 @@ export function SuperAdminAdmins() {
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
                 placeholder="Display name"
-                className="w-full px-3 py-2 bg-dark-800 border border-dark-600 rounded-lg text-foreground placeholder-dark-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="w-full px-3 py-2 bg-dark-800 border border-dark-600 rounded-lg text-foreground placeholder-dark-400 focus:outline-none focus:ring-2 focus:ring-brand"
               />
             </div>
           </div>
@@ -159,7 +160,7 @@ export function SuperAdminAdmins() {
                     <td className="px-4 py-3 text-foreground">
                       {a.email}
                       {isSelf && (
-                        <span className="ml-2 text-xs text-primary-400">(you)</span>
+                        <span className="ml-2 text-xs text-brand">(you)</span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-dark-200">{a.name || '—'}</td>

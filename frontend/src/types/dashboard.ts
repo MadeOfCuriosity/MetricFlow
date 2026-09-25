@@ -1,3 +1,6 @@
+import type { KPI } from './kpi'
+
+export type { KPI }
 export type WidgetType =
   | 'stat-number'
   | 'line-chart'
@@ -42,18 +45,6 @@ export interface DashboardLayout {
   version: number
 }
 
-export interface KPI {
-  id: string
-  name: string
-  category: string
-  formula: string
-  input_fields: string[]
-  is_preset: boolean
-  room_paths?: string[]
-  room_id?: string | null
-  room_name?: string | null
-  room_color?: string | null
-}
 
 export interface DataEntry {
   id: string

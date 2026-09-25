@@ -2,35 +2,12 @@ import {
   ChartBarIcon,
   TrashIcon,
   ChevronRightIcon,
-  SparklesIcon,
   ClockIcon,
 } from '@heroicons/react/24/outline'
-import { getTagColor, TagColorDef, hexToRgba } from '../constants/tagColors'
+import { TagCard, TagPill } from './ui/Tag'
 import { useTheme } from '../context/ThemeContext'
-
-type TimePeriod = 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'other'
-
-interface KPI {
-  id: string
-  name: string
-  description: string
-  category: string
-  formula: string
-  input_fields: string[]
-  unit: string
-  direction: 'up' | 'down'
-  is_active: boolean
-  is_preset?: boolean
-  time_period?: TimePeriod
-  room_paths?: string[]
-  room_id?: string | null
-  room_name?: string | null
-  room_color?: string | null
-  latest_value?: number | null
-  last_updated_at?: string | null
-  previous_value?: number | null
-  created_at?: string
-}
+import { formatCompactNumber, formatTimeAgo } from '../lib/format'
+import type { KPI } from '../types/kpi'
 
 interface KPIListProps {
   kpis: KPI[]
@@ -38,14 +15,6 @@ interface KPIListProps {
   onSelect: (kpi: KPI) => void
   onDelete: (kpi: KPI) => void
   isDeleting: string | null
-}
-
-const resolveKpiColor = (kpi: KPI): TagColorDef | null => {
-  // ONLY if KPI's parent room has a colortag (or inherited ancestor colortag)
-  if (kpi.room_color) {
-    return getTagColor(kpi.room_color)
-  }
-  return null
 }
 
 const isCurrency = (kpi: KPI): boolean => {
@@ -85,16 +54,10 @@ const formatKPIValue = (val: number, kpi: KPI): string => {
     return Number.isInteger(val) ? `${val}%` : `${val.toFixed(1)}%`
   }
 
-  if (Math.abs(val) >= 1_000_000) {
-    return `${(val / 1_000_000).toFixed(1)}M`
-  }
-  if (Math.abs(val) >= 10_000) {
-    return `${(val / 1_000).toFixed(1)}k`
-  }
-
-  return Number.isInteger(val)
-    ? val.toLocaleString()
-    : val.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 2 })
+  return formatCompactNumber(
+    val,
+    Number.isInteger(val) ? undefined : { minimumFractionDigits: 1, maximumFractionDigits: 2 }
+  )
 }
 
 const getUnitSuffix = (kpi: KPI): string => {
@@ -106,22 +69,7 @@ const getUnitSuffix = (kpi: KPI): string => {
 const formatRelativeTime = (dateStr?: string | null): string => {
   if (!dateStr) return 'No entries yet'
   try {
-    const date = new Date(dateStr)
-    const now = new Date()
-    const diffMs = now.getTime() - date.getTime()
-    const diffMins = Math.floor(diffMs / 60000)
-
-    if (diffMins < 1) return 'Updated just now'
-    if (diffMins < 60) return `Updated ${diffMins}m ago`
-
-    const diffHours = Math.floor(diffMins / 60)
-    if (diffHours < 24) return `Updated ${diffHours}h ago`
-
-    const diffDays = Math.floor(diffHours / 24)
-    if (diffDays === 1) return 'Updated yesterday'
-    if (diffDays < 7) return `Updated ${diffDays}d ago`
-
-    return `Updated ${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
+    return `Updated ${formatTimeAgo(dateStr, { dateAfterDays: 7 })}`
   } catch {
     return 'Recently updated'
   }
@@ -154,8 +102,6 @@ export function KPIList({ kpis, selectedCategory, onSelect, onDelete, isDeleting
 
   // Render a single KPI Frosted Glass Card
   const renderCard = (kpi: KPI) => {
-    const tagColor = resolveKpiColor(kpi)
-    const hasColor = !!tagColor
     const displayRoom =
       kpi.room_name ||
       (kpi.room_paths && kpi.room_paths.length > 0
@@ -163,66 +109,12 @@ export function KPIList({ kpis, selectedCategory, onSelect, onDelete, isDeleting
         : null)
 
     return (
-      <div
-        key={kpi.id}
-        onClick={() => onSelect(kpi)}
-        className={`relative group overflow-hidden rounded-[28px] p-4 sm:p-5 transition-all duration-300 cursor-pointer backdrop-blur-2xl border hover:-translate-y-0.5 flex flex-col justify-between ${
-          isDark
-            ? 'border-white/10 hover:border-white/25'
-            : 'border-dark-700/80 hover:border-dark-400/60'
-        }`}
-        style={{
-          background: hasColor && tagColor
-            ? isDark
-              ? `linear-gradient(145deg, ${hexToRgba(tagColor.hex, 0.15)} 0%, rgba(14,14,16,0.72) 60%)`
-              : `linear-gradient(145deg, ${hexToRgba(tagColor.hex, 0.12)} 0%, rgba(255,255,255,0.85) 60%)`
-            : isDark
-            ? 'rgba(14, 14, 16, 0.72)'
-            : 'rgba(255, 255, 255, 0.85)',
-          boxShadow: isDark
-            ? '0 10px 28px -6px rgba(0, 0, 0, 0.65)'
-            : '0 4px 20px -2px rgba(0, 0, 0, 0.05), 0 1px 3px 0 rgba(0, 0, 0, 0.03)',
-        }}
-      >
-        {/* Subtle Glass Rim Highlight at top edge */}
-        <div
-          className={`absolute inset-x-0 top-0 h-[1px] pointer-events-none transition-opacity duration-300 ${
-            isDark ? 'opacity-35 group-hover:opacity-75' : 'opacity-40 group-hover:opacity-85'
-          }`}
-          style={{
-            background: hasColor && tagColor
-              ? `linear-gradient(90deg, transparent 0%, ${tagColor.glassRim || tagColor.hex} 50%, transparent 100%)`
-              : `linear-gradient(90deg, transparent 0%, ${isDark ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.06)'} 50%, transparent 100%)`,
-          }}
-        />
-
+      <TagCard key={kpi.id} color={kpi.room_color} onClick={() => onSelect(kpi)}>
         {/* Top Header Row */}
         <div>
           <div className="flex items-center justify-between gap-2 mb-3">
             <div className="flex items-center gap-1.5 flex-wrap min-w-0 flex-1">
-              {/* Room Pill or Category Pill */}
-              <div
-                className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full backdrop-blur-md text-[11px] font-medium truncate max-w-full ${
-                  isDark
-                    ? 'bg-white/[0.06] border border-white/10 text-white/90'
-                    : 'bg-black/[0.04] border border-black/[0.08] text-dark-100 shadow-sm'
-                }`}
-              >
-                {hasColor && tagColor ? (
-                  <span
-                    className="w-2 h-2 rounded-full flex-shrink-0"
-                    style={{
-                      backgroundColor: tagColor.hex,
-                      boxShadow: `0 0 8px ${tagColor.hex}`,
-                    }}
-                  />
-                ) : (
-                  <span className="w-1.5 h-1.5 rounded-full flex-shrink-0 bg-dark-400/40" />
-                )}
-                <span className="truncate tracking-tight">
-                  {displayRoom || kpi.category}
-                </span>
-              </div>
+              <TagPill color={kpi.room_color} label={displayRoom || kpi.category} className="max-w-full" />
 
               {/* Time period pill */}
               {kpi.time_period && (
@@ -234,16 +126,6 @@ export function KPIList({ kpis, selectedCategory, onSelect, onDelete, isDeleting
                   }`}
                 >
                   {kpi.time_period}
-                </span>
-              )}
-
-              {/* Preset badge */}
-              {kpi.is_preset && (
-                <span
-                  className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-amber-500/10 border border-amber-500/20 text-amber-500 dark:text-amber-300 text-[10px] font-medium rounded-full"
-                  title="Preset KPI"
-                >
-                  <SparklesIcon className="w-2.5 h-2.5 text-amber-500 dark:text-amber-400" />
                 </span>
               )}
             </div>
@@ -260,13 +142,13 @@ export function KPIList({ kpis, selectedCategory, onSelect, onDelete, isDeleting
                   disabled={isDeleting === kpi.id}
                   className={`p-1 rounded-lg transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-50 cursor-pointer ${
                     isDark
-                      ? 'text-white/40 hover:text-rose-400 hover:bg-rose-500/10'
-                      : 'text-dark-400 hover:text-rose-500 hover:bg-rose-500/10'
+                      ? 'text-white/40 hover:text-danger-400 hover:bg-danger-500/10'
+                      : 'text-dark-400 hover:text-danger-500 hover:bg-danger-500/10'
                   }`}
                   title="Delete KPI"
                 >
                   {isDeleting === kpi.id ? (
-                    <div className="w-3 h-3 border-2 border-rose-400 border-t-transparent rounded-full animate-spin" />
+                    <div className="w-3 h-3 border-2 border-danger-400 border-t-transparent rounded-full animate-spin" />
                   ) : (
                     <TrashIcon className="w-3.5 h-3.5" />
                   )}
@@ -394,7 +276,7 @@ export function KPIList({ kpis, selectedCategory, onSelect, onDelete, isDeleting
             </span>
           )}
         </div>
-      </div>
+      </TagCard>
     )
   }
 

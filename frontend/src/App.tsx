@@ -21,12 +21,12 @@ import {
   Insights,
   Rooms,
   RoomDashboard,
-  Data,
   SettingsLayout,
   SettingsOrganization,
   SettingsAccount,
   SettingsPlanUsage,
   SettingsGeneral,
+  AdminIntegrations,
   SettingsActivityPage,
   SuperAdminLogin,
   SuperAdminLayout,
@@ -93,7 +93,7 @@ function App() {
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="kpis" element={<KPIs />} />
             <Route path="kpis/:kpiId/data" element={<KPIDataView />} />
-            <Route path="data" element={<Data />} />
+            <Route path="data" element={<Navigate to="/data-table" replace />} />
             <Route path="entries" element={<Entries />} />
             <Route path="data-table" element={<DataTable />} />
             <Route path="insights" element={<Insights />} />
@@ -107,13 +107,13 @@ function App() {
               <Route path="account" element={<SettingsAccount />} />
               <Route path="plan" element={<SettingsPlanUsage />} />
               <Route path="general" element={<SettingsGeneral />} />
+              <Route path="integrations" element={<AdminIntegrations />} />
 
               {/* Dedicated Activity Page */}
               <Route path="activity" element={<SettingsActivityPage />} />
 
               {/* Organization section anchor redirects */}
               <Route path="overview" element={<Navigate to="/settings#overview" replace />} />
-              <Route path="integrations" element={<Navigate to="/settings#integrations" replace />} />
               <Route path="users" element={<Navigate to="/settings#users" replace />} />
               <Route path="notifications" element={<Navigate to="/settings#notifications" replace />} />
 
@@ -136,13 +136,13 @@ function App() {
             </Route>
             <Route path="activity" element={<Navigate to="/settings/activity" replace />} />
             <Route path="users" element={<Navigate to="/settings#users" replace />} />
-            <Route path="integrations" element={<Navigate to="/settings#integrations" replace />} />
+            <Route path="integrations" element={<Navigate to="/settings/integrations" replace />} />
             {/* Legacy admin links */}
             <Route path="admin" element={<Navigate to="/settings" replace />} />
             <Route path="admin/users" element={<Navigate to="/settings#users" replace />} />
             <Route path="admin/rooms" element={<Navigate to="/rooms" replace />} />
             <Route path="admin/organization" element={<Navigate to="/settings" replace />} />
-            <Route path="admin/integrations" element={<Navigate to="/settings#integrations" replace />} />
+            <Route path="admin/integrations" element={<Navigate to="/settings/integrations" replace />} />
             <Route path="admin/activity" element={<Navigate to="/settings/activity" replace />} />
             <Route path="subscription" element={<Navigate to="/settings/plan#upgrade" replace />} />
           </Route>

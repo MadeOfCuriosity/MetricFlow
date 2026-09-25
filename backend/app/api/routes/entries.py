@@ -37,6 +37,8 @@ from app.schemas.data_fields import (
     SheetFieldRow,
     SheetRoomGroup,
     SheetViewResponse,
+    PendingEntriesResponse,
+    PendingFieldItem,
 )
 from app.services.entry_service import EntryService
 from app.services.universal_csv_importer import UniversalCSVImporter
@@ -333,23 +335,38 @@ def get_today_field_form(
         interval=interval,
     )
 
-    # The service normalizes the date; extract the actual date used
-    from app.services.entry_service import normalize_date_for_interval
-    effective_date = normalize_date_for_interval(target_date, interval) if interval else target_date
-
+    # Periods are per field (see each item's period_start/period_end); echo the requested date
     return TodayFieldFormResponse(
-        date=effective_date,
+        date=target_date,
         interval=interval,
         rooms=[
             RoomFieldGroup(
                 room_id=group["room_id"],
                 room_name=group["room_name"],
+                room_color=group.get("room_color"),
+                assignees=group.get("assignees", []),
                 fields=[FieldFormItem(**f) for f in group["fields"]],
             )
             for group in room_groups
         ],
         completed_count=completed_count,
         total_count=total_count,
+    )
+
+
+@router.get("/fields/pending", response_model=PendingEntriesResponse)
+def get_pending_field_entries(
+    days: int = Query(30, ge=1, le=90, description="How many days to look back"),
+    user_org: tuple[User, Organization] = Depends(get_current_user_org),
+    db: Session = Depends(get_db),
+):
+    """Missed entries of scheduled fields over the last `days`, newest first (save with date = period_start)."""
+    user, org = user_org
+    since, items = EntryService.get_pending_entries(
+        db=db, org_id=org.id, user_role=user.role, user_id=user.id, lookback_days=days
+    )
+    return PendingEntriesResponse(
+        since=since, items=[PendingFieldItem(**i) for i in items], total=len(items)
     )
 
 

@@ -36,8 +36,8 @@ export function SuperAdminLogin() {
     <div className="min-h-screen bg-dark-950 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="flex justify-center">
-          <div className="w-14 h-14 rounded-xl bg-primary-500/15 flex items-center justify-center">
-            <ShieldCheckIcon className="w-7 h-7 text-primary-400" />
+          <div className="w-14 h-14 rounded-xl bg-brand/15 flex items-center justify-center">
+            <ShieldCheckIcon className="w-7 h-7 text-brand" />
           </div>
         </div>
         <h2 className="mt-6 text-center text-3xl font-bold text-foreground">

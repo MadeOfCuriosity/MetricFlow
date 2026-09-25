@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import { salesService } from '../../services/sales';
 import { CursorState } from '../../types/landing';
 import logoLight from '../../assets/brand/logo.png';
+import { getApiError } from '../../lib/apiError';
 
 export type AuthMode = 'signin' | 'invite' | 'reset';
 
@@ -99,7 +100,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
         navigate(from, { replace: true });
       }
     } catch (err: any) {
-      setSignInError(err.response?.data?.detail || 'Google sign-in failed');
+      setSignInError(getApiError(err, 'Google sign-in failed'));
     } finally {
       setSignInLoading(false);
     }

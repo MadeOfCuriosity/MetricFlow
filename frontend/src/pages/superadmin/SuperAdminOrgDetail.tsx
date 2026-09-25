@@ -8,6 +8,7 @@ import {
 } from '@heroicons/react/24/outline'
 import { superadminService, OrgDetail } from '../../services/superadmin'
 import { startImpersonation } from '../../services/impersonation'
+import { getApiError } from '../../lib/apiError'
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -68,7 +69,7 @@ export function SuperAdminOrgDetail() {
       setGrantReason('')
       await reloadOrg()
     } catch (err: any) {
-      setGrantError(err.response?.data?.detail || 'Failed to grant plan')
+      setGrantError(getApiError(err, 'Failed to grant plan'))
     } finally {
       setGranting(false)
     }
@@ -86,7 +87,7 @@ export function SuperAdminOrgDetail() {
       await superadminService.revokePlan(orgId)
       await reloadOrg()
     } catch (err: any) {
-      alert(err.response?.data?.detail || 'Failed to revoke plan')
+      alert(getApiError(err, 'Failed to revoke plan'))
     } finally {
       setRevoking(false)
     }
@@ -105,7 +106,7 @@ export function SuperAdminOrgDetail() {
       startImpersonation(result)
       navigate('/dashboard', { replace: true })
     } catch (err: any) {
-      alert(err.response?.data?.detail || 'Failed to impersonate')
+      alert(getApiError(err, 'Failed to impersonate'))
       setImpersonatingId(null)
     }
   }
@@ -115,7 +116,7 @@ export function SuperAdminOrgDetail() {
     superadminService
       .getOrg(orgId)
       .then(setData)
-      .catch((e) => setError(e.response?.data?.detail || 'Failed to load'))
+      .catch((e) => setError(getApiError(e, 'Failed to load')))
       .finally(() => setLoading(false))
   }, [orgId])
 
@@ -154,7 +155,7 @@ export function SuperAdminOrgDetail() {
                 href={data.website}
                 target="_blank"
                 rel="noreferrer"
-                className="text-primary-400 hover:underline"
+                className="text-brand hover:underline"
               >
                 {data.website}
               </a>
@@ -245,7 +246,7 @@ export function SuperAdminOrgDetail() {
             <select
               value={grantPlanCode}
               onChange={(e) => setGrantPlanCode(e.target.value)}
-              className="w-full bg-dark-800 border border-dark-700 rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary-500"
+              className="w-full bg-dark-800 border border-dark-700 rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-brand"
               disabled={availablePlans.length === 0}
             >
               {availablePlans.length === 0 ? (
@@ -267,7 +268,7 @@ export function SuperAdminOrgDetail() {
               max={3650}
               value={grantDurationDays}
               onChange={(e) => setGrantDurationDays(parseInt(e.target.value) || 0)}
-              className="w-full bg-dark-800 border border-dark-700 rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary-500"
+              className="w-full bg-dark-800 border border-dark-700 rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-brand"
             />
           </div>
           <div className="sm:col-span-2">
@@ -280,7 +281,7 @@ export function SuperAdminOrgDetail() {
               onChange={(e) => setGrantReason(e.target.value)}
               placeholder="e.g. Beta tester comp, Q2 goodwill, paid offline"
               maxLength={500}
-              className="w-full bg-dark-800 border border-dark-700 rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary-500"
+              className="w-full bg-dark-800 border border-dark-700 rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-brand"
             />
           </div>
         </div>
@@ -334,7 +335,7 @@ export function SuperAdminOrgDetail() {
                     <div className="flex items-center gap-2">
                       {s.plan_code}
                       {isManual && (
-                        <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-primary-500/20 text-primary-300 border border-primary-500/30">
+                        <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-brand/20 text-brand border border-brand/30">
                           Manual
                         </span>
                       )}

@@ -16,26 +16,18 @@ interface StatNumberWidgetProps {
 const STAT_VARIANTS = {
   kpis: {
     icon: ChartBarIcon,
-    bgColor: 'bg-dark-800 border border-dark-700',
-    iconColor: 'text-foreground',
     label: 'KPIs Tracked',
   },
   entries: {
     icon: CalendarDaysIcon,
-    bgColor: 'bg-success-500/15',
-    iconColor: 'text-success-400',
     label: "Today's Entries",
   },
   insights: {
     icon: LightBulbIcon,
-    bgColor: 'bg-warning-500/15',
-    iconColor: 'text-warning-400',
     label: 'Active Insights',
   },
   streak: {
     icon: FireIcon,
-    bgColor: 'bg-warning-600/15',
-    iconColor: 'text-warning-400',
     label: 'Day Streak',
   },
 } as const
@@ -63,8 +55,8 @@ export function StatNumberWidget({ config, data, filteredInsightsCount }: StatNu
   return (
     <div className="h-full flex items-center">
       <div className="flex items-center gap-3">
-        <div className={`w-10 h-10 ${meta.bgColor} rounded-lg flex items-center justify-center flex-shrink-0`}>
-          <Icon className={`w-5 h-5 ${meta.iconColor}`} />
+        <div className="w-10 h-10 bg-dark-800 border border-dark-700 rounded-lg flex items-center justify-center flex-shrink-0">
+          <Icon className="w-5 h-5 text-dark-300" />
         </div>
         <div>
           <p className="text-2xl font-bold text-foreground">{getValue()}</p>

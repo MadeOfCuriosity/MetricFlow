@@ -18,8 +18,9 @@ import { ChatInterface } from './ChatInterface'
 import { useToast } from '../context/ToastContext'
 import { useRoom } from '../context/RoomContext'
 import api from '../services/api'
+import { getApiError } from '../lib/apiError'
+import type { TimePeriod } from '../types/kpi'
 
-type TimePeriod = 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'other'
 
 interface KPISuggestion {
   name: string
@@ -413,7 +414,7 @@ export function KPICreationStudio({
       if (err.response?.data?.detail?.includes('already exists')) {
         showError('KPI Exists', 'A KPI with this name already exists')
       } else {
-        showError('Failed to Create', err.response?.data?.detail || 'Could not create the KPI.')
+        showError('Failed to Create', getApiError(err, 'Could not create the KPI.'))
       }
     } finally {
       setIsAddingKPI(false)
@@ -463,7 +464,7 @@ export function KPICreationStudio({
       if (err.response?.data?.detail?.includes('already exists')) {
         showError('KPI Exists', 'A KPI with this name already exists')
       } else {
-        showError('Failed to Create', err.response?.data?.detail || 'Could not create the KPI.')
+        showError('Failed to Create', getApiError(err, 'Could not create the KPI.'))
       }
     } finally {
       setIsSubmittingManual(false)
@@ -551,7 +552,7 @@ export function KPICreationStudio({
               onClick={handleStartNewSession}
               className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl border border-dark-700 bg-dark-800/80 hover:bg-dark-750 text-foreground text-xs font-semibold transition-all cursor-pointer shadow-sm group"
             >
-              <PlusIcon className="w-3.5 h-3.5 stroke-[2.5] text-primary-400 group-hover:rotate-90 transition-transform" />
+              <PlusIcon className="w-3.5 h-3.5 stroke-[2.5] text-brand group-hover:rotate-90 transition-transform" />
               <span>New Session</span>
             </button>
           </div>
@@ -599,10 +600,10 @@ export function KPICreationStudio({
                           <span
                             className={`text-[9px] px-1.5 py-0.2 rounded font-semibold uppercase tracking-wider ${
                               session.type === 'ai'
-                                ? 'bg-primary-500/15 text-primary-400 border border-primary-500/20'
+                                ? 'bg-brand/15 text-brand border border-brand/20'
                                 : session.type === 'manual'
-                                ? 'bg-amber-500/15 text-amber-400 border border-amber-500/20'
-                                : 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20'
+                                ? 'bg-warning-500/15 text-warning-400 border border-warning-500/20'
+                                : 'bg-success-500/15 text-success-400 border border-success-500/20'
                             }`}
                           >
                             {session.type}
@@ -628,7 +629,7 @@ export function KPICreationStudio({
                         type="button"
                         onClick={(e) => handleDeleteSession(session.id, e)}
                         title="Delete Session"
-                        className="opacity-0 group-hover:opacity-100 p-1 text-dark-400 hover:text-red-400 rounded transition-all cursor-pointer flex-shrink-0"
+                        className="opacity-0 group-hover:opacity-100 p-1 text-dark-400 hover:text-danger-400 rounded transition-all cursor-pointer flex-shrink-0"
                       >
                         <TrashIcon className="w-3.5 h-3.5" />
                       </button>
@@ -646,7 +647,7 @@ export function KPICreationStudio({
               <button
                 type="button"
                 onClick={handleClearAllHistory}
-                className="text-dark-400 hover:text-red-400 transition-colors cursor-pointer"
+                className="text-dark-400 hover:text-danger-400 transition-colors cursor-pointer"
               >
                 Clear all
               </button>
@@ -682,7 +683,7 @@ export function KPICreationStudio({
             type="button"
             onClick={handleStartNewSession}
             title="New Session"
-            className="mt-auto p-2 text-primary-400 hover:bg-dark-800 rounded-xl transition-colors cursor-pointer"
+            className="mt-auto p-2 text-brand hover:bg-dark-800 rounded-xl transition-colors cursor-pointer"
           >
             <PlusIcon className="w-4 h-4 stroke-[2.5]" />
           </button>
@@ -753,7 +754,7 @@ export function KPICreationStudio({
               <button
                 type="button"
                 onClick={onViewAllKpis}
-                className="flex items-center gap-1 font-semibold text-primary-400 hover:text-primary-300 transition-colors cursor-pointer"
+                className="flex items-center gap-1 font-semibold text-brand hover:text-brand transition-colors cursor-pointer"
               >
                 <span>View in All KPIs</span>
                 <ArrowRightIcon className="w-3.5 h-3.5" />
@@ -793,7 +794,7 @@ export function KPICreationStudio({
                 {/* Name */}
                 <div>
                   <label className="block text-xs font-semibold text-dark-300 mb-1.5">
-                    KPI Name <span className="text-primary-400">*</span>
+                    KPI Name <span className="text-brand">*</span>
                   </label>
                   <input
                     type="text"
@@ -846,7 +847,7 @@ export function KPICreationStudio({
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
                     <label className="block text-xs font-semibold text-dark-300">
-                      Formula Expression <span className="text-primary-400">*</span>
+                      Formula Expression <span className="text-brand">*</span>
                     </label>
                     <span className="text-[11px] text-dark-400">
                       e.g. (revenue - expenses) / revenue * 100
@@ -858,7 +859,7 @@ export function KPICreationStudio({
                     value={manualFormula}
                     onChange={(e) => setManualFormula(e.target.value)}
                     placeholder="(metric_a - metric_b) / metric_a"
-                    className="w-full px-3.5 py-2.5 bg-dark-950 border border-dark-700 rounded-xl text-sm font-mono text-primary-300 placeholder-dark-500 focus:outline-none focus:border-dark-500 transition-colors"
+                    className="w-full px-3.5 py-2.5 bg-dark-950 border border-dark-700 rounded-xl text-sm font-mono text-brand placeholder-dark-500 focus:outline-none focus:border-dark-500 transition-colors"
                   />
                   <p className="text-[11px] text-dark-400 mt-1">
                     Use standard operators (+, -, *, /). Variable names will automatically map to your data fields.
@@ -890,7 +891,7 @@ export function KPICreationStudio({
                         onClick={() => setManualDirection('up')}
                         className={`py-2 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                           manualDirection === 'up'
-                            ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300'
+                            ? 'bg-success-500/20 border-success-500/40 text-success-300'
                             : 'bg-dark-950 border-dark-700 text-dark-400 hover:text-foreground'
                         }`}
                       >
@@ -901,7 +902,7 @@ export function KPICreationStudio({
                         onClick={() => setManualDirection('down')}
                         className={`py-2 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                           manualDirection === 'down'
-                            ? 'bg-amber-500/20 border-amber-500/40 text-amber-300'
+                            ? 'bg-warning-500/20 border-warning-500/40 text-warning-300'
                             : 'bg-dark-950 border-dark-700 text-dark-400 hover:text-foreground'
                         }`}
                       >
@@ -930,7 +931,7 @@ export function KPICreationStudio({
                   <button
                     type="submit"
                     disabled={isSubmittingManual || !manualName.trim() || !manualFormula.trim()}
-                    className="px-6 py-2.5 rounded-xl bg-foreground text-dark-950 font-semibold text-sm hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center gap-2 shadow-sm"
+                    className="px-6 py-2.5 rounded-xl bg-primary-500 text-white font-semibold text-sm hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center gap-2 shadow-sm"
                   >
                     {isSubmittingManual && <ArrowPathIcon className="w-4 h-4 animate-spin" />}
                     <span>Create Metric</span>
@@ -1014,14 +1015,14 @@ export function KPICreationStudio({
                         </div>
 
                         <div className="pt-2 border-t border-dark-800/80 flex items-center justify-between gap-2">
-                          <code className="text-[11px] font-mono text-primary-300/90 bg-dark-900/80 px-2 py-1 rounded border border-dark-800 truncate flex-1">
+                          <code className="text-[11px] font-mono text-brand/90 bg-dark-900/80 px-2 py-1 rounded border border-dark-800 truncate flex-1">
                             {preset.formula}
                           </code>
                           <button
                             type="button"
                             disabled={isImporting}
                             onClick={() => handleImportSinglePreset(preset)}
-                            className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-foreground text-dark-950 font-semibold text-xs hover:opacity-90 transition-opacity disabled:opacity-50 cursor-pointer flex-shrink-0 shadow-sm"
+                            className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-primary-500 text-white font-semibold text-xs hover:opacity-90 transition-opacity disabled:opacity-50 cursor-pointer flex-shrink-0 shadow-sm"
                           >
                             {isImporting ? (
                               <ArrowPathIcon className="w-3 h-3 animate-spin" />

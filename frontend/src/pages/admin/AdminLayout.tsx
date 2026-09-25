@@ -1,6 +1,7 @@
 import { NavLink, Outlet, Navigate, useLocation } from 'react-router-dom'
 import {
   BuildingOfficeIcon,
+  ArrowPathRoundedSquareIcon,
   UserCircleIcon,
   CreditCardIcon,
   Cog6ToothIcon,
@@ -20,6 +21,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { id: 'organization', label: 'Organization', href: '/settings', icon: BuildingOfficeIcon, end: true, adminOnly: true },
+  { id: 'integrations', label: 'Integrations', href: '/settings/integrations', icon: ArrowPathRoundedSquareIcon, adminOnly: true },
   { id: 'account', label: 'Account', href: '/settings/account', icon: UserCircleIcon, adminOnly: false },
   { id: 'plan', label: 'Plan & Usage', href: '/settings/plan', icon: CreditCardIcon, adminOnly: true },
   { id: 'general', label: 'General', href: '/settings/general', icon: Cog6ToothIcon, adminOnly: false },
@@ -68,7 +70,7 @@ export function SettingsLayout() {
           <button
             type="button"
             onClick={handleLogout}
-            className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-dark-900 hover:bg-rose-500/10 border border-dark-700 hover:border-rose-500/30 text-xs font-semibold text-dark-300 hover:text-rose-400 transition-all cursor-pointer shadow-xs"
+            className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-dark-900 hover:bg-danger-500/10 border border-dark-700 hover:border-danger-500/30 text-xs font-semibold text-dark-300 hover:text-danger-400 transition-all cursor-pointer shadow-xs"
           >
             <ArrowRightOnRectangleIcon className="w-4 h-4 stroke-[2]" />
             <span>Sign Out</span>

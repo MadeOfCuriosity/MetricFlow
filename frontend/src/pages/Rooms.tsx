@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   FolderIcon,
@@ -8,23 +8,37 @@ import {
   ChevronDownIcon,
   UsersIcon,
   ChartBarIcon,
-  MagnifyingGlassIcon,
   Squares2X2Icon,
-  ListBulletIcon,
   FolderPlusIcon,
   ArrowRightIcon,
   TagIcon,
+  XMarkIcon,
+  FolderOpenIcon,
+  DocumentChartBarIcon,
 } from '@heroicons/react/24/outline'
 import { useRoom } from '../context/RoomContext'
 import { useToast } from '../context/ToastContext'
 import { useAuth } from '../context/AuthContext'
-import { CreateRoomModal } from '../components/CreateRoomModal'
+import { RoomFormModal } from '../components/RoomFormModal'
 import { DeleteConfirmModal } from '../components/DeleteConfirmModal'
 import { GlassmorphicFolder } from '../components/GlassmorphicFolder'
 import { TagColorPickerPopover } from '../components/TagColorPickerPopover'
 import { SEOHead } from '../components/SEOHead'
+import { AssignKPIPopover } from '../components/AssignKPIPopover'
+import { kpisApi } from '../services/kpis'
+import { roomsApi } from '../services/rooms'
 import { getTagColor } from '../constants/tagColors'
+import { TagDot, TagFolderIcon } from '../components/ui/Tag'
 import { Room, RoomTreeNode } from '../types/room'
+import { getApiError } from '../lib/apiError'
+import { Spinner } from '../components/ui/Spinner'
+import { SearchInput } from '../components/ui/SearchInput'
+import { SegmentedControl } from '../components/ui/SegmentedControl'
+import { StatChip } from '../components/ui/StatChip'
+import { MaskIcon } from '../components/ui/MaskIcon'
+import type { KPI } from '../types/kpi'
+import { TreeGuides, treeRowClass, rowActionsClass } from '../components/ui/Tree'
+
 
 export function Rooms() {
   const { rooms, roomTree, isLoading, fetchRooms, fetchRoomTree, updateRoom, deleteRoom } = useRoom()
@@ -41,6 +55,58 @@ export function Rooms() {
   const [createParentId, setCreateParentId] = useState<string | undefined>(undefined)
   const [roomToDelete, setRoomToDelete] = useState<Room | RoomTreeNode | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [kpis, setKpis] = useState<KPI[]>([])
+
+  const fetchKpis = useCallback(async () => {
+    try {
+      setKpis(await kpisApi.getAll())
+    } catch (err) {
+      console.error('Failed to fetch KPIs:', err)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchKpis()
+  }, [fetchKpis])
+
+  // Room id -> KPIs directly assigned to it
+  const kpisByRoom = useMemo(() => {
+    const map: Record<string, KPI[]> = {}
+    kpis.forEach((kpi) => {
+      ;(kpi.assigned_room_ids || []).forEach((roomId) => {
+        ;(map[roomId] ||= []).push(kpi)
+      })
+    })
+    Object.values(map).forEach((list) => list.sort((a, b) => a.name.localeCompare(b.name)))
+    return map
+  }, [kpis])
+
+  const unassignedKpis = useMemo(
+    () => kpis.filter((k) => !(k.assigned_room_ids || []).length).sort((a, b) => a.name.localeCompare(b.name)),
+    [kpis]
+  )
+
+  const refreshMapping = () => Promise.all([fetchKpis(), fetchRooms(), fetchRoomTree()])
+
+  const handleAssignKpis = async (roomId: string, kpiIds: string[]) => {
+    try {
+      const res = await roomsApi.assignKPIs(roomId, { kpi_ids: kpiIds })
+      success('KPIs assigned', `${res.assigned_count} KPI${res.assigned_count === 1 ? '' : 's'} added to room`)
+      await refreshMapping()
+    } catch (err: unknown) {
+      showError('Failed to assign KPIs', getApiError(err, 'Please try again'))
+    }
+  }
+
+  const handleRemoveKpi = async (roomId: string, kpi: KPI) => {
+    try {
+      await roomsApi.removeKPI(roomId, kpi.id)
+      success('KPI removed', `"${kpi.name}" unassigned from room`)
+      await refreshMapping()
+    } catch (err: unknown) {
+      showError('Failed to remove KPI', getApiError(err, 'Please try again'))
+    }
+  }
 
   // Computed summary metrics
   const totalRoomsCount = rooms.length
@@ -104,8 +170,7 @@ export function Rooms() {
       success('Room deleted', `"${roomToDelete.name}" has been removed`)
       setRoomToDelete(null)
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { detail?: string } } }
-      showError('Failed to delete room', error.response?.data?.detail || 'Please try again')
+      showError('Failed to delete room', getApiError(err, 'Please try again'))
     } finally {
       setIsDeleting(false)
     }
@@ -119,8 +184,7 @@ export function Rooms() {
         newColor ? `Room tagged as ${newColor}` : 'Default obsidian folder restored'
       )
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { detail?: string } } }
-      showError('Failed to update tag', error.response?.data?.detail || 'Please try again')
+      showError('Failed to update tag', getApiError(err, 'Please try again'))
     }
   }
 
@@ -139,7 +203,7 @@ export function Rooms() {
           <button
             type="button"
             onClick={() => handleOpenCreateModal()}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-foreground text-dark-950 font-semibold hover:opacity-90 transition-opacity text-sm shadow-sm cursor-pointer"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary-500 text-white font-semibold hover:opacity-90 transition-opacity text-sm shadow-sm cursor-pointer"
           >
             <PlusIcon className="w-4 h-4 stroke-[2.5]" />
             <span>Create Room</span>
@@ -149,83 +213,32 @@ export function Rooms() {
 
       {/* Subtle Room Summary Badges */}
       <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
-        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-dark-900 border border-dark-700/70 text-xs">
-          <FolderIcon className="w-3.5 h-3.5 text-dark-400 stroke-[1.8]" />
-          <span className="text-dark-400">Total Rooms:</span>
-          <span className="font-semibold text-foreground">{totalRoomsCount}</span>
-        </div>
+        <StatChip icon={<FolderIcon className="w-3.5 h-3.5 text-dark-400 stroke-[1.8]" />} label="Total Rooms" value={totalRoomsCount} />
 
-        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-dark-900 border border-dark-700/70 text-xs">
-          <span className="w-1.5 h-1.5 rounded-full bg-primary-400" />
-          <span className="text-dark-400">Departments:</span>
-          <span className="font-semibold text-foreground">{topLevelRoomsCount}</span>
-          <span className="text-[10px] text-dark-400">(Top-level)</span>
-        </div>
+        <StatChip icon={<span className="w-1.5 h-1.5 rounded-full bg-brand" />} label="Departments" value={topLevelRoomsCount} hint="(Top-level)" />
 
-        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-dark-900 border border-dark-700/70 text-xs">
-          <UsersIcon className="w-3.5 h-3.5 text-dark-400 stroke-[1.8]" />
-          <span className="text-dark-400">Sub-Rooms:</span>
-          <span className="font-semibold text-foreground">{subRoomsCount}</span>
-        </div>
+        <StatChip icon={<UsersIcon className="w-3.5 h-3.5 text-dark-400 stroke-[1.8]" />} label="Sub-Rooms" value={subRoomsCount} />
 
-        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-dark-900 border border-dark-700/70 text-xs">
-          <ChartBarIcon className="w-3.5 h-3.5 text-dark-400 stroke-[1.8]" />
-          <span className="text-dark-400">Attached KPIs:</span>
-          <span className="font-semibold text-foreground">{totalKpisCount}</span>
-        </div>
+        <StatChip icon={<ChartBarIcon className="w-3.5 h-3.5 text-dark-400 stroke-[1.8]" />} label="Attached KPIs" value={totalKpisCount} />
       </div>
 
       {/* Toolbar: Search, Filters & View Mode */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
         {/* Search */}
-        <div className="relative flex-1 max-w-md">
-          <MagnifyingGlassIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-dark-400" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search rooms..."
-            className="w-full pl-9 pr-4 py-2 bg-dark-900 border border-dark-700 rounded-xl text-sm text-foreground placeholder-dark-400 focus:outline-none focus:border-dark-500 transition-colors"
-          />
-        </div>
+        <SearchInput value={searchQuery} onChange={setSearchQuery} placeholder="Search rooms..." />
 
         <div className="flex items-center gap-2 justify-between sm:justify-end">
           {/* Filter tabs */}
-          <div className="flex items-center p-1 bg-dark-900 border border-dark-700 rounded-xl">
-            <button
-              type="button"
-              onClick={() => setFilterType('all')}
-              className={`px-3 py-1 text-xs font-medium rounded-lg transition-colors cursor-pointer ${
-                filterType === 'all'
-                  ? 'bg-dark-800 text-foreground shadow-sm'
-                  : 'text-dark-400 hover:text-foreground'
-              }`}
-            >
-              All
-            </button>
-            <button
-              type="button"
-              onClick={() => setFilterType('top')}
-              className={`px-3 py-1 text-xs font-medium rounded-lg transition-colors cursor-pointer ${
-                filterType === 'top'
-                  ? 'bg-dark-800 text-foreground shadow-sm'
-                  : 'text-dark-400 hover:text-foreground'
-              }`}
-            >
-              Departments
-            </button>
-            <button
-              type="button"
-              onClick={() => setFilterType('with-kpis')}
-              className={`px-3 py-1 text-xs font-medium rounded-lg transition-colors cursor-pointer ${
-                filterType === 'with-kpis'
-                  ? 'bg-dark-800 text-foreground shadow-sm'
-                  : 'text-dark-400 hover:text-foreground'
-              }`}
-            >
-              With KPIs
-            </button>
-          </div>
+          <SegmentedControl
+            aria-label="Room filter"
+            value={filterType}
+            onChange={setFilterType}
+            options={[
+              { value: 'all', label: 'All' },
+              { value: 'top', label: 'Departments' },
+              { value: 'with-kpis', label: 'With KPIs' },
+            ]}
+          />
 
           {/* View mode toggle */}
           <div className="flex items-center p-1 bg-dark-900 border border-dark-700 rounded-xl">
@@ -250,10 +263,10 @@ export function Rooms() {
                   ? 'bg-dark-800 text-foreground'
                   : 'text-dark-400 hover:text-foreground'
               }`}
-              title="Hierarchy View"
-              aria-label="Hierarchy View"
+              title="Room → KPI Mapping"
+              aria-label="Room to KPI Mapping"
             >
-              <ListBulletIcon className="w-4 h-4" />
+              <MaskIcon src="/icons/roomtree.svg" className="w-4 h-4" />
             </button>
           </div>
         </div>
@@ -271,14 +284,14 @@ export function Rooms() {
             onClick={() => setSelectedTagFilter(null)}
             className={`px-2.5 py-1 rounded-lg font-medium transition-all cursor-pointer flex items-center gap-1.5 ${
               selectedTagFilter === null
-                ? 'bg-foreground text-dark-950 shadow-xs font-semibold'
+                ? 'bg-brand text-white shadow-xs font-semibold'
                 : 'bg-dark-900 border border-dark-700/80 text-dark-300 hover:text-foreground hover:border-dark-600'
             }`}
           >
             <span>All</span>
             <span
               className={`text-[10px] px-1 py-0.2 rounded-full ${
-                selectedTagFilter === null ? 'bg-dark-950/20 text-dark-950' : 'bg-dark-800 text-dark-400'
+                selectedTagFilter === null ? 'bg-white/20 text-white' : 'bg-dark-800 text-dark-400'
               }`}
             >
               {rooms.length}
@@ -293,6 +306,8 @@ export function Rooms() {
                 key={colorId}
                 type="button"
                 onClick={() => setSelectedTagFilter(isSelected ? null : colorId)}
+                title={tagDef?.name || colorId}
+                aria-label={`Filter by ${tagDef?.name || colorId} tag`}
                 className={`px-2.5 py-1 rounded-lg font-medium transition-all cursor-pointer flex items-center gap-1.5 ${
                   isSelected
                     ? 'bg-dark-800 border text-foreground shadow-xs'
@@ -300,14 +315,7 @@ export function Rooms() {
                 }`}
                 style={isSelected ? { borderColor: tagDef?.hex || 'currentColor' } : undefined}
               >
-                <span
-                  className="w-2 h-2 rounded-full flex-shrink-0"
-                  style={{
-                    backgroundColor: tagDef?.hex || colorId,
-                    boxShadow: isSelected ? `0 0 8px ${tagDef?.ambientGlow || tagDef?.hex}` : undefined,
-                  }}
-                />
-                <span className="capitalize">{tagDef?.name || colorId}</span>
+                <TagDot color={colorId} />
                 <span className="text-[10px] px-1 py-0.2 rounded-full bg-dark-800 text-dark-400">
                   {count}
                 </span>
@@ -320,7 +328,7 @@ export function Rooms() {
       {/* Main Content Area */}
       {isLoading ? (
         <div className="flex items-center justify-center py-24">
-          <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-primary-500" />
+          <Spinner size="lg" />
         </div>
       ) : rooms.length === 0 ? (
         /* Empty State */
@@ -432,17 +440,7 @@ export function Rooms() {
                           className="flex items-center justify-center p-1 -m-0.5 rounded-full hover:bg-dark-800 transition-all cursor-pointer"
                           title={tag ? `Tag: ${tag.name} (Click to change)` : 'Add tag color'}
                         >
-                          {tag ? (
-                            <span
-                              className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${tag.dotClass || ''} hover:scale-125 transition-transform`}
-                              style={{
-                                backgroundColor: tag.hex,
-                                boxShadow: `0 0 6px ${tag.ambientGlow}`,
-                              }}
-                            />
-                          ) : (
-                            <span className="w-2.5 h-2.5 rounded-full border border-dashed border-dark-400 dark:border-dark-600 group-hover:border-foreground transition-colors" />
-                          )}
+                          <TagDot color={room.color} size="md" empty="ring" />
                         </button>
                       )}
                     </TagColorPickerPopover>
@@ -476,25 +474,34 @@ export function Rooms() {
           </div>
         </div>
       ) : (
-        /* Hierarchical Tree View */
-        <div className="bg-dark-900 border border-dark-700 rounded-2xl overflow-hidden divide-y divide-dark-700/80">
+        /* Room → KPI Mapping View (file-tree style: rooms are folders, KPIs are files) */
+        <div className="bg-dark-900 border border-dark-700 rounded-2xl p-2 font-normal select-none">
           {roomTree.map((node) => (
             <RoomTreeItem
               key={node.id}
               node={node}
-              level={0}
+              depth={0}
+              kpisByRoom={kpisByRoom}
+              allKpis={kpis}
+              searchQuery={searchQuery.trim().toLowerCase()}
               onNavigate={(id) => navigate(`/rooms/${id}`)}
               onAddSubRoom={(id) => handleOpenCreateModal(id)}
               onDelete={(room) => setRoomToDelete(room)}
               onUpdateColor={handleUpdateRoomColor}
+              onAssignKpis={handleAssignKpis}
+              onRemoveKpi={handleRemoveKpi}
               isAdmin={isAdmin}
             />
           ))}
+          {unassignedKpis.length > 0 && (
+            <UnassignedFolder kpis={unassignedKpis} searchQuery={searchQuery.trim().toLowerCase()} />
+          )}
         </div>
       )}
 
       {/* Create Room Modal */}
-      <CreateRoomModal
+      <RoomFormModal
+        mode="create"
         isOpen={isCreateModalOpen}
         onClose={() => {
           setIsCreateModalOpen(false)
@@ -519,93 +526,122 @@ export function Rooms() {
   )
 }
 
-/** Full-width tree item component */
+/** True when the room, one of its KPIs, or any descendant matches the search query */
+function nodeMatches(node: RoomTreeNode, kpisByRoom: Record<string, KPI[]>, q: string): boolean {
+  if (!q) return true
+  if (node.name.toLowerCase().includes(q)) return true
+  if ((kpisByRoom[node.id] || []).some((k) => k.name.toLowerCase().includes(q))) return true
+  return node.children.some((c) => nodeMatches(c, kpisByRoom, q))
+}
+
+/** A KPI rendered as a file inside its room folder */
+function KpiFileRow({ kpi, depth, onRemove }: { kpi: KPI; depth: number; onRemove?: () => void }) {
+  return (
+    <div className={treeRowClass}>
+      <TreeGuides depth={depth} />
+      <span className="w-5 flex-shrink-0" />
+      <DocumentChartBarIcon className="w-4 h-4 text-dark-400 flex-shrink-0 mr-2" />
+      <span className="text-sm text-dark-200 truncate">{kpi.name}</span>
+      <span className="ml-2 text-[11px] text-dark-500 capitalize flex-shrink-0">{kpi.category}</span>
+      {kpi.is_shared && (
+        <span className="ml-1.5 text-[10px] px-1.5 rounded-full bg-dark-800 text-dark-400 flex-shrink-0">shared</span>
+      )}
+      <span className="flex-1" />
+      {kpi.latest_value != null && (
+        <span className="text-xs text-dark-400 tabular-nums flex-shrink-0 mr-2">
+          {kpi.latest_value.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+        </span>
+      )}
+      {onRemove && (
+        <div className={rowActionsClass}>
+          <button
+            type="button"
+            onClick={onRemove}
+            className="p-1 text-dark-500 hover:text-danger-400 hover:bg-danger-500/10 rounded transition-colors cursor-pointer"
+            title="Unassign KPI from room"
+            aria-label={`Unassign ${kpi.name}`}
+          >
+            <XMarkIcon className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+/** Room folder row with its sub-rooms (folders) and KPIs (files) nested beneath */
 function RoomTreeItem({
   node,
-  level,
+  depth,
+  kpisByRoom,
+  allKpis,
+  searchQuery,
   onNavigate,
   onAddSubRoom,
   onDelete,
   onUpdateColor,
+  onAssignKpis,
+  onRemoveKpi,
   isAdmin,
 }: {
   node: RoomTreeNode
-  level: number
+  depth: number
+  kpisByRoom: Record<string, KPI[]>
+  allKpis: KPI[]
+  searchQuery: string
   onNavigate: (id: string) => void
   onAddSubRoom: (id: string) => void
   onDelete: (room: RoomTreeNode) => void
   onUpdateColor: (roomId: string, color: string | null) => void
+  onAssignKpis: (roomId: string, kpiIds: string[]) => Promise<void>
+  onRemoveKpi: (roomId: string, kpi: KPI) => Promise<void>
   isAdmin: boolean
 }) {
   const [isExpanded, setIsExpanded] = useState(true)
+  const roomKpis = kpisByRoom[node.id] || []
+  const assignable = useMemo(() => {
+    const assigned = new Set(roomKpis.map((k) => k.id))
+    return allKpis.filter((k) => !assigned.has(k.id)).sort((a, b) => a.name.localeCompare(b.name))
+  }, [allKpis, roomKpis])
+
+  if (!nodeMatches(node, kpisByRoom, searchQuery)) return null
+
+  // When the room itself matches (or no search), show all its KPIs; otherwise only matching ones
+  const roomNameMatches = !searchQuery || node.name.toLowerCase().includes(searchQuery)
+  const visibleKpis = roomNameMatches
+    ? roomKpis
+    : roomKpis.filter((k) => k.name.toLowerCase().includes(searchQuery))
   const hasChildren = node.children && node.children.length > 0
-  const tag = getTagColor(node.color)
+  const isExpandable = hasChildren || roomKpis.length > 0
 
   return (
     <>
-      <div
-        className="flex items-center gap-3 px-4 py-3 hover:bg-dark-850/50 transition-colors group"
-        style={{ paddingLeft: `${16 + level * 24}px` }}
-      >
-        {/* Expand toggle */}
-        {hasChildren ? (
-          <button
-            type="button"
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="p-1 text-dark-400 hover:text-foreground rounded transition-colors"
-          >
-            {isExpanded ? (
-              <ChevronDownIcon className="h-4 w-4" />
-            ) : (
-              <ChevronRightIcon className="h-4 w-4" />
-            )}
-          </button>
-        ) : (
-          <span className="w-6" />
-        )}
-
-        {/* Room info */}
+      <div className={treeRowClass}>
+        <TreeGuides depth={depth} />
         <button
           type="button"
-          onClick={() => onNavigate(node.id)}
-          className="flex items-center gap-3 flex-1 min-w-0 text-left cursor-pointer"
+          onClick={() => setIsExpanded(!isExpanded)}
+          onDoubleClick={() => onNavigate(node.id)}
+          className="flex items-center flex-1 min-w-0 h-full text-left cursor-pointer"
+          title="Click to expand · double-click to open"
         >
-          <div className="relative flex items-center justify-center flex-shrink-0">
-            <FolderIcon className="h-5 w-5 text-dark-400 group-hover:text-foreground transition-colors" />
-            {tag && (
-              <span
-                className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-dark-900 ${tag.dotClass || ''}`}
-                style={{ backgroundColor: tag.hex }}
-                title={`${tag.name} tag`}
-              />
-            )}
-          </div>
-          <span className="text-foreground font-medium text-sm truncate">{node.name}</span>
-          {node.description && (
-            <span className="hidden md:inline text-xs text-dark-400 truncate max-w-sm">
-              — {node.description}
-            </span>
-          )}
+          <span className="w-5 flex items-center justify-center flex-shrink-0 text-dark-400">
+            {isExpandable &&
+              (isExpanded ? <ChevronDownIcon className="h-3.5 w-3.5" /> : <ChevronRightIcon className="h-3.5 w-3.5" />)}
+          </span>
+          <span className="relative flex items-center justify-center flex-shrink-0 mr-2">
+            <TagFolderIcon color={node.color} open={isExpanded && isExpandable} />
+          </span>
+          <span className="text-sm font-medium text-foreground truncate">{node.name}</span>
+          <span className="ml-2 text-[11px] text-dark-500 flex-shrink-0">
+            {roomKpis.length} KPI{roomKpis.length === 1 ? '' : 's'}
+            {hasChildren ? ` · ${node.children.length} sub` : ''}
+          </span>
         </button>
 
-        {/* Stats badges */}
-        <div className="flex items-center gap-3 flex-shrink-0">
-          {node.kpi_count > 0 && (
-            <span className="flex items-center gap-1 text-xs text-dark-400 bg-dark-800 border border-dark-700 px-2 py-0.5 rounded-full">
-              <ChartBarIcon className="h-3.5 w-3.5" />
-              {node.kpi_count} KPIs
-            </span>
-          )}
-          {hasChildren && (
-            <span className="flex items-center gap-1 text-xs text-dark-400 bg-dark-800 border border-dark-700 px-2 py-0.5 rounded-full">
-              <UsersIcon className="h-3.5 w-3.5" />
-              {node.children.length} sub
-            </span>
-          )}
-        </div>
-
-        {/* Actions */}
-        <div className="flex items-center gap-1 flex-shrink-0">
+        {/* Hover actions */}
+        <div className={rowActionsClass}>
+          <AssignKPIPopover kpis={assignable} onAssign={(ids) => onAssignKpis(node.id, ids)} />
           <TagColorPickerPopover
             selectedColor={node.color}
             onSelectColor={(color) => onUpdateColor(node.id, color)}
@@ -615,62 +651,102 @@ function RoomTreeItem({
               <button
                 type="button"
                 onClick={toggle}
-                className="p-1.5 text-dark-400 hover:text-foreground hover:bg-dark-800 rounded-lg transition-colors cursor-pointer"
+                className="p-1 text-dark-400 hover:text-foreground hover:bg-dark-700 rounded transition-colors cursor-pointer"
                 title="Change tag color"
                 aria-label="Change tag color"
               >
-                <TagIcon className="w-4 h-4" />
+                <TagIcon className="w-3.5 h-3.5" />
               </button>
             )}
           </TagColorPickerPopover>
           <button
             type="button"
             onClick={() => onAddSubRoom(node.id)}
-            className="p-1.5 text-dark-400 hover:text-foreground hover:bg-dark-800 rounded-lg transition-colors"
+            className="p-1 text-dark-400 hover:text-foreground hover:bg-dark-700 rounded transition-colors cursor-pointer"
             title="Add sub-room"
             aria-label="Add sub-room"
           >
-            <FolderPlusIcon className="w-4 h-4" />
+            <FolderPlusIcon className="w-3.5 h-3.5" />
           </button>
           {isAdmin && (
             <button
               type="button"
               onClick={() => onDelete(node)}
-              className="p-1.5 text-dark-500 hover:text-danger-400 hover:bg-danger-500/10 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+              className="p-1 text-dark-500 hover:text-danger-400 hover:bg-danger-500/10 rounded transition-colors cursor-pointer"
               title="Delete room"
               aria-label="Delete room"
             >
-              <TrashIcon className="h-4 w-4" />
+              <TrashIcon className="w-3.5 h-3.5" />
             </button>
           )}
           <button
             type="button"
             onClick={() => onNavigate(node.id)}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-dark-800 text-foreground hover:bg-dark-750 text-xs font-medium transition-colors"
+            className="p-1 text-dark-400 hover:text-foreground hover:bg-dark-700 rounded transition-colors cursor-pointer"
+            title="Open room"
+            aria-label="Open room"
           >
-            <span>Open</span>
-            <ArrowRightIcon className="w-3 h-3" />
+            <ArrowRightIcon className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
 
-      {/* Children */}
-      {hasChildren && isExpanded && (
+      {isExpanded && (
         <>
-          {node.children.map((child) => (
-            <RoomTreeItem
-              key={child.id}
-              node={child}
-              level={level + 1}
-              onNavigate={onNavigate}
-              onAddSubRoom={onAddSubRoom}
-              onDelete={onDelete}
-              onUpdateColor={onUpdateColor}
-              isAdmin={isAdmin}
-            />
+          {/* Sub-room folders first, then KPI files — like a file explorer */}
+          {hasChildren &&
+            node.children.map((child) => (
+              <RoomTreeItem
+                key={child.id}
+                node={child}
+                depth={depth + 1}
+                kpisByRoom={kpisByRoom}
+                allKpis={allKpis}
+                searchQuery={searchQuery}
+                onNavigate={onNavigate}
+                onAddSubRoom={onAddSubRoom}
+                onDelete={onDelete}
+                onUpdateColor={onUpdateColor}
+                onAssignKpis={onAssignKpis}
+                onRemoveKpi={onRemoveKpi}
+                isAdmin={isAdmin}
+              />
+            ))}
+          {visibleKpis.map((kpi) => (
+            <KpiFileRow key={kpi.id} kpi={kpi} depth={depth + 1} onRemove={() => onRemoveKpi(node.id, kpi)} />
           ))}
         </>
       )}
+    </>
+  )
+}
+
+/** Virtual folder holding KPIs that are not mapped to any room */
+function UnassignedFolder({ kpis, searchQuery }: { kpis: KPI[]; searchQuery: string }) {
+  const [isExpanded, setIsExpanded] = useState(true)
+  const visible = searchQuery ? kpis.filter((k) => k.name.toLowerCase().includes(searchQuery)) : kpis
+  if (visible.length === 0) return null
+  const FolderGlyph = isExpanded ? FolderOpenIcon : FolderIcon
+
+  return (
+    <>
+      <div className={`${treeRowClass} mt-1 pt-1 border-t border-dark-700/60 rounded-t-none`}>
+        <button
+          type="button"
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="flex items-center flex-1 min-w-0 h-full text-left cursor-pointer"
+        >
+          <span className="w-5 flex items-center justify-center flex-shrink-0 text-dark-400">
+            {isExpanded ? <ChevronDownIcon className="h-3.5 w-3.5" /> : <ChevronRightIcon className="h-3.5 w-3.5" />}
+          </span>
+          <FolderGlyph className="h-4 w-4 text-dark-500 flex-shrink-0 mr-2" />
+          <span className="text-sm font-medium text-dark-300 italic truncate">Unassigned</span>
+          <span className="ml-2 text-[11px] text-dark-500 flex-shrink-0">
+            {visible.length} KPI{visible.length === 1 ? '' : 's'} · not in any room
+          </span>
+        </button>
+      </div>
+      {isExpanded && visible.map((kpi) => <KpiFileRow key={kpi.id} kpi={kpi} depth={1} />)}
     </>
   )
 }

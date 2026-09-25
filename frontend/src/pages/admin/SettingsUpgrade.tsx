@@ -147,7 +147,7 @@ export function SettingsUpgrade() {
           name: user?.name || '',
           email: user?.email || '',
         },
-        theme: { color: '#6366f1' },
+        theme: { color: '#cf603e' }, // Razorpay needs a literal hex; keep in sync with --color-brand in styles/theme.css
         handler: async (resp: {
           razorpay_payment_id: string
           razorpay_subscription_id: string
@@ -191,8 +191,8 @@ export function SettingsUpgrade() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-dark-800">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
-            <ArrowTrendingUpIcon className="w-5 h-5 text-emerald-400 stroke-[2]" />
+          <div className="w-10 h-10 rounded-xl bg-dark-800 border border-dark-700 flex items-center justify-center">
+            <ArrowTrendingUpIcon className="w-5 h-5 text-dark-300 stroke-[2]" />
           </div>
           <div>
             <h2 className="text-base font-bold text-foreground tracking-tight">Upgrade Plan</h2>
@@ -225,7 +225,7 @@ export function SettingsUpgrade() {
             }`}
           >
             <span>Annual</span>
-            <span className="px-1.5 py-0.2 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-bold rounded-full">
+            <span className="px-1.5 py-0.2 bg-success-500/10 text-success-400 border border-success-500/20 text-[10px] font-bold rounded-full">
               -20%
             </span>
           </button>
@@ -247,12 +247,12 @@ export function SettingsUpgrade() {
                 key={plan.name}
                 className={`relative rounded-2xl border flex flex-col p-6 transition-all ${
                   plan.popular
-                    ? 'bg-dark-950/60 border-primary-500/50 shadow-md ring-1 ring-primary-500/20'
+                    ? 'bg-dark-950/60 border-brand/50 shadow-md ring-1 ring-brand/20'
                     : 'bg-dark-950/30 border-dark-800'
                 }`}
               >
                 {plan.popular && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 bg-primary-500 text-white text-[10px] font-bold uppercase tracking-wider rounded-full shadow-sm flex items-center gap-1">
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 bg-brand text-white text-[10px] font-bold uppercase tracking-wider rounded-full shadow-sm flex items-center gap-1">
                     <SparklesIcon className="w-3 h-3" />
                     <span>Most Popular</span>
                   </div>
@@ -292,7 +292,7 @@ export function SettingsUpgrade() {
                   }}
                   className={`w-full py-2.5 px-4 rounded-xl text-xs font-semibold transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed mb-6 ${
                     isCurrent
-                      ? 'bg-dark-800 border border-dark-700 text-emerald-400 font-bold'
+                      ? 'bg-dark-800 border border-dark-700 text-success-400 font-bold'
                       : plan.popular
                       ? 'bg-primary-500 text-white hover:bg-primary-600 shadow-sm'
                       : 'bg-dark-800 hover:bg-dark-750 border border-dark-700 text-foreground'
@@ -313,7 +313,7 @@ export function SettingsUpgrade() {
                   </span>
                   {plan.features.map((feature) => (
                     <div key={feature} className="flex items-start gap-2 text-xs text-dark-300">
-                      <CheckIcon className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5 stroke-[2.5]" />
+                      <CheckIcon className="w-4 h-4 text-success-400 flex-shrink-0 mt-0.5 stroke-[2.5]" />
                       <span>{feature}</span>
                     </div>
                   ))}

@@ -1,3 +1,6 @@
+import type { KPI } from './kpi'
+
+export type { KPI }
 export interface Room {
   id: string
   org_id: string
@@ -56,20 +59,6 @@ export interface RoomBreadcrumb {
   name: string
 }
 
-export interface KPI {
-  id: string
-  org_id: string
-  name: string
-  description: string | null
-  formula: string
-  input_fields: string[]
-  category: string
-  time_period: string
-  is_preset: boolean
-  is_shared: boolean
-  created_by: string | null
-  created_at: string
-}
 
 export interface AggregatedKPIEntry {
   date: string

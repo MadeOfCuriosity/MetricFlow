@@ -55,7 +55,7 @@ export function SettingsNotifications() {
             </div>
             <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
               <input type="checkbox" className="sr-only peer" defaultChecked />
-              <div className="w-10 h-5 bg-dark-800 border border-dark-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-foreground after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary-500 peer-checked:border-primary-500"></div>
+              <div className="w-10 h-5 bg-dark-800 border border-dark-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-foreground after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-brand peer-checked:border-brand"></div>
             </label>
           </div>
         ))}
@@ -66,7 +66,7 @@ export function SettingsNotifications() {
           type="button"
           onClick={handleSave}
           disabled={isSaving}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-foreground text-dark-950 font-semibold hover:opacity-90 transition-opacity text-sm shadow-sm cursor-pointer disabled:opacity-50"
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary-500 text-white font-semibold hover:opacity-90 transition-opacity text-sm shadow-sm cursor-pointer disabled:opacity-50"
         >
           {isSaving ? 'Saving...' : 'Save Preferences'}
         </button>

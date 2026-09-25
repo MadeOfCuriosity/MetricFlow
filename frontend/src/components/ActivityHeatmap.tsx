@@ -13,6 +13,7 @@ import { FireIcon } from '@heroicons/react/24/solid'
 import { ArrowRightIcon } from '@heroicons/react/24/outline'
 import { useNavigate } from 'react-router-dom'
 import { adminService, ActivityHeatmapResponse } from '../services/admin'
+import { SegmentedControl } from './ui/SegmentedControl'
 
 interface ActivityHeatmapProps {
   className?: string
@@ -98,13 +99,13 @@ export function ActivityHeatmap({ className = '' }: ActivityHeatmapProps) {
     if (isFuture) return 'bg-transparent border border-transparent opacity-0 pointer-events-none'
     switch (level) {
       case 1:
-        return 'bg-[#0e4429] border border-[#006d32]/40 hover:border-emerald-500'
+        return 'bg-brand/25 border border-brand/30 hover:border-brand'
       case 2:
-        return 'bg-[#006d32] border border-[#26a641]/40 hover:border-emerald-400'
+        return 'bg-brand/50 border border-brand/40 hover:border-brand'
       case 3:
-        return 'bg-[#26a641] border border-emerald-400/40 hover:border-emerald-300 shadow-xs shadow-emerald-500/20'
+        return 'bg-brand/75 border border-brand/50 hover:border-brand'
       case 4:
-        return 'bg-[#39d353] border border-emerald-300/60 hover:brightness-110 shadow-xs shadow-emerald-400/40'
+        return 'bg-brand border border-brand/60 hover:brightness-110'
       case 0:
       default:
         return 'bg-dark-950/90 border border-dark-800/70 hover:border-dark-600'
@@ -124,7 +125,7 @@ export function ActivityHeatmap({ className = '' }: ActivityHeatmapProps) {
         <div>
           <div className="flex items-center gap-2">
             <h2 className="text-sm font-bold text-foreground tracking-tight">Activity</h2>
-            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-success-500/10 text-success-400 border border-success-500/20">
               {totalActivities} {totalActivities === 1 ? 'entry' : 'entries'}
             </span>
           </div>
@@ -133,22 +134,17 @@ export function ActivityHeatmap({ className = '' }: ActivityHeatmapProps) {
 
         {/* Header Controls: Range Selector + View All Button */}
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center p-1 bg-dark-950 border border-dark-800 rounded-xl">
-            {(['6m', '1y'] as const).map((r) => (
-              <button
-                key={r}
-                type="button"
-                onClick={() => setRange(r)}
-                className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg transition-all cursor-pointer ${
-                  range === r
-                    ? 'bg-dark-800 text-foreground shadow-sm'
-                    : 'text-dark-400 hover:text-foreground'
-                }`}
-              >
-                {r === '6m' ? '6 Months' : '1 Year'}
-              </button>
-            ))}
-          </div>
+          <SegmentedControl
+            size="xs"
+            surface="inset"
+            aria-label="Heatmap range"
+            value={range}
+            onChange={setRange}
+            options={[
+              { value: '6m', label: '6 Months' },
+              { value: '1y', label: '1 Year' },
+            ]}
+          />
 
           <button
             type="button"
@@ -166,7 +162,7 @@ export function ActivityHeatmap({ className = '' }: ActivityHeatmapProps) {
       <div className="relative my-auto py-2">
         {isLoading ? (
           <div className="h-[140px] flex items-center justify-center">
-            <div className="w-5 h-5 border-2 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin" />
+            <div className="w-5 h-5 border-2 border-success-500/30 border-t-success-500 rounded-full animate-spin" />
           </div>
         ) : (
           <div
@@ -263,7 +259,7 @@ export function ActivityHeatmap({ className = '' }: ActivityHeatmapProps) {
         {/* Streak summary */}
         <div className="flex items-center gap-3 text-dark-400">
           <span className="flex items-center gap-1 font-medium">
-            <FireIcon className="w-3.5 h-3.5 text-amber-500" />
+            <FireIcon className="w-3.5 h-3.5 text-brand" />
             <span className="text-dark-400">Streak:</span>
             <span className="font-semibold text-foreground">{currentStreak}d</span>
           </span>
@@ -274,15 +270,15 @@ export function ActivityHeatmap({ className = '' }: ActivityHeatmapProps) {
           </span>
         </div>
 
-        {/* GitHub "Less ... More" Legend */}
+        {/* "Less ... More" Legend */}
         <div className="flex items-center gap-1.5 text-dark-400 select-none">
           <span>Less</span>
           <div className="flex items-center gap-[3px]">
             <div className="w-2.5 h-2.5 rounded-[2px] bg-dark-950/90 border border-dark-800/70" />
-            <div className="w-2.5 h-2.5 rounded-[2px] bg-[#0e4429] border border-[#006d32]/40" />
-            <div className="w-2.5 h-2.5 rounded-[2px] bg-[#006d32] border border-[#26a641]/40" />
-            <div className="w-2.5 h-2.5 rounded-[2px] bg-[#26a641]" />
-            <div className="w-2.5 h-2.5 rounded-[2px] bg-[#39d353]" />
+            <div className="w-2.5 h-2.5 rounded-[2px] bg-brand/25 border border-brand/30" />
+            <div className="w-2.5 h-2.5 rounded-[2px] bg-brand/50 border border-brand/40" />
+            <div className="w-2.5 h-2.5 rounded-[2px] bg-brand/75" />
+            <div className="w-2.5 h-2.5 rounded-[2px] bg-brand" />
           </div>
           <span>More</span>
         </div>

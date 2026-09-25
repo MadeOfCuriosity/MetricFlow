@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import api from '../services/api'
-import type { KPIWithEntries, Insight, TodayForm, DataEntry, KPI } from '../types/dashboard'
+import type { KPIWithEntries, Insight, TodayForm, DataEntry } from '../types/dashboard'
 import type { DateRange } from '../components/DateRangeSelector'
+import { kpisApi } from '../services/kpis'
 
 export interface DashboardData {
   kpisWithEntries: KPIWithEntries[]
@@ -26,14 +27,13 @@ export function useDashboardData(): DashboardData {
     const fetchData = async () => {
       try {
         const [kpisRes, insightsRes, todayRes, allEntriesRes] = await Promise.all([
-          api.get('/api/kpis'),
+          kpisApi.getAll(),
           api.get('/api/insights'),
           api.get('/api/entries/today'),
           api.get('/api/entries?limit=1000'),
         ])
 
-        const kpisData = kpisRes.data
-        const kpis = (Array.isArray(kpisData) ? kpisData : kpisData?.kpis ?? []) as KPI[]
+        const kpis = kpisRes
         const insightsData = insightsRes.data
         const insightsList = Array.isArray(insightsData) ? insightsData : insightsData?.insights ?? []
         setInsights(insightsList)

@@ -84,7 +84,7 @@ export function WidgetWrapper({ widgetId, title, widgetType, onConfigure, childr
               )}
               <button
                 onClick={() => removeWidget(widgetId)}
-                className="p-1.5 rounded-lg text-dark-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                className="p-1.5 rounded-lg text-dark-400 hover:text-danger-400 hover:bg-danger-500/10 transition-colors"
               >
                 <XMarkIcon className="w-4 h-4" />
               </button>
