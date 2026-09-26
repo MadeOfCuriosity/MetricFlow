@@ -7,7 +7,7 @@ from sqlalchemy import update as sa_update
 
 from app.api.deps import get_db, get_current_user_org
 from app.core.config import settings
-from app.models import User, Organization, AIUsage
+from app.models import User, Organization, AIUsage, DataField
 from app.schemas.ai import (
     KPIBuilderRequest,
     KPIBuilderResponse,
@@ -117,7 +117,14 @@ async def kpi_builder(
         response = AIService.generate_response_mock(history, data.user_message)
     else:
         # Use Gemini API
-        response = await AIService.generate_response(history, data.user_message)
+        known_fields = [
+            (f.variable_name, f.name)
+            for f in db.query(DataField.variable_name, DataField.name)
+            .filter(DataField.org_id == org.id)
+            .order_by(DataField.name)
+            .all()
+        ]
+        response = await AIService.generate_response(history, data.user_message, known_fields)
 
     # Build response
     suggested_kpi = None
@@ -129,6 +136,8 @@ async def kpi_builder(
             description=response.suggestion.description,
             category=response.suggestion.category,
             time_period=response.suggestion.time_period,
+            unit=response.suggestion.unit,
+            direction=response.suggestion.direction,
         )
 
     return KPIBuilderResponse(

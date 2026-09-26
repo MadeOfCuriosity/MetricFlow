@@ -143,3 +143,61 @@ class TestKPIEndpoints:
         # Verify KPIs were created
         list_response = client.get("/api/kpis", headers=auth_headers)
         assert list_response.json()["total"] >= data["presets_created"]
+
+    def test_create_kpi_persists_unit_and_direction(self, client, auth_headers, sample_kpi_data):
+        """Unit and direction are stored and returned."""
+        response = client.post(
+            "/api/kpis",
+            json={**sample_kpi_data, "unit": "%", "direction": "down"},
+            headers=auth_headers,
+        )
+
+        assert response.status_code == status.HTTP_201_CREATED
+        data = response.json()
+        assert data["unit"] == "%"
+        assert data["direction"] == "down"
+
+    def test_create_kpi_rejects_invalid_direction(self, client, auth_headers, sample_kpi_data):
+        response = client.post(
+            "/api/kpis",
+            json={**sample_kpi_data, "direction": "sideways"},
+            headers=auth_headers,
+        )
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+    def test_duplicate_name_is_case_insensitive(self, client, auth_headers, sample_kpi_data):
+        client.post("/api/kpis", json=sample_kpi_data, headers=auth_headers)
+        response = client.post(
+            "/api/kpis",
+            json={**sample_kpi_data, "name": sample_kpi_data["name"].upper()},
+            headers=auth_headers,
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_available_presets_skip_names_taken_by_custom_kpis(self, client, auth_headers, sample_kpi_data):
+        """A custom KPI named like a preset hides that preset, so importing can't duplicate it."""
+        client.post("/api/kpis", json=sample_kpi_data, headers=auth_headers)  # "Conversion Rate"
+
+        response = client.get("/api/kpis/available-presets", headers=auth_headers)
+        names = [p["name"] for p in response.json()["available_presets"]]
+        assert "Conversion Rate" not in names
+        preset = response.json()["available_presets"][0]
+        assert preset["input_fields"]
+        assert preset["direction"] in ("up", "down")
+
+        seed = client.post(
+            "/api/kpis/seed-presets",
+            json={"preset_names": ["Conversion Rate"]},
+            headers=auth_headers,
+        )
+        assert seed.json()["presets_created"] == 0
+
+    def test_seed_presets_carry_unit_and_direction(self, client, auth_headers):
+        response = client.post(
+            "/api/kpis/seed-presets",
+            json={"preset_names": ["Lead Response Time"]},
+            headers=auth_headers,
+        )
+        preset = response.json()["presets"][0]
+        assert preset["unit"] == "hrs"
+        assert preset["direction"] == "down"

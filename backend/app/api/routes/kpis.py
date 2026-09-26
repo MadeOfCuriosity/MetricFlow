@@ -239,9 +239,19 @@ def seed_presets(
     Seed selected KPI presets for the organization.
     Only adds the presets specified in preset_names.
     """
-    _, org = user_org
+    user, org = user_org
 
-    created_presets = KPIService.seed_presets(db, org.id, data.preset_names)
+    room = None
+    if data.room_id:
+        room = RoomService.get_room_by_id(db, data.room_id, org.id)
+        if not room:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Room not found")
+
+    created_presets = KPIService.seed_presets(
+        db, org.id, data.preset_names, room_id=room.id if room else None
+    )
+    if room and created_presets:
+        RoomService.assign_kpis_to_room(db, room, [p.id for p in created_presets], user.id, org.id)
 
     return SeedPresetsResponse(
         message=f"Successfully seeded {len(created_presets)} preset KPIs",

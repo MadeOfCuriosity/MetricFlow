@@ -6,45 +6,14 @@ import {
   ArrowTrendingDownIcon,
   ClockIcon,
   ExclamationTriangleIcon,
+  PencilSquareIcon,
 } from '@heroicons/react/24/outline'
 import { DataFieldChipSelector } from './DataFieldChipSelector'
 import { dataFieldsApi } from '../services/dataFields'
 import type { DataField } from '../types/dataField'
 import type { TimePeriod } from '../types/kpi'
+import { checkFormula } from '../lib/formula'
 
-
-/**
- * Basic client-side formula validation to catch obvious issues
- * before sending to the backend.
- */
-function validateFormula(formula: string, inputFields: string[]): string | null {
-  if (!formula || !formula.trim()) {
-    return 'Formula is empty'
-  }
-
-  // Check balanced parentheses
-  let depth = 0
-  for (const char of formula) {
-    if (char === '(') depth++
-    if (char === ')') depth--
-    if (depth < 0) return 'Unbalanced parentheses in formula'
-  }
-  if (depth !== 0) return 'Unbalanced parentheses in formula'
-
-  // Check for empty parentheses
-  if (/\(\s*\)/.test(formula)) {
-    return 'Formula contains empty parentheses'
-  }
-
-  // Check that all input_fields appear in the formula
-  for (const field of inputFields) {
-    if (!formula.includes(field)) {
-      return `Variable "${field}" listed but not found in formula`
-    }
-  }
-
-  return null
-}
 
 interface KPISuggestion {
   name: string
@@ -72,6 +41,10 @@ interface KPISuggestionCardProps {
   suggestion: KPISuggestion
   onAdd: (mappings: Record<string, string>) => void
   isAdding: boolean
+  /** A KPI with this name already exists (e.g. it was just added) */
+  isAdded?: boolean
+  /** Open the suggestion in the manual editor */
+  onCustomize?: () => void
 }
 
 const getCategoryColor = (category: string) => {
@@ -89,6 +62,8 @@ export function KPISuggestionCard({
   suggestion,
   onAdd,
   isAdding,
+  isAdded,
+  onCustomize,
 }: KPISuggestionCardProps) {
   const categoryColor = getCategoryColor(suggestion.category)
   const [existingFields, setExistingFields] = useState<DataField[]>([])
@@ -110,10 +85,7 @@ export function KPISuggestionCard({
     })
   }, [suggestion.input_fields])
 
-  const formulaError = useMemo(
-    () => validateFormula(suggestion.formula, suggestion.input_fields),
-    [suggestion.formula, suggestion.input_fields]
-  )
+  const formulaError = useMemo(() => checkFormula(suggestion.formula).error, [suggestion.formula])
 
   const handleMappingChange = (variable: string, dataFieldId: string | null) => {
     setMappings((prev) => ({ ...prev, [variable]: dataFieldId }))
@@ -200,37 +172,58 @@ export function KPISuggestionCard({
       {/* Unit indicator */}
       {suggestion.unit && (
         <p className="text-xs text-dark-400">
-          Unit: <span className="text-dark-200">{suggestion.unit}</span>
+          Shown in: <span className="text-dark-200">{suggestion.unit}</span>
         </p>
       )}
 
-      {/* Add button */}
-      <button
-        onClick={handleAdd}
-        disabled={isAdding || !!formulaError}
-        className={`w-full flex items-center justify-center gap-2 px-4 py-2 border bg-transparent rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-          formulaError
-            ? 'border-warning-500/50 text-warning-400'
-            : 'border-primary-500 text-foreground hover:bg-primary-500/10'
-        }`}
-      >
-        {isAdding ? (
-          <>
-            <div className="w-4 h-4 border-2 border-foreground border-t-transparent rounded-full animate-spin" />
-            Adding KPI...
-          </>
-        ) : formulaError ? (
-          <>
-            <ExclamationTriangleIcon className="w-4 h-4" />
-            Formula issue detected
-          </>
-        ) : (
-          <>
-            <CheckIcon className="w-4 h-4" />
-            Add this KPI
-          </>
+      {/* Actions */}
+      <div className="flex items-center gap-2">
+        {onCustomize && (
+          <button
+            type="button"
+            onClick={onCustomize}
+            title="Edit the name, formula or settings in the Manual tab before creating"
+            className="flex items-center justify-center gap-1.5 px-3 py-2 border border-dark-600 rounded-lg text-sm text-dark-300 hover:text-foreground hover:border-dark-500 transition-colors cursor-pointer"
+          >
+            <PencilSquareIcon className="w-4 h-4" />
+            Customize
+          </button>
         )}
-      </button>
+        <button
+          type="button"
+          onClick={handleAdd}
+          disabled={isAdding || isAdded || !!formulaError}
+          className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 border rounded-lg transition-colors disabled:cursor-not-allowed ${
+            isAdded
+              ? 'border-success-500/40 bg-success-500/10 text-success-400'
+              : formulaError
+                ? 'border-warning-500/50 text-warning-400 disabled:opacity-60'
+                : 'border-primary-500 bg-primary-500 text-white hover:opacity-90 disabled:opacity-50'
+          }`}
+        >
+          {isAdded ? (
+            <>
+              <CheckIcon className="w-4 h-4" />
+              Added to your KPIs
+            </>
+          ) : isAdding ? (
+            <>
+              <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+              Adding KPI...
+            </>
+          ) : formulaError ? (
+            <>
+              <ExclamationTriangleIcon className="w-4 h-4" />
+              Fix the formula to add
+            </>
+          ) : (
+            <>
+              <CheckIcon className="w-4 h-4" />
+              Add this KPI
+            </>
+          )}
+        </button>
+      </div>
     </div>
   )
 }

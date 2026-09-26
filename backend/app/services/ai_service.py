@@ -45,6 +45,8 @@ input_fields: <comma-separated list of snake_case field names>
 description: <one sentence description>
 category: <Sales|Marketing|Operations|Finance|Custom>
 time_period: <daily|weekly|monthly|quarterly|other>
+unit: <display unit such as %, $, hrs, days, or leave empty for a plain count>
+direction: <up if a higher value is better, down if a lower value is better>
 [/KPI_SUGGESTION]
 
 Examples of valid formulas:
@@ -63,6 +65,25 @@ class KPISuggestion:
     description: Optional[str] = None
     category: str = "Custom"
     time_period: str = "daily"  # daily, weekly, monthly, quarterly, other
+    unit: Optional[str] = None
+    direction: Optional[str] = None  # "up" or "down"
+
+
+def build_known_fields_prompt(known_fields: list[tuple[str, str]]) -> str:
+    """
+    Tell the model which data fields the org already collects, so suggestions
+    reuse those variable names instead of inventing near-duplicates.
+    known_fields: (variable_name, display_name) pairs.
+    """
+    if not known_fields:
+        return ""
+    lines = "\n".join(f"- {var} ({name})" for var, name in known_fields[:150])
+    return (
+        "\n\nThe organization already collects these data fields "
+        "(variable_name (display name)). When a formula needs one of these values, "
+        "use the existing variable_name exactly. Only invent a new snake_case name "
+        "when none of them fits:\n" + lines
+    )
 
 
 @dataclass
@@ -114,6 +135,8 @@ class AIService:
         description = None
         category = "Custom"
         time_period = "daily"  # Default to daily
+        unit = None
+        direction = None
 
         valid_time_periods = ['daily', 'weekly', 'monthly', 'quarterly', 'other']
 
@@ -136,6 +159,12 @@ class AIService:
                 tp = line[12:].strip().lower()
                 if tp in valid_time_periods:
                     time_period = tp
+            elif line.lower().startswith('unit:'):
+                unit = line[5:].strip()[:20] or None
+            elif line.lower().startswith('direction:'):
+                d = line[10:].strip().lower()
+                if d in ('up', 'down'):
+                    direction = d
 
         # Validate we have required fields
         if not name or not formula or not input_fields:
@@ -149,10 +178,13 @@ class AIService:
         return KPISuggestion(
             name=name,
             formula=formula,
-            input_fields=input_fields,
+            # The formula is the source of truth; the model's own list can drift from it
+            input_fields=extracted_fields,
             description=description,
             category=category,
             time_period=time_period,
+            unit=unit,
+            direction=direction,
         )
 
     @classmethod
@@ -160,6 +192,7 @@ class AIService:
         cls,
         conversation_history: list[ConversationMessage],
         user_message: str,
+        known_fields: Optional[list[tuple[str, str]]] = None,
     ) -> AIResponse:
         """
         Generate an AI response for the KPI builder conversation.
@@ -181,7 +214,7 @@ class AIService:
             # Add system instruction as first user message
             contents.append({
                 "role": "user",
-                "parts": [{"text": KPI_BUILDER_SYSTEM_PROMPT}]
+                "parts": [{"text": KPI_BUILDER_SYSTEM_PROMPT + build_known_fields_prompt(known_fields or [])}]
             })
             contents.append({
                 "role": "model",
@@ -299,6 +332,8 @@ class AIService:
                         description="Percentage of leads that convert to customers",
                         category="Sales",
                         time_period="daily",
+                        unit="%",
+                        direction="up",
                     ),
                 )
             else:

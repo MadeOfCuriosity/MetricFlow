@@ -2,10 +2,10 @@ import { useState, useRef, useEffect, useMemo } from 'react'
 import {
   SparklesIcon,
   UserIcon,
-  PlusIcon,
   ChevronRightIcon,
+  ChevronDownIcon,
   CheckIcon,
-  XMarkIcon,
+  FolderIcon,
 } from '@heroicons/react/24/outline'
 import { KPISuggestionCard } from './KPISuggestionCard'
 import type { Room } from '../types/room'
@@ -42,6 +42,10 @@ export interface ChatInterfaceProps {
   selectedRoomId?: string
   onSelectRoomId?: (roomId: string) => void
   rooms?: Room[]
+  /** True when a KPI with the suggestion's name already exists */
+  isSuggestionAdded?: (suggestion: KPISuggestion) => boolean
+  /** Open a suggestion in a manual editor */
+  onCustomizeSuggestion?: (suggestion: KPISuggestion) => void
 }
 
 /**
@@ -171,6 +175,8 @@ export function ChatInterface({
   selectedRoomId,
   onSelectRoomId,
   rooms = [],
+  isSuggestionAdded,
+  onCustomizeSuggestion,
 }: ChatInterfaceProps) {
   const [input, setInput] = useState('')
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -292,6 +298,12 @@ export function ChatInterface({
                         suggestion={message.suggestion}
                         onAdd={(mappings) => onAddKPI(message.suggestion!, mappings)}
                         isAdding={isAddingKPI}
+                        isAdded={isSuggestionAdded?.(message.suggestion)}
+                        onCustomize={
+                          onCustomizeSuggestion
+                            ? () => onCustomizeSuggestion(message.suggestion!)
+                            : undefined
+                        }
                       />
                     </div>
                   )}
@@ -342,7 +354,16 @@ export function ChatInterface({
           <div ref={messagesEndRef} />
         </div>
       ) : (
-        <div className="flex-1 min-h-0" />
+        <div className="flex-1 min-h-0 flex flex-col items-center justify-end px-4 pb-5 text-center">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand/20 to-brand/5 flex items-center justify-center mb-3">
+            <SparklesIcon className="w-5 h-5 text-brand" />
+          </div>
+          <h2 className="text-base font-bold text-foreground">What do you want to measure?</h2>
+          <p className="text-xs text-dark-300 mt-1 max-w-md leading-relaxed">
+            Describe it in plain words. The assistant asks a couple of questions, then proposes a formula
+            built from your data fields that you can review before adding.
+          </p>
+        </div>
       )}
 
       {/* Centered / Docked Input Card & Suggestion Pills */}
@@ -357,7 +378,11 @@ export function ChatInterface({
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Describe what you wanna track"
+              placeholder={
+                messages.length === 0
+                  ? 'e.g. How quickly do we respond to new leads?'
+                  : 'Reply to the assistant…'
+              }
               disabled={isLoading}
               style={{
                 border: 'none',
@@ -369,44 +394,40 @@ export function ChatInterface({
           </div>
 
           <div className="flex items-center justify-between pt-2.5 px-0.5">
-            {/* Left: + Button with Room Assignment Popover */}
-            <div className="flex items-center gap-2 relative">
-              <button
-                type="button"
-                onClick={() => setIsMenuOpen((prev) => !prev)}
-                title="Options & Room Assignment"
-                className="w-7 h-7 rounded-lg text-dark-400 hover:text-foreground hover:bg-dark-800 flex items-center justify-center transition-colors cursor-pointer"
-              >
-                <PlusIcon className="w-4 h-4 stroke-[2.5]" />
-              </button>
-
-              {selectedRoom && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-brand/15 border border-brand/30 text-brand text-[11px] font-medium animate-in fade-in">
-                  <span className="truncate max-w-[120px]">{selectedRoom.name}</span>
-                  <button
-                    type="button"
-                    onClick={() => onSelectRoomId?.('')}
-                    className="hover:text-foreground cursor-pointer"
-                  >
-                    <XMarkIcon className="w-3 h-3" />
-                  </button>
-                </span>
+            {/* Left: room the new KPI will be added to */}
+            <div ref={menuRef} className="flex items-center gap-2 relative min-w-0">
+              {onSelectRoomId && (
+                <button
+                  type="button"
+                  onClick={() => setIsMenuOpen((prev) => !prev)}
+                  title="Choose the room new KPIs are added to"
+                  aria-haspopup="listbox"
+                  aria-expanded={isMenuOpen}
+                  className={`inline-flex items-center gap-1.5 max-w-[220px] px-2.5 py-1 rounded-lg border text-[11px] font-medium transition-colors cursor-pointer ${
+                    selectedRoom
+                      ? 'border-brand/30 bg-brand/10 text-brand'
+                      : 'border-dark-700 text-dark-400 hover:text-foreground hover:border-dark-500'
+                  }`}
+                >
+                  <FolderIcon className="w-3.5 h-3.5 flex-shrink-0" />
+                  <span className="truncate">{selectedRoom ? `Add to ${selectedRoom.name}` : 'No room'}</span>
+                  <ChevronDownIcon className="w-3 h-3 flex-shrink-0" />
+                </button>
               )}
 
               {/* Popover Menu */}
-              {isMenuOpen && (
+              {isMenuOpen && onSelectRoomId && (
                 <div
-                  ref={menuRef}
                   className="absolute bottom-full left-0 mb-2 w-64 rounded-xl bg-dark-900 border border-dark-700 shadow-2xl p-2 z-50 animate-in fade-in zoom-in-95 duration-150"
                 >
                   <div className="text-[10px] font-bold uppercase tracking-wider text-dark-400 px-2 py-1">
-                    Assign to Room
+                    Add new KPIs to
                   </div>
                   <div className="space-y-0.5 max-h-48 overflow-y-auto custom-scrollbar">
                     <button
                       type="button"
                       onClick={() => {
-                        onSelectRoomId?.('')
+                        onSelectRoomId('')
                         setIsMenuOpen(false)
                       }}
                       className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs transition-colors flex items-center justify-between cursor-pointer ${
@@ -415,16 +436,16 @@ export function ChatInterface({
                           : 'text-dark-300 hover:bg-dark-800/60 hover:text-foreground'
                       }`}
                     >
-                      <span>None (Global Org KPI)</span>
+                      <span>No room — organization-wide</span>
                       {!selectedRoomId && <CheckIcon className="w-3.5 h-3.5 text-brand" />}
                     </button>
-                    {rooms && rooms.length > 0 ? (
+                    {rooms.length > 0 ? (
                       rooms.map((r) => (
                         <button
                           key={r.id}
                           type="button"
                           onClick={() => {
-                            onSelectRoomId?.(r.id)
+                            onSelectRoomId(r.id)
                             setIsMenuOpen(false)
                           }}
                           className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs transition-colors flex items-center justify-between cursor-pointer ${

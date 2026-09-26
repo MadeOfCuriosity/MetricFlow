@@ -35,6 +35,8 @@ class KPIDefinition(Base):
         nullable=False,
         default=TimePeriod.DAILY
     )  # Frequency of data collection: daily, weekly, monthly, quarterly, other
+    unit = Column(String(20), nullable=True)  # Display unit: "%", "$", "hrs"
+    direction = Column(String(4), nullable=True)  # "up" = higher is better, "down" = lower is better
     is_preset = Column(Boolean, default=False, nullable=False)
     is_shared = Column(Boolean, default=False, nullable=False)  # True = org-wide, visible in all rooms
     created_by = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)

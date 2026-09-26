@@ -15,6 +15,8 @@ class KPISuggestionResponse(BaseModel):
     description: Optional[str] = None
     category: str = "Custom"
     time_period: str = "daily"
+    unit: Optional[str] = None
+    direction: Optional[str] = None
 
 
 class KPIBuilderRequest(BaseModel):

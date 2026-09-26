@@ -10,6 +10,10 @@ export interface KPI {
   input_fields: string[]
   category: string
   time_period: TimePeriod
+  /** Display unit, e.g. "%", "$", "hrs" */
+  unit?: string | null
+  /** "up" = higher is better, "down" = lower is better */
+  direction?: 'up' | 'down' | null
   is_preset: boolean
   is_shared: boolean
   created_by: string | null
@@ -25,8 +29,6 @@ export interface KPI {
   last_updated_at?: string | null
   previous_value?: number | null
 
-  // Not returned by the API today; UI code still reads them defensively
-  unit?: string
-  direction?: 'up' | 'down'
+  // Not returned by the API today; UI code still reads it defensively
   is_active?: boolean
 }

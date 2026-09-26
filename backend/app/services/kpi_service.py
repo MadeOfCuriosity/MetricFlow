@@ -1,6 +1,7 @@
 from typing import Optional
 from uuid import UUID
 
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.core.formula_parser import extract_input_fields, validate_formula
@@ -10,43 +11,68 @@ from app.schemas.kpi import KPICreateRequest, KPIUpdateRequest
 from app.services.data_field_service import DataFieldService
 
 
-# Default KPI presets
+# Default KPI presets. Variable names are shared on purpose (e.g. total_revenue,
+# deals_closed) so presets that need the same input reuse one data field.
+# Names must stay stable: an org's already-imported presets are matched by name.
+def _preset(name, description, formula, category, time_period, unit, direction):
+    return {
+        "name": name,
+        "description": description,
+        "formula": formula,
+        "category": category,
+        "time_period": time_period,
+        "unit": unit,
+        "direction": direction,
+    }
+
+
 DEFAULT_PRESETS = [
-    {
-        "name": "Conversion Rate",
-        "description": "Percentage of leads that convert to closed deals",
-        "formula": "(deals_closed / leads_received) * 100",
-        "category": "Sales",
-        "time_period": "daily",
-    },
-    {
-        "name": "Customer Acquisition Cost (CAC)",
-        "description": "Average cost to acquire a new customer",
-        "formula": "marketing_spend / new_customers",
-        "category": "Marketing",
-        "time_period": "monthly",
-    },
-    {
-        "name": "Revenue per Employee",
-        "description": "Total revenue divided by number of employees",
-        "formula": "total_revenue / employee_count",
-        "category": "Operations",
-        "time_period": "monthly",
-    },
-    {
-        "name": "Average Deal Size",
-        "description": "Average revenue per closed deal",
-        "formula": "total_revenue / deals_closed",
-        "category": "Sales",
-        "time_period": "weekly",
-    },
-    {
-        "name": "Lead Response Time",
-        "description": "Average time to respond to leads (in hours)",
-        "formula": "total_response_time / leads_contacted",
-        "category": "Sales",
-        "time_period": "daily",
-    },
+    # Sales
+    _preset("Conversion Rate", "Percentage of leads that convert to closed deals",
+            "(deals_closed / leads_received) * 100", "Sales", "daily", "%", "up"),
+    _preset("Average Deal Size", "Average revenue per closed deal",
+            "total_revenue / deals_closed", "Sales", "weekly", "$", "up"),
+    _preset("Lead Response Time", "Average time to respond to leads (in hours)",
+            "total_response_time / leads_contacted", "Sales", "daily", "hrs", "down"),
+    _preset("Win Rate", "Share of qualified opportunities that end as closed deals",
+            "(deals_closed / opportunities) * 100", "Sales", "monthly", "%", "up"),
+    _preset("Average Order Value", "Average revenue earned per order",
+            "total_revenue / total_orders", "Sales", "daily", "$", "up"),
+    _preset("Sales Target Achievement", "Revenue achieved as a percentage of the sales target",
+            "(total_revenue / sales_target) * 100", "Sales", "monthly", "%", "up"),
+    # Marketing
+    _preset("Customer Acquisition Cost (CAC)", "Average cost to acquire a new customer",
+            "marketing_spend / new_customers", "Marketing", "monthly", "$", "down"),
+    _preset("Cost per Lead", "Average marketing spend needed to generate one lead",
+            "marketing_spend / leads_received", "Marketing", "monthly", "$", "down"),
+    _preset("Return on Ad Spend (ROAS)", "Revenue generated for every unit of ad spend",
+            "ad_revenue / ad_spend", "Marketing", "monthly", "x", "up"),
+    _preset("Click-Through Rate", "Percentage of ad or email impressions that were clicked",
+            "(clicks / impressions) * 100", "Marketing", "weekly", "%", "up"),
+    _preset("Website Conversion Rate", "Percentage of website visitors who become leads",
+            "(leads_received / website_visitors) * 100", "Marketing", "weekly", "%", "up"),
+    # Operations
+    _preset("Revenue per Employee", "Total revenue divided by number of employees",
+            "total_revenue / employee_count", "Operations", "monthly", "$", "up"),
+    _preset("On-Time Delivery Rate", "Percentage of orders delivered on or before the promised date",
+            "(on_time_deliveries / total_deliveries) * 100", "Operations", "weekly", "%", "up"),
+    _preset("Order Fulfillment Time", "Average time from order to dispatch (in hours)",
+            "total_fulfillment_hours / total_orders", "Operations", "weekly", "hrs", "down"),
+    _preset("Customer Churn Rate", "Percentage of customers lost during the period",
+            "(churned_customers / customers_at_start) * 100", "Operations", "monthly", "%", "down"),
+    _preset("Ticket Resolution Rate", "Percentage of support tickets resolved in the period",
+            "(tickets_resolved / tickets_received) * 100", "Operations", "weekly", "%", "up"),
+    # Finance
+    _preset("Gross Profit Margin", "Revenue left after cost of goods sold, as a percentage of revenue",
+            "((total_revenue - cost_of_goods_sold) / total_revenue) * 100", "Finance", "monthly", "%", "up"),
+    _preset("Net Profit Margin", "Profit left after all expenses, as a percentage of revenue",
+            "((total_revenue - total_expenses) / total_revenue) * 100", "Finance", "monthly", "%", "up"),
+    _preset("Operating Expense Ratio", "Operating expenses as a percentage of revenue",
+            "(operating_expenses / total_revenue) * 100", "Finance", "monthly", "%", "down"),
+    _preset("Burn Rate", "Net cash spent per month",
+            "cash_outflow - cash_inflow", "Finance", "monthly", "$", "down"),
+    _preset("Accounts Receivable Days", "Average number of days customers take to pay",
+            "(accounts_receivable / total_revenue) * 30", "Finance", "monthly", "days", "down"),
 ]
 
 
@@ -114,6 +140,8 @@ class KPIService:
             input_fields=input_fields,
             category=data.category,
             time_period=time_period_value,
+            unit=(data.unit or '').strip() or None,
+            direction=data.direction,
             is_preset=False,
             is_shared=data.is_shared,
             created_by=user_id,
@@ -127,7 +155,7 @@ class KPIService:
             org_id=org_id,
             user_id=user_id,
             formula=data.formula,
-            room_ids=getattr(data, 'room_ids', None),
+            room_ids=[data.room_id] if data.room_id else None,
             data_field_mappings=getattr(data, 'data_field_mappings', None),
         )
 
@@ -161,6 +189,10 @@ class KPIService:
             formula_changed = True
         if data.category is not None:
             kpi.category = data.category
+        if data.unit is not None:
+            kpi.unit = data.unit.strip() or None
+        if data.direction is not None:
+            kpi.direction = data.direction
         if data.time_period is not None:
             time_period_str = data.time_period.value if hasattr(data.time_period, 'value') else str(data.time_period)
             kpi.time_period = TimePeriod(time_period_str)
@@ -201,49 +233,44 @@ class KPIService:
         return True
 
     @staticmethod
+    def _existing_kpi_names(db: Session, org_id: UUID) -> set[str]:
+        """Lower-cased names of every KPI in the org (presets and custom)."""
+        return {
+            name.strip().lower()
+            for (name,) in db.query(KPIDefinition.name).filter(KPIDefinition.org_id == org_id).all()
+        }
+
+    @staticmethod
     def get_available_presets(db: Session, org_id: UUID) -> list[dict]:
         """
-        Get list of available preset KPIs that haven't been added yet.
+        Get preset KPIs that can still be added: skips any preset whose name is
+        already taken by a KPI in the org, so importing never creates a duplicate.
         """
-        # Get existing preset names for this org
-        existing_names = set(
-            name for (name,) in db.query(KPIDefinition.name).filter(
-                KPIDefinition.org_id == org_id,
-                KPIDefinition.is_preset == True
-            ).all()
-        )
-
-        available = []
-        for preset_data in DEFAULT_PRESETS:
-            if preset_data["name"] not in existing_names:
-                available.append(preset_data)
-
-        return available
+        existing_names = KPIService._existing_kpi_names(db, org_id)
+        return [
+            {**preset, "input_fields": extract_input_fields(preset["formula"])}
+            for preset in DEFAULT_PRESETS
+            if preset["name"].lower() not in existing_names
+        ]
 
     @staticmethod
     def seed_presets(
         db: Session,
         org_id: UUID,
-        preset_names: Optional[list[str]] = None
+        preset_names: Optional[list[str]] = None,
+        room_id: Optional[UUID] = None,
     ) -> list[KPIDefinition]:
         """
         Seed KPI presets for an organization.
         If preset_names is provided, only those specific presets are added.
-        Skips presets that already exist (by name).
+        Skips presets whose name is already used by a KPI in the org.
+        Data fields auto-created for the presets are scoped to room_id when given.
         """
         created_presets = []
-
-        # Get existing preset names for this org
-        existing_names = set(
-            name for (name,) in db.query(KPIDefinition.name).filter(
-                KPIDefinition.org_id == org_id,
-                KPIDefinition.is_preset == True
-            ).all()
-        )
+        existing_names = KPIService._existing_kpi_names(db, org_id)
 
         for preset_data in DEFAULT_PRESETS:
-            # Skip if preset already exists
-            if preset_data["name"] in existing_names:
+            if preset_data["name"].lower() in existing_names:
                 continue
 
             # If specific presets requested, skip others
@@ -256,10 +283,6 @@ class KPIService:
                 # Skip invalid formulas (shouldn't happen with our defaults)
                 continue
 
-            # Get time_period, default to daily
-            time_period_str = preset_data.get("time_period", "daily")
-            time_period = TimePeriod(time_period_str)
-
             preset = KPIDefinition(
                 org_id=org_id,
                 name=preset_data["name"],
@@ -267,7 +290,9 @@ class KPIService:
                 formula=preset_data["formula"],
                 input_fields=input_fields,
                 category=preset_data["category"],
-                time_period=time_period,
+                time_period=TimePeriod(preset_data.get("time_period", "daily")),
+                unit=preset_data.get("unit"),
+                direction=preset_data.get("direction"),
                 is_preset=True,
                 created_by=None,  # System preset
             )
@@ -280,6 +305,7 @@ class KPIService:
                 org_id=org_id,
                 user_id=None,
                 formula=preset_data["formula"],
+                room_ids=[room_id] if room_id else None,
             )
             DataFieldService.create_kpi_data_field_links(db, preset.id, variable_to_field)
 
@@ -302,7 +328,7 @@ class KPIService:
         """Check if a KPI with the given name already exists in the org."""
         query = db.query(KPIDefinition).filter(
             KPIDefinition.org_id == org_id,
-            KPIDefinition.name == name
+            func.lower(KPIDefinition.name) == name.strip().lower()
         )
         if exclude_id:
             query = query.filter(KPIDefinition.id != exclude_id)

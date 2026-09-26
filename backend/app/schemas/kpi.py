@@ -18,11 +18,16 @@ class TimePeriodEnum(str, Enum):
     OTHER = "other"
 
 
+KPIDirection = Literal["up", "down"]
+
+
 class KPICreateRequest(BaseModel):
     name: str = Field(..., min_length=2, max_length=255)
     description: Optional[str] = None
     formula: str = Field(..., min_length=1, max_length=500)
     category: str = Field(..., pattern="^(Sales|Marketing|Operations|Finance|Custom)$")
+    unit: Optional[str] = Field(None, max_length=20)
+    direction: Optional[KPIDirection] = None
     time_period: TimePeriodEnum = Field(
         default=TimePeriodEnum.DAILY,
         description="Frequency of data collection for this KPI"
@@ -55,6 +60,8 @@ class KPIUpdateRequest(BaseModel):
     description: Optional[str] = None
     formula: Optional[str] = Field(None, min_length=1, max_length=500)
     category: Optional[str] = Field(None, pattern="^(Sales|Marketing|Operations|Finance|Custom)$")
+    unit: Optional[str] = Field(None, max_length=20)
+    direction: Optional[KPIDirection] = None
     time_period: Optional[TimePeriodEnum] = Field(
         None,
         description="Frequency of data collection for this KPI"
@@ -83,6 +90,8 @@ class KPIResponse(BaseModel):
     input_fields: list[str]
     category: str
     time_period: TimePeriodEnum
+    unit: Optional[str] = None
+    direction: Optional[KPIDirection] = None
     is_preset: bool
     is_shared: bool
     created_by: Optional[UUID]
@@ -123,6 +132,9 @@ class PresetInfo(BaseModel):
     formula: str
     category: str
     time_period: TimePeriodEnum = TimePeriodEnum.DAILY
+    unit: Optional[str] = None
+    direction: Optional[KPIDirection] = None
+    input_fields: list[str] = []
 
 
 class AvailablePresetsResponse(BaseModel):
@@ -134,3 +146,4 @@ class AvailablePresetsResponse(BaseModel):
 class SeedPresetsRequest(BaseModel):
     """Request to seed specific preset KPIs."""
     preset_names: list[str] = Field(..., min_length=1, description="List of preset names to add")
+    room_id: Optional[UUID] = Field(None, description="Room to assign the imported presets to")

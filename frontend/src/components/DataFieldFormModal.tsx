@@ -69,6 +69,12 @@ interface DataFieldFormModalProps {
   /** Existing field: opens read-only, each value becomes editable on click. Omit to create. */
   editField?: DataField | null
   onDelete?: (field: DataField) => void
+  /** Create mode: prefill the name */
+  initialName?: string
+  /** Create mode: prefill the rooms */
+  initialRoomIds?: string[]
+  /** Create mode: prefill the entry interval */
+  initialInterval?: EntryInterval
 }
 
 type FieldKey = 'name' | 'rooms' | 'unit' | 'interval' | 'description'
@@ -134,7 +140,16 @@ function InfoRow({ label, children }: { label: string; children: ReactNode }) {
  * Create a data field, or view one and edit it in place: every value is read-only
  * until clicked. Also offers Delete for existing fields.
  */
-export function DataFieldFormModal({ isOpen, onClose, onCreated, editField, onDelete }: DataFieldFormModalProps) {
+export function DataFieldFormModal({
+  isOpen,
+  onClose,
+  onCreated,
+  editField,
+  onDelete,
+  initialName,
+  initialRoomIds,
+  initialInterval,
+}: DataFieldFormModalProps) {
   const { roomTree } = useRoom()
   const nameInputRef = useRef<HTMLInputElement>(null)
   // Snapshot what is shown while open, so the closing animation doesn't flip modes
@@ -154,11 +169,11 @@ export function DataFieldFormModal({ isOpen, onClose, onCreated, editField, onDe
   const [error, setError] = useState<string | null>(null)
 
   const resetFrom = (f: DataField | null | undefined) => {
-    setName(f?.name ?? '')
+    setName(f?.name ?? initialName ?? '')
     setDescription(f?.description ?? '')
     setUnit(f?.unit ?? '')
-    setRoomIds(f?.room_ids ?? [])
-    setEntryInterval(f?.entry_interval || 'daily')
+    setRoomIds(f?.room_ids ?? initialRoomIds ?? [])
+    setEntryInterval(f?.entry_interval || initialInterval || 'daily')
     setPeriodStart(f?.period_start_date || isoDay(new Date()))
     setEditing(f ? new Set() : new Set(ALL_KEYS))
     setError(null)

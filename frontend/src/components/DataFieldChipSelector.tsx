@@ -52,7 +52,10 @@ export function DataFieldChipSelector({
 
   return (
     <div className="space-y-2">
-      <p className="text-xs text-dark-400 mb-1">Data field mapping</p>
+      <p className="text-xs text-dark-400 mb-1">
+        Inputs — <span className="text-success-400">green</span> reuse your existing data fields,{' '}
+        <span className="text-warning-400">amber</span> will be created as new ones. Click to change.
+      </p>
       <div className="flex flex-wrap gap-2" ref={dropdownRef}>
         {formulaVariables.map((variable) => {
           const matched = getMatchedField(variable)

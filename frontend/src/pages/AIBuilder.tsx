@@ -209,6 +209,8 @@ export function AIBuilder({
         category: suggestion.category,
         formula: suggestion.formula,
         time_period: suggestion.time_period || 'daily',
+        unit: suggestion.unit || undefined,
+        direction: suggestion.direction || undefined,
         data_field_mappings: Object.keys(dataFieldMappings).length > 0 ? dataFieldMappings : undefined,
         room_id: effectiveRoomId || undefined,
       })

@@ -1,6 +1,5 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import {
-  BookmarkSquareIcon,
   ClockIcon,
   PlusIcon,
   TrashIcon,
@@ -9,17 +8,22 @@ import {
   CheckIcon,
   ChevronRightIcon,
   ChevronLeftIcon,
-  AdjustmentsHorizontalIcon,
   ExclamationTriangleIcon,
-  ArrowPathIcon,
   Bars3BottomLeftIcon,
+  XMarkIcon,
 } from '@heroicons/react/24/outline'
 import { ChatInterface } from './ChatInterface'
 import { useToast } from '../context/ToastContext'
 import { useRoom } from '../context/RoomContext'
 import api from '../services/api'
+import { dataFieldsApi } from '../services/dataFields'
 import { getApiError } from '../lib/apiError'
+import { checkFormula } from '../lib/formula'
 import type { TimePeriod } from '../types/kpi'
+import type { DataField } from '../types/dataField'
+import { ManualKPIForm, EMPTY_DRAFT, KPI_CATEGORIES, type ManualDraft } from './kpi-studio/ManualKPIForm'
+import { PresetLibrary, type Preset } from './kpi-studio/PresetLibrary'
+import { StudioSidePanel } from './kpi-studio/StudioSidePanel'
 
 
 interface KPISuggestion {
@@ -46,36 +50,36 @@ interface ConversationMessage {
   content: string
 }
 
-interface Preset {
-  name: string
-  description: string
-  formula: string
-  category: string
-  time_period?: TimePeriod
-}
+type StudioTab = 'ai' | 'manual' | 'presets'
 
 export interface StudioHistoryItem {
   id: string
   title: string
   timestamp: string // ISO string
-  type: 'ai' | 'manual' | 'presets'
+  type: StudioTab
   kpiName?: string
   roomName?: string
   messages?: Message[]
-  manualDraft?: {
-    name: string
-    category: string
-    formula: string
-    time_period: TimePeriod
-    unit: string
-    direction: 'up' | 'down'
-    description?: string
-  }
+  manualDraft?: ManualDraft
 }
 
 const STORAGE_KEY = 'metricflow_kpi_studio_history_v1'
+const MAX_SESSIONS = 25
 
-const PRESET_CATEGORIES = ['All', 'Sales', 'Marketing', 'Operations', 'Finance']
+const TABS: { value: StudioTab; label: string; title: string }[] = [
+  { value: 'ai', label: 'AI', title: 'Describe what you want to measure and get a formula suggested' },
+  { value: 'manual', label: 'Manual', title: 'Write the formula yourself from your data fields' },
+  { value: 'presets', label: 'Presets', title: 'Pick a proven, ready-made KPI' },
+]
+
+const SIDE_PANEL_TITLES: Record<StudioTab, string> = {
+  ai: 'How it works',
+  manual: 'Preview',
+  presets: 'About presets',
+}
+
+const newSessionId = () => `session_${Date.now()}`
+const normalizeName = (name: string) => name.trim().toLowerCase()
 
 export interface KPICreationStudioProps {
   onKpiCreated?: (kpiName: string) => void
@@ -94,10 +98,14 @@ export function KPICreationStudio({
   const [isStudioOpen, setIsStudioOpen] = useState(true)
 
   // Middle Section Active Tab
-  const [activeMiddleTab, setActiveMiddleTab] = useState<'ai' | 'manual' | 'presets'>('ai')
+  const [activeMiddleTab, setActiveMiddleTab] = useState<StudioTab>('ai')
 
-  // Selected Room for Assignment
+  // Room new KPIs are assigned to — shared by all three modes
   const [selectedRoomId, setSelectedRoomId] = useState<string>('')
+
+  // Org context: data fields (for formula suggestions) and existing KPI names (duplicate checks)
+  const [dataFields, setDataFields] = useState<DataField[]>([])
+  const [existingNames, setExistingNames] = useState<Set<string>>(new Set())
 
   // AI Chat State
   const [messages, setMessages] = useState<Message[]>([])
@@ -112,25 +120,39 @@ export function KPICreationStudio({
 
   // History State
   const [sessions, setSessions] = useState<StudioHistoryItem[]>([])
-  const [currentSessionId, setCurrentSessionId] = useState<string>(() => `session_${Date.now()}`)
+  const [currentSessionId, setCurrentSessionId] = useState<string>(newSessionId)
   const [historySearchQuery, setHistorySearchQuery] = useState('')
 
   // Manual Form State
-  const [manualName, setManualName] = useState('')
-  const [manualDescription, setManualDescription] = useState('')
-  const [manualCategory, setManualCategory] = useState('Sales')
-  const [manualFormula, setManualFormula] = useState('')
-  const [manualPeriod, setManualPeriod] = useState<TimePeriod>('monthly')
-  const [manualUnit, setManualUnit] = useState('%')
-  const [manualDirection, setManualDirection] = useState<'up' | 'down'>('up')
+  const [draft, setDraft] = useState<ManualDraft>(EMPTY_DRAFT)
+  const [manualSubmitAttempted, setManualSubmitAttempted] = useState(false)
   const [isSubmittingManual, setIsSubmittingManual] = useState(false)
 
   // Presets State
   const [presets, setPresets] = useState<Preset[]>([])
+  const [presetsLoaded, setPresetsLoaded] = useState(false)
   const [isLoadingPresets, setIsLoadingPresets] = useState(false)
-  const [presetSearch, setPresetSearch] = useState('')
-  const [selectedPresetCategory, setSelectedPresetCategory] = useState('All')
+  const [presetsError, setPresetsError] = useState<string | null>(null)
   const [importingPresetName, setImportingPresetName] = useState<string | null>(null)
+
+  const loadDataFields = useCallback(() => {
+    dataFieldsApi
+      .getAll()
+      .then((res) => setDataFields(res.data_fields))
+      .catch(() => {})
+  }, [])
+
+  const loadKpiNames = useCallback(() => {
+    api
+      .get<{ kpis: { name: string }[] }>('/api/kpis')
+      .then((res) => setExistingNames(new Set(res.data.kpis.map((k) => normalizeName(k.name)))))
+      .catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    loadDataFields()
+    loadKpiNames()
+  }, [loadDataFields, loadKpiNames])
 
   // Load History from localStorage on mount
   useEffect(() => {
@@ -165,55 +187,64 @@ export function KPICreationStudio({
         const { remaining_calls, limit_per_day, allowed } = res.data
         setRateLimitInfo({ remaining: remaining_calls, limit: limit_per_day })
         if (!allowed) {
-          setRateLimitError(`Daily limit reached (${limit_per_day}/${limit_per_day} used). Resets at midnight UTC.`)
+          setRateLimitError(`You've used all ${limit_per_day} AI messages for today. They reset at midnight UTC — meanwhile, use Manual or Presets.`)
         }
       })
       .catch(() => {})
   }, [])
 
-  // Load presets when switching to Presets tab
-  useEffect(() => {
-    if (activeMiddleTab === 'presets' && presets.length === 0) {
-      setIsLoadingPresets(true)
-      api
-        .get('/api/kpis/available-presets')
-        .then((res) => {
-          setPresets(res.data?.available_presets || [])
-        })
-        .catch((err) => {
-          console.error('Failed to load presets:', err)
-          showError('Presets Error', 'Could not load preset library.')
-        })
-        .finally(() => {
-          setIsLoadingPresets(false)
-        })
-    }
-  }, [activeMiddleTab, presets.length, showError])
+  const loadPresets = useCallback(() => {
+    setIsLoadingPresets(true)
+    setPresetsError(null)
+    api
+      .get('/api/kpis/available-presets')
+      .then((res) => {
+        setPresets(res.data?.available_presets || [])
+        setPresetsLoaded(true)
+      })
+      .catch((err) => {
+        console.error('Failed to load presets:', err)
+        setPresetsError(getApiError(err, "Couldn't load the preset library."))
+      })
+      .finally(() => setIsLoadingPresets(false))
+  }, [])
 
-  // Record or update current session in History
-  const updateCurrentSessionInHistory = (
-    title: string,
-    type: 'ai' | 'manual' | 'presets',
-    customMessages?: Message[],
-    kpiName?: string
+  // Load presets the first time the Presets tab opens
+  useEffect(() => {
+    if (activeMiddleTab === 'presets' && !presetsLoaded && !isLoadingPresets && !presetsError) {
+      loadPresets()
+    }
+  }, [activeMiddleTab, presetsLoaded, isLoadingPresets, presetsError, loadPresets])
+
+  // After any KPI is created: remember the name, pick up auto-created data fields, notify the page
+  const markCreated = (kpiName: string) => {
+    setExistingNames((prev) => new Set(prev).add(normalizeName(kpiName)))
+    setLastCreatedKpi(kpiName)
+    loadDataFields()
+    onKpiCreated?.(kpiName)
+  }
+
+  const roomSuffix = () => {
+    const room = rooms.find((r) => r.id === selectedRoomId)
+    return room ? ` and added to ${room.name}` : ''
+  }
+
+  // Record or update a session in History
+  const updateSessionInHistory = (
+    sessionId: string,
+    item: Omit<StudioHistoryItem, 'id' | 'timestamp' | 'roomName'>
   ) => {
     const roomName = rooms.find((r) => r.id === selectedRoomId)?.name
     setSessions((prev) => {
-      const existingIdx = prev.findIndex((s) => s.id === currentSessionId)
+      const existing = prev.find((s) => s.id === sessionId)
       const newItem: StudioHistoryItem = {
-        id: currentSessionId,
-        title,
+        id: sessionId,
         timestamp: new Date().toISOString(),
-        type,
         roomName,
-        kpiName: kpiName || (existingIdx >= 0 ? prev[existingIdx].kpiName : undefined),
-        messages: customMessages || messages,
+        ...item,
+        kpiName: item.kpiName || existing?.kpiName,
       }
-      const updated =
-        existingIdx >= 0
-          ? [newItem, ...prev.filter((s) => s.id !== currentSessionId)]
-          : [newItem, ...prev.slice(0, 24)] // keep max 25 sessions
-
+      const updated = [newItem, ...prev.filter((s) => s.id !== sessionId)].slice(0, MAX_SESSIONS)
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(updated))
       } catch (e) {}
@@ -221,21 +252,21 @@ export function KPICreationStudio({
     })
   }
 
-  // Handle "+ New Session" click
-  const handleStartNewSession = () => {
-    const newId = `session_${Date.now()}`
-    setCurrentSessionId(newId)
+  const resetWorkspace = () => {
+    setCurrentSessionId(newSessionId())
     setMessages([])
     setConversationHistory([])
     setLastCreatedKpi(null)
-    setActiveMiddleTab('ai')
-    setManualName('')
-    setManualFormula('')
-    setManualDescription('')
+    setDraft(EMPTY_DRAFT)
+    setManualSubmitAttempted(false)
   }
+
+  // Handle "+ New Session" click — stays on the current tab
+  const handleStartNewSession = () => resetWorkspace()
 
   // Handle restoring a session from history
   const handleRestoreSession = (session: StudioHistoryItem) => {
+    resetWorkspace()
     setCurrentSessionId(session.id)
     setActiveMiddleTab(session.type)
     if (session.messages && session.messages.length > 0) {
@@ -244,18 +275,10 @@ export function KPICreationStudio({
         timestamp: new Date(m.timestamp),
       }))
       setMessages(restored)
-      setConversationHistory(
-        restored.map((m) => ({ role: m.role, content: m.content }))
-      )
+      setConversationHistory(restored.map((m) => ({ role: m.role, content: m.content })))
     }
     if (session.manualDraft) {
-      setManualName(session.manualDraft.name)
-      setManualCategory(session.manualDraft.category)
-      setManualFormula(session.manualDraft.formula)
-      setManualPeriod(session.manualDraft.time_period)
-      setManualUnit(session.manualDraft.unit)
-      setManualDirection(session.manualDraft.direction)
-      setManualDescription(session.manualDraft.description || '')
+      setDraft({ ...EMPTY_DRAFT, ...session.manualDraft, unit: session.manualDraft.unit ?? '' })
     }
     setLastCreatedKpi(session.kpiName || null)
   }
@@ -310,13 +333,13 @@ export function KPICreationStudio({
 
     // Save session title if this is the first message
     if (messages.length === 0) {
-      updateCurrentSessionInHistory(content, 'ai', nextMessages)
+      updateSessionInHistory(currentSessionId, { title: content, type: 'ai', messages: nextMessages })
     }
 
     try {
       const response = await api.post('/api/ai/kpi-builder', {
         user_message: content,
-        conversation_history: newHistory,
+        conversation_history: conversationHistory,
       })
 
       const {
@@ -335,7 +358,7 @@ export function KPICreationStudio({
         const errMsg: Message = {
           id: (Date.now() + 1).toString(),
           role: 'assistant',
-          content: "I couldn't generate a response right now. Please try again.",
+          content: "I couldn't generate a response right now. Please try again, or build the KPI in the Manual tab.",
           timestamp: new Date(),
         }
         setMessages((prev) => [...prev, errMsg])
@@ -356,16 +379,18 @@ export function KPICreationStudio({
         { role: 'assistant', content: aiResponse },
       ])
 
-      // Update session in history
-      const sessionTitle = suggested_kpi?.name || content
-      updateCurrentSessionInHistory(sessionTitle, 'ai', updatedMessages)
+      updateSessionInHistory(currentSessionId, {
+        title: suggested_kpi?.name || nextMessages[0].content,
+        type: 'ai',
+        messages: updatedMessages,
+      })
     } catch (err: any) {
       console.error('AI request error:', err)
       if (err.response?.status === 429) {
-        setRateLimitError('Rate limit reached for today. Resets at midnight UTC.')
+        setRateLimitError("You've used all of today's AI messages. They reset at midnight UTC — meanwhile, use Manual or Presets.")
         if (rateLimitInfo) setRateLimitInfo({ ...rateLimitInfo, remaining: 0 })
       } else {
-        showError('AI Error', 'Failed to reach AI service.')
+        showError('AI Error', 'Failed to reach the AI service. Please try again.')
       }
     } finally {
       setIsLoading(false)
@@ -386,33 +411,36 @@ export function KPICreationStudio({
         category: suggestion.category,
         formula: suggestion.formula,
         time_period: suggestion.time_period || 'daily',
+        unit: suggestion.unit || undefined,
+        direction: suggestion.direction || undefined,
         data_field_mappings:
           Object.keys(dataFieldMappings).length > 0 ? dataFieldMappings : undefined,
         room_id: selectedRoomId || undefined,
       })
 
-      const assignedRoomObj = rooms.find((r) => r.id === selectedRoomId)
-      const targetLocation = assignedRoomObj ? ` and assigned to ${assignedRoomObj.name}` : ''
-      success('KPI Created', `"${suggestion.name}" has been created${targetLocation}`)
-      setLastCreatedKpi(suggestion.name)
-      onKpiCreated?.(suggestion.name)
+      const where = roomSuffix()
+      success('KPI Created', `"${suggestion.name}" has been created${where}`)
+      markCreated(suggestion.name)
 
-      // Add confirmation bubble
       const confirmMessage: Message = {
         id: Date.now().toString(),
         role: 'assistant',
-        content: `Great! "${suggestion.name}" has been created${targetLocation}. You can view it in the All KPIs directory or track it in entries. Would you like to build another KPI?`,
+        content: `Done — "${suggestion.name}" has been created${where}. Enter values for its data fields on the Entries page and it will calculate automatically. Would you like to build another KPI?`,
         timestamp: new Date(),
       }
       const withConfirm = [...messages, confirmMessage]
       setMessages(withConfirm)
-
-      // Update session in history
-      updateCurrentSessionInHistory(suggestion.name, 'ai', withConfirm, suggestion.name)
+      updateSessionInHistory(currentSessionId, {
+        title: suggestion.name,
+        type: 'ai',
+        messages: withConfirm,
+        kpiName: suggestion.name,
+      })
     } catch (err: any) {
       console.error('Failed to create KPI:', err)
-      if (err.response?.data?.detail?.includes('already exists')) {
-        showError('KPI Exists', 'A KPI with this name already exists')
+      if (err.response?.data?.detail?.includes?.('already exists')) {
+        setExistingNames((prev) => new Set(prev).add(normalizeName(suggestion.name)))
+        showError('Name already used', `A KPI named "${suggestion.name}" already exists. Use Customize to rename it.`)
       } else {
         showError('Failed to Create', getApiError(err, 'Could not create the KPI.'))
       }
@@ -421,48 +449,69 @@ export function KPICreationStudio({
     }
   }
 
+  // Load an AI suggestion or preset into the manual editor
+  const openInManual = (source: {
+    name: string
+    description?: string | null
+    category: string
+    formula: string
+    time_period?: TimePeriod
+    unit?: string | null
+    direction?: 'up' | 'down' | null
+  }) => {
+    setDraft({
+      name: source.name,
+      description: source.description || '',
+      category: (KPI_CATEGORIES as readonly string[]).includes(source.category) ? source.category : 'Custom',
+      formula: source.formula,
+      time_period: source.time_period || 'monthly',
+      unit: source.unit || '',
+      direction: source.direction || 'up',
+    })
+    setManualSubmitAttempted(false)
+    setLastCreatedKpi(null)
+    setActiveMiddleTab('manual')
+  }
+
   // Manual Form Submit Handler
-  const handleManualSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!manualName.trim()) {
-      showError('Validation Error', 'KPI Name is required')
-      return
-    }
-    if (!manualFormula.trim()) {
-      showError('Validation Error', 'KPI Formula is required')
+  const formulaCheck = useMemo(() => checkFormula(draft.formula), [draft.formula])
+  const handleManualSubmit = async () => {
+    setManualSubmitAttempted(true)
+    const name = draft.name.trim()
+    if (name.length < 2 || existingNames.has(normalizeName(name)) || !formulaCheck.valid) {
       return
     }
 
     setIsSubmittingManual(true)
     try {
       await api.post('/api/kpis', {
-        name: manualName.trim(),
-        description: manualDescription.trim() || undefined,
-        category: manualCategory,
-        formula: manualFormula.trim(),
-        time_period: manualPeriod,
-        unit: manualUnit.trim() || undefined,
-        direction: manualDirection,
+        name,
+        description: draft.description?.trim() || undefined,
+        category: draft.category,
+        formula: draft.formula.trim(),
+        time_period: draft.time_period,
+        unit: draft.unit.trim() || undefined,
+        direction: draft.direction,
         room_id: selectedRoomId || undefined,
       })
 
-      const assignedRoomObj = rooms.find((r) => r.id === selectedRoomId)
-      const targetLocation = assignedRoomObj ? ` and assigned to ${assignedRoomObj.name}` : ''
-      success('KPI Created', `"${manualName}" created successfully${targetLocation}`)
-      setLastCreatedKpi(manualName)
-      onKpiCreated?.(manualName)
+      success('KPI Created', `"${name}" has been created${roomSuffix()}`)
+      markCreated(name)
+      updateSessionInHistory(currentSessionId, {
+        title: name,
+        type: 'manual',
+        kpiName: name,
+        manualDraft: { ...draft, name },
+      })
 
-      // Add to history
-      updateCurrentSessionInHistory(manualName, 'manual', undefined, manualName)
-
-      // Reset form
-      setManualName('')
-      setManualFormula('')
-      setManualDescription('')
+      // Next KPI starts a fresh session; keep category/frequency/unit/direction for batch creation
+      setCurrentSessionId(newSessionId())
+      setDraft((prev) => ({ ...prev, name: '', formula: '', description: '' }))
+      setManualSubmitAttempted(false)
     } catch (err: any) {
       console.error('Failed to create manual KPI:', err)
-      if (err.response?.data?.detail?.includes('already exists')) {
-        showError('KPI Exists', 'A KPI with this name already exists')
+      if (err.response?.data?.detail?.includes?.('already exists')) {
+        setExistingNames((prev) => new Set(prev).add(normalizeName(name)))
       } else {
         showError('Failed to Create', getApiError(err, 'Could not create the KPI.'))
       }
@@ -471,40 +520,34 @@ export function KPICreationStudio({
     }
   }
 
-  // Presets 1-Click Import Handler
+  // Presets: add one as-is
   const handleImportSinglePreset = async (preset: Preset) => {
     setImportingPresetName(preset.name)
+    setLastCreatedKpi(null)
     try {
-      await api.post('/api/kpis/seed-presets', {
+      const res = await api.post('/api/kpis/seed-presets', {
         preset_names: [preset.name],
+        room_id: selectedRoomId || undefined,
       })
-      success('Preset Added', `"${preset.name}" imported successfully`)
-      setLastCreatedKpi(preset.name)
-      onKpiCreated?.(preset.name)
+      // The preset is no longer available either way
+      setPresets((prev) => prev.filter((p) => p.name !== preset.name))
 
-      // Add to history
-      updateCurrentSessionInHistory(preset.name, 'presets', undefined, preset.name)
+      if (!res.data?.presets_created) {
+        setExistingNames((prev) => new Set(prev).add(normalizeName(preset.name)))
+        showError('Already added', `A KPI named "${preset.name}" already exists.`)
+        return
+      }
+
+      success('KPI Added', `"${preset.name}" has been added${roomSuffix()}`)
+      markCreated(preset.name)
+      updateSessionInHistory(newSessionId(), { title: preset.name, type: 'presets', kpiName: preset.name })
     } catch (err: any) {
       console.error('Failed to import preset:', err)
-      showError('Import Error', 'Could not import preset. It may already exist.')
+      showError('Could not add preset', getApiError(err, 'Please try again.'))
     } finally {
       setImportingPresetName(null)
     }
   }
-
-  // Filtered Presets
-  const filteredPresets = useMemo(() => {
-    return presets.filter((p) => {
-      const matchesCategory =
-        selectedPresetCategory === 'All' || p.category === selectedPresetCategory
-      const matchesSearch =
-        !presetSearch.trim() ||
-        p.name.toLowerCase().includes(presetSearch.toLowerCase()) ||
-        p.formula.toLowerCase().includes(presetSearch.toLowerCase()) ||
-        p.description.toLowerCase().includes(presetSearch.toLowerCase())
-      return matchesCategory && matchesSearch
-    })
-  }, [presets, selectedPresetCategory, presetSearch])
 
 
   return (
@@ -691,50 +734,37 @@ export function KPICreationStudio({
       )}
 
       {/* ========================================================================= */}
-      {/* SECTION 2: CHAT & WORKSPACE (Middle Column) */}
+      {/* SECTION 2: WORKSPACE (Middle Column) */}
       {/* ========================================================================= */}
       <main className="flex-1 min-w-0 h-full self-stretch flex flex-col relative">
-        {/* Floating Top Pill: 3 Tabs [AI, Manual, Presets] */}
+        {/* Mode switch: AI · Manual · Presets */}
         <div className="flex items-center justify-center pt-1 pb-2 flex-shrink-0 z-20">
-          <div className="flex items-center p-1 bg-dark-850 dark:bg-dark-900 border border-dark-700 rounded-full">
-            <button
-              type="button"
-              onClick={() => setActiveMiddleTab('ai')}
-              className={`px-4 py-1.5 text-xs font-semibold rounded-full transition-all cursor-pointer ${
-                activeMiddleTab === 'ai'
-                  ? 'bg-dark-800 text-foreground shadow-sm border border-dark-700/60'
-                  : 'text-dark-400 hover:text-foreground border border-transparent'
-              }`}
-            >
-              <span>AI</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveMiddleTab('manual')}
-              className={`px-4 py-1.5 text-xs font-semibold rounded-full transition-all cursor-pointer ${
-                activeMiddleTab === 'manual'
-                  ? 'bg-dark-800 text-foreground shadow-sm border border-dark-700/60'
-                  : 'text-dark-400 hover:text-foreground border border-transparent'
-              }`}
-            >
-              <span>Manual</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveMiddleTab('presets')}
-              className={`px-4 py-1.5 text-xs font-semibold rounded-full transition-all cursor-pointer ${
-                activeMiddleTab === 'presets'
-                  ? 'bg-dark-800 text-foreground shadow-sm border border-dark-700/60'
-                  : 'text-dark-400 hover:text-foreground border border-transparent'
-              }`}
-            >
-              <span>Presets</span>
-            </button>
+          <div role="tablist" aria-label="How to create the KPI" className="flex items-center p-1 bg-dark-850 dark:bg-dark-900 border border-dark-700 rounded-full">
+            {TABS.map((tab) => (
+              <button
+                key={tab.value}
+                type="button"
+                role="tab"
+                aria-selected={activeMiddleTab === tab.value}
+                title={tab.title}
+                onClick={() => setActiveMiddleTab(tab.value)}
+                className={`px-4 py-1.5 text-xs font-semibold rounded-full transition-all cursor-pointer ${
+                  activeMiddleTab === tab.value
+                    ? 'bg-dark-800 text-foreground shadow-sm border border-dark-700/60'
+                    : 'text-dark-400 hover:text-foreground border border-transparent'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
         </div>
+        <p className="text-center text-[11px] text-dark-400 -mt-1 mb-2 flex-shrink-0">
+          {TABS.find((t) => t.value === activeMiddleTab)?.title}
+        </p>
 
-        {/* Rate limit warning if applicable */}
-        {rateLimitError && (
+        {/* Rate limit warning (AI only) */}
+        {rateLimitError && activeMiddleTab === 'ai' && (
           <div className="mx-auto max-w-xl mb-2 px-4 py-2 bg-warning-500/10 border border-warning-500/20 rounded-xl flex items-center gap-2.5 text-xs text-warning-400 flex-shrink-0">
             <ExclamationTriangleIcon className="w-4 h-4 flex-shrink-0" />
             <span>{rateLimitError}</span>
@@ -743,23 +773,33 @@ export function KPICreationStudio({
 
         {/* Success Banner if KPI created */}
         {lastCreatedKpi && (
-          <div className="mx-auto max-w-xl mb-2 px-4 py-2 bg-success-500/10 border border-success-500/20 rounded-xl flex items-center justify-between text-xs text-success-400 flex-shrink-0 animate-in fade-in duration-150">
-            <div className="flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-success-400 animate-pulse" />
-              <span>
-                <strong>"{lastCreatedKpi}"</strong> created successfully!
+          <div className="mx-auto w-full max-w-2xl mb-2 px-4 py-2 bg-success-500/10 border border-success-500/20 rounded-xl flex items-center justify-between gap-3 text-xs text-success-400 flex-shrink-0 animate-in fade-in duration-150">
+            <div className="flex items-center gap-2 min-w-0">
+              <CheckIcon className="w-4 h-4 flex-shrink-0 stroke-[2.5]" />
+              <span className="truncate">
+                <strong>"{lastCreatedKpi}"</strong> is ready — enter its data on the Entries page.
               </span>
             </div>
-            {onViewAllKpis && (
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {onViewAllKpis && (
+                <button
+                  type="button"
+                  onClick={onViewAllKpis}
+                  className="flex items-center gap-1 font-semibold text-brand transition-colors cursor-pointer"
+                >
+                  <span>View in All KPIs</span>
+                  <ArrowRightIcon className="w-3.5 h-3.5" />
+                </button>
+              )}
               <button
                 type="button"
-                onClick={onViewAllKpis}
-                className="flex items-center gap-1 font-semibold text-brand hover:text-brand transition-colors cursor-pointer"
+                onClick={() => setLastCreatedKpi(null)}
+                aria-label="Dismiss"
+                className="p-0.5 text-success-400/70 hover:text-success-400 cursor-pointer"
               >
-                <span>View in All KPIs</span>
-                <ArrowRightIcon className="w-3.5 h-3.5" />
+                <XMarkIcon className="w-3.5 h-3.5" />
               </button>
-            )}
+            </div>
           </div>
         )}
 
@@ -775,275 +815,56 @@ export function KPICreationStudio({
               selectedRoomId={selectedRoomId}
               onSelectRoomId={setSelectedRoomId}
               rooms={rooms}
+              isSuggestionAdded={(s) => existingNames.has(normalizeName(s.name))}
+              onCustomizeSuggestion={openInManual}
             />
           </div>
         )}
 
         {/* Tab 2: Manual Definition Form */}
         {activeMiddleTab === 'manual' && (
-          <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar flex flex-col items-center p-2 sm:p-4">
-            <div className="w-full max-w-2xl bg-dark-900 border border-dark-700 rounded-2xl p-6 shadow-sm space-y-6">
-              <div>
-                <h2 className="text-base font-bold text-foreground">Manual KPI Definition</h2>
-                <p className="text-xs text-dark-300 mt-0.5">
-                  Define exact mathematical formulas, aggregation intervals, and measurement units.
-                </p>
-              </div>
-
-              <form onSubmit={handleManualSubmit} className="space-y-4">
-                {/* Name */}
-                <div>
-                  <label className="block text-xs font-semibold text-dark-300 mb-1.5">
-                    KPI Name <span className="text-brand">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={manualName}
-                    onChange={(e) => setManualName(e.target.value)}
-                    placeholder="e.g. Net Profit Margin"
-                    className="w-full px-3.5 py-2.5 bg-dark-950 border border-dark-700 rounded-xl text-sm text-foreground placeholder-dark-400 focus:outline-none focus:border-dark-500 transition-colors"
-                  />
-                </div>
-
-                {/* Category & Period */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-dark-300 mb-1.5">
-                      Category
-                    </label>
-                    <select
-                      value={manualCategory}
-                      onChange={(e) => setManualCategory(e.target.value)}
-                      className="w-full px-3.5 py-2.5 bg-dark-950 border border-dark-700 rounded-xl text-sm text-foreground focus:outline-none focus:border-dark-500 transition-colors cursor-pointer"
-                    >
-                      <option value="Sales">Sales</option>
-                      <option value="Marketing">Marketing</option>
-                      <option value="Operations">Operations</option>
-                      <option value="Finance">Finance</option>
-                      <option value="Custom">Custom</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-dark-300 mb-1.5">
-                      Aggregation Period
-                    </label>
-                    <select
-                      value={manualPeriod}
-                      onChange={(e) => setManualPeriod(e.target.value as TimePeriod)}
-                      className="w-full px-3.5 py-2.5 bg-dark-950 border border-dark-700 rounded-xl text-sm text-foreground focus:outline-none focus:border-dark-500 transition-colors cursor-pointer"
-                    >
-                      <option value="daily">Daily</option>
-                      <option value="weekly">Weekly</option>
-                      <option value="monthly">Monthly</option>
-                      <option value="quarterly">Quarterly</option>
-                      <option value="other">Other</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* Formula */}
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label className="block text-xs font-semibold text-dark-300">
-                      Formula Expression <span className="text-brand">*</span>
-                    </label>
-                    <span className="text-[11px] text-dark-400">
-                      e.g. (revenue - expenses) / revenue * 100
-                    </span>
-                  </div>
-                  <input
-                    type="text"
-                    required
-                    value={manualFormula}
-                    onChange={(e) => setManualFormula(e.target.value)}
-                    placeholder="(metric_a - metric_b) / metric_a"
-                    className="w-full px-3.5 py-2.5 bg-dark-950 border border-dark-700 rounded-xl text-sm font-mono text-brand placeholder-dark-500 focus:outline-none focus:border-dark-500 transition-colors"
-                  />
-                  <p className="text-[11px] text-dark-400 mt-1">
-                    Use standard operators (+, -, *, /). Variable names will automatically map to your data fields.
-                  </p>
-                </div>
-
-                {/* Unit & Direction */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-dark-300 mb-1.5">
-                      Display Unit
-                    </label>
-                    <input
-                      type="text"
-                      value={manualUnit}
-                      onChange={(e) => setManualUnit(e.target.value)}
-                      placeholder="%, $, pts, hrs"
-                      className="w-full px-3.5 py-2.5 bg-dark-950 border border-dark-700 rounded-xl text-sm text-foreground placeholder-dark-400 focus:outline-none focus:border-dark-500 transition-colors"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-dark-300 mb-1.5">
-                      Target Direction
-                    </label>
-                    <div className="grid grid-cols-2 gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setManualDirection('up')}
-                        className={`py-2 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                          manualDirection === 'up'
-                            ? 'bg-success-500/20 border-success-500/40 text-success-300'
-                            : 'bg-dark-950 border-dark-700 text-dark-400 hover:text-foreground'
-                        }`}
-                      >
-                        <span>Higher (↑)</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setManualDirection('down')}
-                        className={`py-2 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                          manualDirection === 'down'
-                            ? 'bg-warning-500/20 border-warning-500/40 text-warning-300'
-                            : 'bg-dark-950 border-dark-700 text-dark-400 hover:text-foreground'
-                        }`}
-                      >
-                        <span>Lower (↓)</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Description */}
-                <div>
-                  <label className="block text-xs font-semibold text-dark-300 mb-1.5">
-                    Description & Context (Optional)
-                  </label>
-                  <textarea
-                    rows={3}
-                    value={manualDescription}
-                    onChange={(e) => setManualDescription(e.target.value)}
-                    placeholder="Describe how this metric impacts performance..."
-                    className="w-full px-3.5 py-2.5 bg-dark-950 border border-dark-700 rounded-xl text-sm text-foreground placeholder-dark-400 focus:outline-none focus:border-dark-500 transition-colors resize-none"
-                  />
-                </div>
-
-                {/* Submit Action */}
-                <div className="pt-2 flex items-center justify-end gap-3">
-                  <button
-                    type="submit"
-                    disabled={isSubmittingManual || !manualName.trim() || !manualFormula.trim()}
-                    className="px-6 py-2.5 rounded-xl bg-primary-500 text-white font-semibold text-sm hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center gap-2 shadow-sm"
-                  >
-                    {isSubmittingManual && <ArrowPathIcon className="w-4 h-4 animate-spin" />}
-                    <span>Create Metric</span>
-                  </button>
-                </div>
-              </form>
-            </div>
+          <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar flex flex-col items-center px-2 sm:px-4 pb-4">
+            <ManualKPIForm
+              draft={draft}
+              onChange={(patch) => setDraft((prev) => ({ ...prev, ...patch }))}
+              roomId={selectedRoomId}
+              onRoomChange={setSelectedRoomId}
+              dataFields={dataFields}
+              onFieldCreated={(field) =>
+                setDataFields((prev) => [...prev.filter((f) => f.id !== field.id), field])
+              }
+              existingNames={existingNames}
+              formulaValid={formulaCheck.valid}
+              submitAttempted={manualSubmitAttempted}
+              isSubmitting={isSubmittingManual}
+              onSubmit={handleManualSubmit}
+              onReset={() => {
+                setDraft(EMPTY_DRAFT)
+                setManualSubmitAttempted(false)
+              }}
+            />
           </div>
         )}
 
         {/* Tab 3: Presets Explorer */}
         {activeMiddleTab === 'presets' && (
-          <div className="flex-1 overflow-hidden flex flex-col p-4">
-            {/* Presets Toolbar: Search & Category Pills */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 mb-4 flex-shrink-0">
-              <div className="relative flex-1 max-w-sm">
-                <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-dark-400" />
-                <input
-                  type="text"
-                  value={presetSearch}
-                  onChange={(e) => setPresetSearch(e.target.value)}
-                  placeholder="Search 30+ industry presets..."
-                  className="w-full pl-8 pr-3 py-1.5 bg-dark-950 border border-dark-700 rounded-xl text-xs text-foreground placeholder-dark-400 focus:outline-none focus:border-dark-500 transition-colors"
-                />
-              </div>
-
-              <div className="flex items-center gap-1 p-1 bg-dark-850 dark:bg-dark-950 border border-dark-700 rounded-xl overflow-x-auto">
-                {PRESET_CATEGORIES.map((cat) => (
-                  <button
-                    key={cat}
-                    type="button"
-                    onClick={() => setSelectedPresetCategory(cat)}
-                    className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-all whitespace-nowrap cursor-pointer ${
-                      selectedPresetCategory === cat
-                        ? 'bg-dark-800 text-foreground shadow-sm border border-dark-700/60'
-                        : 'text-dark-400 hover:text-foreground border border-transparent'
-                    }`}
-                  >
-                    {cat}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Presets Grid */}
-            <div className="flex-1 overflow-y-auto custom-scrollbar pr-1">
-              {isLoadingPresets ? (
-                <div className="flex flex-col items-center justify-center h-64 text-center">
-                  <ArrowPathIcon className="w-6 h-6 text-dark-400 animate-spin mb-2" />
-                  <p className="text-xs text-dark-300">Loading preset formula library...</p>
-                </div>
-              ) : filteredPresets.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-64 text-center">
-                  <BookmarkSquareIcon className="w-8 h-8 text-dark-500 mb-2 opacity-50 stroke-[1.5]" />
-                  <p className="text-xs font-medium text-dark-300">No matching presets found</p>
-                  <p className="text-[11px] text-dark-400 mt-1">
-                    Try another search keyword or switch categories.
-                  </p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {filteredPresets.map((preset) => {
-                    const isImporting = importingPresetName === preset.name
-                    return (
-                      <div
-                        key={preset.name}
-                        className="p-4 rounded-xl border border-dark-700/80 bg-dark-950/60 hover:bg-dark-800/40 hover:border-dark-600 transition-all flex flex-col justify-between gap-3 group shadow-sm"
-                      >
-                        <div>
-                          <div className="flex items-center justify-between gap-2 mb-1.5">
-                            <h4 className="text-sm font-semibold text-foreground tracking-tight truncate">
-                              {preset.name}
-                            </h4>
-                            <span className="text-[10px] px-2 py-0.5 rounded-full font-medium bg-dark-800 border border-dark-700 text-dark-300 flex-shrink-0">
-                              {preset.category}
-                            </span>
-                          </div>
-                          <p className="text-xs text-dark-300 line-clamp-2 leading-relaxed">
-                            {preset.description}
-                          </p>
-                        </div>
-
-                        <div className="pt-2 border-t border-dark-800/80 flex items-center justify-between gap-2">
-                          <code className="text-[11px] font-mono text-brand/90 bg-dark-900/80 px-2 py-1 rounded border border-dark-800 truncate flex-1">
-                            {preset.formula}
-                          </code>
-                          <button
-                            type="button"
-                            disabled={isImporting}
-                            onClick={() => handleImportSinglePreset(preset)}
-                            className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-primary-500 text-white font-semibold text-xs hover:opacity-90 transition-opacity disabled:opacity-50 cursor-pointer flex-shrink-0 shadow-sm"
-                          >
-                            {isImporting ? (
-                              <ArrowPathIcon className="w-3 h-3 animate-spin" />
-                            ) : (
-                              <PlusIcon className="w-3 h-3 stroke-[2.5]" />
-                            )}
-                            <span>Import</span>
-                          </button>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
+          <PresetLibrary
+            presets={presets}
+            isLoading={isLoadingPresets}
+            loadError={presetsError}
+            onRetry={loadPresets}
+            dataFields={dataFields}
+            roomId={selectedRoomId}
+            onRoomChange={setSelectedRoomId}
+            importingName={importingPresetName}
+            onImport={handleImportSinglePreset}
+            onCustomize={openInManual}
+          />
         )}
       </main>
 
       {/* ========================================================================= */}
-      {/* SECTION 3: STUDIO / ASSIGNED SPACE (Right Column, Collapsible) */}
+      {/* SECTION 3: CONTEXT PANEL (Right Column, Collapsible) */}
       {/* ========================================================================= */}
       {isStudioOpen ? (
         <aside className="w-80 flex-shrink-0 h-full self-stretch flex flex-col rounded-2xl bg-dark-900 border border-dark-700/80 overflow-hidden shadow-sm animate-in fade-in duration-150">
@@ -1052,40 +873,37 @@ export function KPICreationStudio({
             <div className="flex items-center gap-2">
               <Bars3BottomLeftIcon className="w-4 h-4 text-dark-400 stroke-[2]" />
               <span className="text-xs font-bold uppercase tracking-wider text-foreground">
-                Studio
-              </span>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-dark-800 text-dark-300 border border-dark-700 font-medium">
-                Assigned Space
+                {SIDE_PANEL_TITLES[activeMiddleTab]}
               </span>
             </div>
             <button
               type="button"
               onClick={() => setIsStudioOpen(false)}
-              title="Collapse Studio"
+              title="Collapse panel"
               className="p-1 text-dark-400 hover:text-foreground hover:bg-dark-800 rounded-lg transition-colors cursor-pointer"
             >
               <ChevronRightIcon className="w-4 h-4" />
             </button>
           </div>
 
-          {/* Clean Open Assigned Space matching mockup */}
-          <div className="flex-1 flex flex-col items-center justify-center p-6 text-center text-dark-400">
-            <div className="w-12 h-12 rounded-2xl bg-dark-950 border border-dark-800 flex items-center justify-center mb-3">
-              <AdjustmentsHorizontalIcon className="w-6 h-6 text-dark-500 stroke-[1.5]" />
-            </div>
-            <p className="text-xs font-semibold text-dark-300">Studio Space Allocated</p>
-            <p className="text-[11px] text-dark-400 mt-1 max-w-[200px] leading-relaxed">
-              Advanced formula sandbox, alert bands & live data feeds will be built here.
-            </p>
+          <div className="flex-1 overflow-y-auto custom-scrollbar p-4">
+            <StudioSidePanel
+              mode={activeMiddleTab}
+              draft={draft}
+              dataFields={dataFields}
+              roomId={selectedRoomId}
+              existingNames={existingNames}
+              aiRemaining={rateLimitInfo}
+            />
           </div>
         </aside>
       ) : (
-        /* Collapsed Studio Rail */
+        /* Collapsed Panel Rail */
         <aside className="w-12 flex-shrink-0 h-full self-stretch flex flex-col items-center py-3.5 rounded-2xl bg-dark-900 border border-dark-700/80 shadow-sm animate-in fade-in duration-150">
           <button
             type="button"
             onClick={() => setIsStudioOpen(true)}
-            title="Expand Studio"
+            title="Expand panel"
             className="p-2 text-dark-400 hover:text-foreground hover:bg-dark-800 rounded-xl transition-colors cursor-pointer"
           >
             <ChevronLeftIcon className="w-4 h-4" />
@@ -1096,7 +914,7 @@ export function KPICreationStudio({
               style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}
               className="text-[10px] font-bold uppercase tracking-widest text-dark-400 py-1"
             >
-              Studio
+              {SIDE_PANEL_TITLES[activeMiddleTab]}
             </span>
           </div>
         </aside>
