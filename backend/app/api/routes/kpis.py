@@ -22,6 +22,7 @@ from app.schemas.kpi import (
 from app.schemas.entries import DataEntryResponse
 from app.services.kpi_service import KPIService
 from app.services.room_service import RoomService
+from app.services.entry_service import EntryService
 
 
 router = APIRouter(prefix="/kpis", tags=["KPIs"])
@@ -201,6 +202,11 @@ def create_kpi(
             if room:
                 RoomService.assign_kpis_to_room(db, room, [kpi.id], user.id, org.id)
 
+        # Calculate the new KPI for data that was entered before it existed
+        EntryService.backfill_kpi(db, org.id, user.id, kpi)
+        db.commit()
+        db.refresh(kpi)
+
         return KPIResponse.model_validate(kpi)
     except Exception as e:
         logger.error(f"Failed to create KPI: {e}", exc_info=True)
@@ -253,6 +259,13 @@ def seed_presets(
     if room and created_presets:
         RoomService.assign_kpis_to_room(db, room, [p.id for p in created_presets], user.id, org.id)
 
+    for preset in created_presets:
+        EntryService.backfill_kpi(db, org.id, user.id, preset)
+    if created_presets:
+        db.commit()
+        for preset in created_presets:
+            db.refresh(preset)
+
     return SeedPresetsResponse(
         message=f"Successfully seeded {len(created_presets)} preset KPIs",
         presets_created=len(created_presets),
@@ -297,7 +310,7 @@ def update_kpi(
     Update an existing KPI.
     Only custom KPIs can be modified (not presets).
     """
-    _, org = user_org
+    user, org = user_org
 
     kpi = KPIService.get_kpi_by_id(db, kpi_id, org.id)
     if not kpi:
@@ -314,12 +327,19 @@ def update_kpi(
         )
 
     try:
+        previous_formula = kpi.formula
         updated_kpi = KPIService.update_kpi(db, kpi, data)
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e),
         )
+
+    # Stored values were computed with the old formula
+    if updated_kpi.formula != previous_formula:
+        EntryService.backfill_kpi(db, org.id, user.id, updated_kpi)
+        db.commit()
+        db.refresh(updated_kpi)
 
     return KPIResponse.model_validate(updated_kpi)
 

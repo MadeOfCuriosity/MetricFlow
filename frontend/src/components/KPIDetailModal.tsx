@@ -17,7 +17,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts'
-import { format, parseISO } from 'date-fns'
+import { format, parseISO, subDays, subMonths } from 'date-fns'
 import api from '../services/api'
 import { Skeleton } from './Skeleton'
 import type { TimePeriod, KPI } from '../types/kpi'
@@ -36,6 +36,15 @@ const getTimePeriodLabel = (period: TimePeriod | undefined): string => {
     other: 'Custom',
   }
   return labels[period] || 'Daily'
+}
+
+// How far back the modal looks, sized so each period type shows a useful trend.
+const HISTORY_WINDOWS: Record<TimePeriod, { label: string; start: () => Date; tick: string }> = {
+  daily: { label: 'Last 30 Days', start: () => subDays(new Date(), 30), tick: 'M/d' },
+  weekly: { label: 'Last 12 Weeks', start: () => subDays(new Date(), 84), tick: 'M/d' },
+  monthly: { label: 'Last 12 Months', start: () => subMonths(new Date(), 12), tick: 'MMM yy' },
+  quarterly: { label: 'Last 8 Quarters', start: () => subMonths(new Date(), 24), tick: 'MMM yy' },
+  other: { label: 'Last 12 Months', start: () => subMonths(new Date(), 12), tick: 'MMM yy' },
 }
 
 interface HistoryEntry {
@@ -70,6 +79,8 @@ export function KPIDetailModal({ kpi, isOpen, onClose }: KPIDetailModalProps) {
     entries: number
   }>({ current: null, change: null, average: null, entries: 0 })
 
+  const historyWindow = HISTORY_WINDOWS[kpi?.time_period ?? 'daily'] ?? HISTORY_WINDOWS.daily
+
   useEffect(() => {
     if (kpi && isOpen) {
       fetchHistory()
@@ -81,17 +92,23 @@ export function KPIDetailModal({ kpi, isOpen, onClose }: KPIDetailModalProps) {
 
     setIsLoading(true)
     try {
-      const response = await api.get(`/api/entries/query`, {
+      const response = await api.get('/api/entries', {
         params: {
           kpi_id: kpi.id,
-          days: 30,
+          start_date: format(historyWindow.start(), 'yyyy-MM-dd'),
+          limit: 1000,
         },
       })
 
-      const entries = response.data.map((entry: any) => ({
-        date: entry.date,
-        value: entry.calculated_value,
-      }))
+      // A KPI assigned to several rooms has one row per room per date; the value
+      // is the same, so keep one point per date. API returns newest first.
+      const byDate = new Map<string, HistoryEntry>()
+      for (const entry of response.data.entries) {
+        if (!byDate.has(entry.date)) {
+          byDate.set(entry.date, { date: entry.date, value: entry.calculated_value })
+        }
+      }
+      const entries = [...byDate.values()].reverse()
 
       setHistory(entries)
 
@@ -278,7 +295,7 @@ export function KPIDetailModal({ kpi, isOpen, onClose }: KPIDetailModalProps) {
         {/* Chart */}
         <div>
           <h3 className="text-sm font-medium text-dark-300 mb-4">
-            Last 30 Days
+            {historyWindow.label}
           </h3>
           {isLoading ? (
             <div className="h-48 bg-dark-700/50 rounded-xl animate-pulse" />
@@ -294,7 +311,7 @@ export function KPIDetailModal({ kpi, isOpen, onClose }: KPIDetailModalProps) {
                   <XAxis
                     dataKey="date"
                     tick={{ fill: CHART_COLORS.axis, fontSize: 10 }}
-                    tickFormatter={(value) => format(parseISO(value), 'M/d')}
+                    tickFormatter={(value) => format(parseISO(value), historyWindow.tick)}
                     axisLine={{ stroke: CHART_COLORS.grid }}
                     tickLine={false}
                   />

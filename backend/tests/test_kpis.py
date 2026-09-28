@@ -201,3 +201,43 @@ class TestKPIEndpoints:
         preset = response.json()["presets"][0]
         assert preset["unit"] == "hrs"
         assert preset["direction"] == "down"
+
+
+def test_kpi_created_after_data_is_backfilled(client, test_org_data):
+    """A KPI added after its inputs were entered gets values for those past dates."""
+    from datetime import date, timedelta
+
+    token = client.post("/api/auth/register-org", json=test_org_data).json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    profit = client.post("/api/data-fields", json={"name": "Profit"}, headers=headers).json()
+    sales = client.post("/api/data-fields", json={"name": "Sales"}, headers=headers).json()
+    days = [date.today() - timedelta(days=n) for n in (3, 2, 1)]
+    for day, p, s in zip(days, [50, 10, 30], [200, 0, 100]):
+        resp = client.post(
+            "/api/entries/fields",
+            json={"date": day.isoformat(), "entries": [
+                {"data_field_id": profit["id"], "value": p},
+                {"data_field_id": sales["id"], "value": s},
+            ]},
+            headers=headers,
+        )
+        assert resp.status_code == status.HTTP_201_CREATED, resp.text
+
+    kpi = client.post(
+        "/api/kpis",
+        json={"name": "Margin", "category": "Sales", "formula": "(profit / sales) * 100"},
+        headers=headers,
+    ).json()
+
+    def values():
+        resp = client.get(f"/api/entries?kpi_id={kpi['id']}", headers=headers)
+        return {e["date"]: e["calculated_value"] for e in resp.json()["entries"]}
+
+    # Zero-sales day can't be calculated and is skipped
+    assert values() == {days[0].isoformat(): 25.0, days[2].isoformat(): 30.0}
+
+    # Changing the formula recomputes the stored values
+    resp = client.put(f"/api/kpis/{kpi['id']}", json={"formula": "profit / sales"}, headers=headers)
+    assert resp.status_code == status.HTTP_200_OK, resp.text
+    assert values() == {days[0].isoformat(): 0.25, days[2].isoformat(): 0.3}

@@ -434,99 +434,136 @@ class EntryService:
     ) -> int:
         """
         Recalculate all KPIs that depend on the given data fields for the given date.
-        Field values are shared (not room-scoped). Target rooms come from room_kpi_assignments.
         Returns the number of KPIs recalculated.
         """
-        # Find all KPIs that reference any of the affected data fields
-        kpi_links = db.query(KPIDataField).filter(
-            KPIDataField.data_field_id.in_(affected_field_ids)
-        ).all()
-
-        # Group by KPI ID
-        kpi_ids = set(link.kpi_id for link in kpi_links)
-        recalculated = 0
-
-        for kpi_id in kpi_ids:
-            kpi = db.query(KPIDefinition).filter(
-                KPIDefinition.id == kpi_id,
-                KPIDefinition.org_id == org_id,
-            ).first()
-
-            if not kpi:
-                continue
-
-            # Get all data field links for this KPI
-            kpi_field_links = db.query(KPIDataField).filter(
-                KPIDataField.kpi_id == kpi_id
+        kpi_ids = {
+            link.kpi_id
+            for link in db.query(KPIDataField).filter(
+                KPIDataField.data_field_id.in_(affected_field_ids)
             ).all()
+        }
+        kpis = db.query(KPIDefinition).filter(
+            KPIDefinition.id.in_(kpi_ids),
+            KPIDefinition.org_id == org_id,
+        ).all() if kpi_ids else []
 
-            # Gather all field values (shared, not room-scoped)
+        recalculated = 0
+        for kpi in kpis:
+            links = db.query(KPIDataField).filter(KPIDataField.kpi_id == kpi.id).all()
             values = {}
-            all_present = True
-            for link in kpi_field_links:
+            for link in links:
                 field_entry = db.query(DataFieldEntry).filter(
                     DataFieldEntry.org_id == org_id,
                     DataFieldEntry.data_field_id == link.data_field_id,
                     DataFieldEntry.date == entry_date,
                 ).first()
-
-                if field_entry:
-                    values[link.variable_name] = field_entry.value
-                else:
-                    all_present = False
+                if not field_entry:
                     break
-
-            if not all_present:
-                continue
-
-            # Calculate KPI value
-            calc_result = CalculationService.calculate(kpi.formula, values)
-            if not calc_result.success:
-                continue
-
-            # Determine target rooms from room_kpi_assignments
-            room_assignments = db.query(RoomKPIAssignment.room_id).filter(
-                RoomKPIAssignment.kpi_id == kpi_id
-            ).all()
-            target_room_ids: list[Optional[UUID]] = [ra.room_id for ra in room_assignments]
-
-            # If KPI has no room assignments, create one org-level entry (room_id=None)
-            if not target_room_ids:
-                target_room_ids = [None]
-
-            # Upsert one DataEntry per target room
-            for room_id in target_room_ids:
-                existing_query = db.query(DataEntry).filter(
-                    DataEntry.org_id == org_id,
-                    DataEntry.kpi_id == kpi_id,
-                    DataEntry.date == entry_date,
-                )
-                if room_id is not None:
-                    existing_query = existing_query.filter(DataEntry.room_id == room_id)
-                else:
-                    existing_query = existing_query.filter(DataEntry.room_id.is_(None))
-                existing_kpi_entry = existing_query.first()
-
-                if existing_kpi_entry:
-                    existing_kpi_entry.values = values
-                    existing_kpi_entry.calculated_value = calc_result.value
-                    existing_kpi_entry.entered_by = user_id
-                else:
-                    kpi_entry = DataEntry(
-                        org_id=org_id,
-                        kpi_id=kpi_id,
-                        room_id=room_id,
-                        date=entry_date,
-                        values=values,
-                        calculated_value=calc_result.value,
-                        entered_by=user_id,
-                    )
-                    db.add(kpi_entry)
-
-                db.flush()
-                recalculated += 1
+                values[link.variable_name] = field_entry.value
+            else:
+                if EntryService._upsert_kpi_value(db, org_id, user_id, kpi, entry_date, values):
+                    recalculated += 1
 
         return recalculated
+
+    @staticmethod
+    def backfill_kpi(
+        db: Session,
+        org_id: UUID,
+        user_id: Optional[UUID],
+        kpi: KPIDefinition,
+    ) -> int:
+        """
+        Recompute a KPI for every date that already has values for all of its inputs.
+        Stored values are first re-evaluated with the current formula from their own
+        inputs (dropped if that no longer works), so this is safe after a formula change.
+        Caller commits. Returns the number of dates calculated from field data.
+        """
+        for existing in db.query(DataEntry).filter(
+            DataEntry.org_id == org_id,
+            DataEntry.kpi_id == kpi.id,
+        ).all():
+            result = CalculationService.calculate(kpi.formula, existing.values or {})
+            if result.success:
+                existing.calculated_value = result.value
+            else:
+                db.delete(existing)
+        db.flush()
+
+        links = db.query(KPIDataField).filter(KPIDataField.kpi_id == kpi.id).all()
+        if not links:
+            return 0
+
+        variable_by_field = {link.data_field_id: link.variable_name for link in links}
+        field_entries = db.query(DataFieldEntry).filter(
+            DataFieldEntry.org_id == org_id,
+            DataFieldEntry.data_field_id.in_(variable_by_field.keys()),
+        ).all()
+
+        values_by_date: dict[date, dict[str, float]] = {}
+        for fe in field_entries:
+            values_by_date.setdefault(fe.date, {})[variable_by_field[fe.data_field_id]] = fe.value
+
+        calculated = 0
+        for entry_date, values in values_by_date.items():
+            if len(values) < len(links):
+                continue
+            if EntryService._upsert_kpi_value(db, org_id, user_id, kpi, entry_date, values):
+                calculated += 1
+        return calculated
+
+    @staticmethod
+    def _upsert_kpi_value(
+        db: Session,
+        org_id: UUID,
+        user_id: Optional[UUID],
+        kpi: KPIDefinition,
+        entry_date: date,
+        values: dict[str, float],
+    ) -> bool:
+        """
+        Calculate one KPI for one date and upsert a DataEntry per assigned room
+        (or one org-level entry when the KPI has no rooms). Returns False if the
+        formula can't be evaluated (e.g. division by zero).
+        """
+        calc_result = CalculationService.calculate(kpi.formula, values)
+        if not calc_result.success:
+            return False
+
+        room_assignments = db.query(RoomKPIAssignment.room_id).filter(
+            RoomKPIAssignment.kpi_id == kpi.id
+        ).all()
+        target_room_ids: list[Optional[UUID]] = [ra.room_id for ra in room_assignments] or [None]
+
+        for room_id in target_room_ids:
+            existing_query = db.query(DataEntry).filter(
+                DataEntry.org_id == org_id,
+                DataEntry.kpi_id == kpi.id,
+                DataEntry.date == entry_date,
+            )
+            if room_id is not None:
+                existing_query = existing_query.filter(DataEntry.room_id == room_id)
+            else:
+                existing_query = existing_query.filter(DataEntry.room_id.is_(None))
+            existing_kpi_entry = existing_query.first()
+
+            if existing_kpi_entry:
+                existing_kpi_entry.values = values
+                existing_kpi_entry.calculated_value = calc_result.value
+                existing_kpi_entry.entered_by = user_id
+            else:
+                db.add(DataEntry(
+                    org_id=org_id,
+                    kpi_id=kpi.id,
+                    room_id=room_id,
+                    date=entry_date,
+                    values=values,
+                    calculated_value=calc_result.value,
+                    entered_by=user_id,
+                ))
+            db.flush()
+
+        return True
 
     @staticmethod
     def get_today_field_form(
