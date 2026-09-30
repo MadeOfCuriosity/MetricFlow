@@ -1,13 +1,15 @@
 """WhatsApp integration: Meta webhook, org settings, and per-user phone linking."""
 import hashlib
+import inspect
 import hmac
 import json
 import logging
 from datetime import datetime
 from typing import Optional
+from uuid import UUID
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request, status
 from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
@@ -15,8 +17,8 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_current_user_org, get_db, require_admin_org
 from app.core.config import settings
 from app.core.rate_limit import limiter, public_limiter
-from app.models import Organization, User
-from app.services.whatsapp import linking
+from app.models import Organization, Room, User
+from app.services.whatsapp import linking, reminders
 from app.services.whatsapp.client import business_display_number
 from app.services.whatsapp.inbound import handle_webhook
 
@@ -51,8 +53,14 @@ def _valid_signature(body: bytes, header: str) -> bool:
 
 @router.post("/webhook", status_code=200)
 @public_limiter.limit("1200/minute")
-async def receive_webhook(request: Request, db: Session = Depends(get_db)):
-    """Inbound messages and delivery statuses. Verified via X-Hub-Signature-256."""
+async def receive_webhook(request: Request, background_tasks: BackgroundTasks):
+    """
+    Inbound messages and delivery statuses. Verified via X-Hub-Signature-256.
+
+    Acknowledged immediately; the work (replies, saving entries, KPI recalculation) runs after
+    the response so Meta never times out and retries. Retries are harmless anyway: messages are
+    de-duplicated by their WhatsApp id.
+    """
     body = await request.body()
     if not _valid_signature(body, request.headers.get("X-Hub-Signature-256", "")):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid signature")
@@ -60,12 +68,24 @@ async def receive_webhook(request: Request, db: Session = Depends(get_db)):
         payload = json.loads(body or b"{}")
     except json.JSONDecodeError:
         raise HTTPException(status_code=400, detail="Invalid JSON")
+    background_tasks.add_task(_process_webhook, request.app, payload)
+    return {"status": "ok"}
+
+
+def _process_webhook(app, payload: dict) -> None:
+    """Runs after the 200 is sent, with its own DB session (the request's is already closed)."""
+    provider = app.dependency_overrides.get(get_db, get_db)  # tests swap in their session
+    resource = provider()
+    gen = resource if inspect.isgenerator(resource) else None
+    db = next(gen) if gen else resource
     try:
         handle_webhook(db, payload)
     except Exception:
-        # Always 200 so Meta doesn't retry forever on a bug; the error is in the logs
+        db.rollback()
         logger.exception("WhatsApp webhook handling failed")
-    return {"status": "ok"}
+    finally:
+        if gen:
+            gen.close()
 
 
 # ---------- Status & org settings ----------
@@ -77,17 +97,26 @@ class PendingLinkOut(BaseModel):
     wa_link: Optional[str] = None
 
 
+class EntryScopeOut(BaseModel):
+    """Admins: rooms they're asked/reminded about. Empty = entry on demand only."""
+    room_ids: list[UUID] = []
+    org_wide: bool = False
+
+
 class MyWhatsAppOut(BaseModel):
     phone_e164: Optional[str] = None
     verified: bool = False
     opted_in: bool = False
     pending: Optional[PendingLinkOut] = None
+    scope: Optional[EntryScopeOut] = None  # admins only
 
 
 class WhatsAppStatusOut(BaseModel):
     configured: bool  # server has Cloud API credentials
     org_enabled: bool
     timezone: Optional[str] = None
+    reminder_time: Optional[str] = None  # "HH:MM" in the org's time zone; None = off
+    nudge_time: Optional[str] = None
     business_number: Optional[str] = None
     me: MyWhatsAppOut
 
@@ -99,6 +128,7 @@ def _me(db: Session, user: User) -> MyWhatsAppOut:
         verified=bool(user.phone_verified_at),
         opted_in=bool(user.whatsapp_opt_in_at),
         pending=PendingLinkOut(phone_e164=pending.phone_e164, expires_at=pending.expires_at) if pending else None,
+        scope=EntryScopeOut(**(user.whatsapp_scope or {})) if user.role == "admin" else None,
     )
 
 
@@ -109,6 +139,8 @@ def get_status(user_org: tuple[User, Organization] = Depends(get_current_user_or
         configured=settings.whatsapp_configured,
         org_enabled=org.whatsapp_enabled,
         timezone=org.timezone,
+        reminder_time=org.whatsapp_reminder_time,
+        nudge_time=org.whatsapp_nudge_time,
         business_number=business_display_number(),
         me=_me(db, user),
     )
@@ -117,6 +149,9 @@ def get_status(user_org: tuple[User, Organization] = Depends(get_current_user_or
 class OrgWhatsAppUpdate(BaseModel):
     enabled: Optional[bool] = None
     timezone: Optional[str] = Field(None, max_length=64)
+    # Send null or "" to turn a reminder off; leave out to keep it
+    reminder_time: Optional[str] = Field(None, max_length=5)
+    nudge_time: Optional[str] = Field(None, max_length=5)
 
 
 @router.put("/org", response_model=WhatsAppStatusOut)
@@ -136,8 +171,37 @@ def update_org_settings(
         if data.enabled and not settings.whatsapp_configured:
             raise HTTPException(status_code=400, detail="WhatsApp isn't configured on this server yet")
         org.whatsapp_enabled = data.enabled
+    for key, column in (("reminder_time", "whatsapp_reminder_time"), ("nudge_time", "whatsapp_nudge_time")):
+        if key in data.model_fields_set:
+            value = getattr(data, key)
+            try:
+                parsed = reminders.parse_time(value)
+            except ValueError as e:
+                raise HTTPException(status_code=400, detail=str(e))
+            setattr(org, column, parsed.strftime("%H:%M") if parsed else None)
     db.commit()
     return get_status((user, org), db)
+
+
+class EntryScopeIn(BaseModel):
+    room_ids: list[UUID] = []
+    org_wide: bool = False
+
+
+@router.put("/me/scope", response_model=MyWhatsAppOut)
+def update_my_scope(
+    data: EntryScopeIn,
+    admin_org: tuple[User, Organization] = Depends(require_admin_org),
+    db: Session = Depends(get_db),
+):
+    """Admins: choose which rooms (and org-wide fields) WhatsApp asks and reminds you about."""
+    user, org = admin_org
+    valid = {rid for (rid,) in db.query(Room.id).filter(Room.org_id == org.id, Room.id.in_(data.room_ids))}
+    if len(valid) != len(set(data.room_ids)):
+        raise HTTPException(status_code=400, detail="Unknown room")
+    user.whatsapp_scope = {"room_ids": [str(r) for r in data.room_ids], "org_wide": data.org_wide}
+    db.commit()
+    return _me(db, user)
 
 
 # ---------- Linking the current user's number ----------

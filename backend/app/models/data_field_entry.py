@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Column, Date, Float, DateTime, ForeignKey, UniqueConstraint, Index
+from sqlalchemy import Column, Date, Float, DateTime, ForeignKey, String, UniqueConstraint, Index
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
@@ -18,6 +18,7 @@ class DataFieldEntry(Base):
     date = Column(Date, nullable=False)
     value = Column(Float, nullable=False)
     entered_by = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    source = Column(String(20), nullable=True)  # web | whatsapp | import | integration (NULL = web)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     # Relationships

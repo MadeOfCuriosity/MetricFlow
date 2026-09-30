@@ -95,7 +95,9 @@ def test_link_phone_via_inbound_verify(client, db_session, test_org_data, wa):
     # Right code from the right number links, opts in, and replies
     _post_webhook(client, _inbound("918848827741", f"verify {body['code']}", "wamid.c"))
     status = client.get("/api/whatsapp/status", headers=headers).json()
-    assert status["me"] == {"phone_e164": "+918848827741", "verified": True, "opted_in": True, "pending": None}
+    assert {k: status["me"][k] for k in ("phone_e164", "verified", "opted_in", "pending")} == {
+        "phone_e164": "+918848827741", "verified": True, "opted_in": True, "pending": None
+    }
     assert status["timezone"] == "Asia/Kolkata"
     assert "Connected" in _texts(wa)[-1]
 
@@ -123,7 +125,7 @@ def test_stop_and_start(client, db_session, test_org_data, wa):
 
     # Unlink clears everything
     me = client.delete("/api/whatsapp/link", headers=headers).json()
-    assert me == {"phone_e164": None, "verified": False, "opted_in": False, "pending": None}
+    assert {k: me[k] for k in ("phone_e164", "verified", "opted_in", "pending")} == {"phone_e164": None, "verified": False, "opted_in": False, "pending": None}
 
 
 def test_number_cannot_be_linked_to_two_users(client, db_session, test_org_data, wa):

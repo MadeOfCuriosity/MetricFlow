@@ -9,6 +9,7 @@ class RoomBasicResponse(BaseModel):
     """Basic room info for user assignments."""
     id: UUID
     name: str
+    whatsapp_entry: bool = False  # this user fills in the room's data over WhatsApp
 
     model_config = {"from_attributes": True}
 
@@ -22,6 +23,7 @@ class UserWithRoomsResponse(BaseModel):
     role_label: str
     created_at: datetime
     assigned_rooms: List[RoomBasicResponse] = []
+    whatsapp_linked: bool = False  # has a verified WhatsApp number
 
     model_config = {"from_attributes": True}
 
@@ -35,6 +37,9 @@ class UserListResponse(BaseModel):
 class UpdateUserRoomsRequest(BaseModel):
     """Request to update a user's room assignments."""
     room_ids: List[UUID] = Field(..., description="List of room IDs to assign to the user")
+    whatsapp_room_ids: Optional[List[UUID]] = Field(
+        default=None, description="Rooms this user fills in over WhatsApp (omit to keep current settings)"
+    )
 
 
 class UpdateUserRoleRequest(BaseModel):

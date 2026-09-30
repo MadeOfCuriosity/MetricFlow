@@ -98,6 +98,8 @@ export interface FieldFormItem {
   period_end?: string | null
   /** Who saved the current value */
   entered_by_name?: string | null
+  /** How the saved value was entered: web | whatsapp | import | integration */
+  entered_via?: string | null
 }
 
 export interface RoomAssignee {

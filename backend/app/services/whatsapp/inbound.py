@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.models.organization import Organization
 from app.models.whatsapp import WhatsAppMessage
-from app.services.whatsapp import linking
+from app.services.whatsapp import entry_bot, linking
 from app.services.whatsapp.client import WhatsAppClient, WhatsAppError, normalize_phone
 
 logger = logging.getLogger(__name__)
@@ -54,7 +54,8 @@ def _message_text(message: dict) -> str:
     if kind == "interactive":
         inter = message.get("interactive", {})
         reply = inter.get("button_reply") or inter.get("list_reply") or {}
-        return reply.get("title", "")
+        # Our buttons/rows carry the command in their id (titles are for display and may be truncated)
+        return reply.get("id") or reply.get("title", "")
     return ""
 
 
@@ -90,13 +91,19 @@ def _handle_message(db: Session, message: dict) -> None:
     reply = _reply_for(db, phone, text, user)
     if reply:
         linked = linking.linked_user(db, phone)
+        ctx = {"org_id": linked.org_id if linked else None, "user_id": linked.id if linked else None}
         try:
-            client.send_text(phone, reply, org_id=linked.org_id if linked else None, user_id=linked.id if linked else None)
+            if isinstance(reply, entry_bot.BotReply) and reply.list_rows:
+                client.send_list(phone, reply.text, reply.list_button, reply.list_rows, **ctx)
+            elif isinstance(reply, entry_bot.BotReply) and reply.buttons:
+                client.send_buttons(phone, reply.text, reply.buttons, **ctx)
+            else:
+                client.send_text(phone, reply.text if isinstance(reply, entry_bot.BotReply) else reply, **ctx)
         except WhatsAppError:
             pass  # already logged as failed
 
 
-def _reply_for(db: Session, phone: str, text: str, user) -> Optional[str]:
+def _reply_for(db: Session, phone: str, text: str, user) -> Optional["str | entry_bot.BotReply"]:
     verify = VERIFY_RE.match(text)
     if verify:
         linked = linking.confirm_from_whatsapp(db, phone, verify.group(1))
@@ -109,22 +116,21 @@ def _reply_for(db: Session, phone: str, text: str, user) -> Optional[str]:
             "Reply STOP anytime to pause WhatsApp messages."
         )
 
-    word = text.strip().lower()
+    word = entry_bot.normalize_command(text)
     if user and word in STOP_WORDS:
         user.whatsapp_opt_in_at = None
         db.commit()
         return "You won't receive WhatsApp messages from Visualize anymore. Reply START to turn them back on."
-    if user and word in START_WORDS:
+    if user and word in START_WORDS and not user.whatsapp_opt_in_at:
         user.whatsapp_opt_in_at = datetime.utcnow()
         db.commit()
-        return "WhatsApp messages from Visualize are back on. ✅"
+        return "WhatsApp messages from Visualize are back on. ✅ Reply *start* to fill in today's entries."
 
     if not user:
         return (
             "This number isn't linked to a Visualize account yet. "
             "Open Visualize → Settings → Account → WhatsApp to connect it."
         )
-    return (
-        f"Hi {user.name.split(' ')[0]}! You're connected to Visualize. "
-        "Data entry and insights over WhatsApp are coming soon.\n\nReply STOP to pause messages."
-    )
+    if not user.whatsapp_opt_in_at:
+        return "WhatsApp messages from Visualize are paused. Reply START to turn them back on."
+    return entry_bot.handle(db, user, text)

@@ -2,6 +2,7 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import Column, String, Text, DateTime, Integer, ForeignKey, Index
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID
 
 from app.core.database import Base
@@ -42,3 +43,16 @@ class PhoneVerification(Base):
     attempts = Column(Integer, nullable=False, default=0)
     expires_at = Column(DateTime, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class WhatsAppSession(Base):
+    """One in-progress chat flow per user (e.g. entering today's values), kept between messages."""
+    __tablename__ = "whatsapp_sessions"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, unique=True)
+    org_id = Column(UUID(as_uuid=True), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
+    mode = Column(String(20), nullable=False)  # "entry"
+    state = Column(JSONB, nullable=False)
+    expires_at = Column(DateTime, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)

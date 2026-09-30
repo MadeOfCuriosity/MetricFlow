@@ -19,6 +19,9 @@ class Organization(Base):
     # IANA zone (e.g. "Asia/Kolkata"); decides what "today" means for entries and WhatsApp
     timezone = Column(String(64), nullable=True)
     whatsapp_enabled = Column(Boolean, nullable=False, default=False, server_default="false")
+    # Daily WhatsApp reminders in the org's time zone, "HH:MM" (NULL = off)
+    whatsapp_reminder_time = Column(String(5), nullable=True)  # "N entries due today"
+    whatsapp_nudge_time = Column(String(5), nullable=True)  # "still N missing"
 
     # Active plan — mirrored from the latest active Subscription so entitlements
     # can be checked without a join on every request.

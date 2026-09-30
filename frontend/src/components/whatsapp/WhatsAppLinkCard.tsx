@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { CheckCircleIcon, ArrowTopRightOnSquareIcon, ClipboardDocumentIcon } from '@heroicons/react/24/outline'
-import { whatsappApi, formatPhone, type WhatsAppStatus, type PendingLink } from '../../services/whatsapp'
+import { whatsappApi, formatPhone, type WhatsAppStatus, type PendingLink, type EntryScope } from '../../services/whatsapp'
+import { useRoom } from '../../context/RoomContext'
+import { GlobeAltIcon } from '@heroicons/react/24/outline'
+import { TagFolderIcon } from '../ui/Tag'
 import { useToast } from '../../context/ToastContext'
 import { getApiError } from '../../lib/apiError'
 import { Spinner } from '../ui/Spinner'
@@ -84,7 +87,7 @@ export function WhatsAppLinkCard() {
         <div>
           <h2 className="text-base font-bold text-foreground tracking-tight">WhatsApp</h2>
           <p className="text-xs text-dark-300 mt-0.5">
-            Connect your number to get insights and, soon, enter your room&apos;s data by chat. Optional.
+            Connect your number to enter data by chat and, soon, get insights. Optional.
           </p>
         </div>
       </div>
@@ -112,6 +115,19 @@ export function WhatsAppLinkCard() {
           >
             Disconnect
           </button>
+          {me.scope && (
+            <AskMeAbout
+              scope={me.scope}
+              onChange={async (scope) => {
+                try {
+                  const updated = await whatsappApi.updateScope(scope)
+                  setStatus((s) => (s ? { ...s, me: updated } : s))
+                } catch (err) {
+                  showError('Could not save', getApiError(err, 'Please try again'))
+                }
+              }}
+            />
+          )}
         </div>
       ) : pending?.code ? (
         <div className="p-4 bg-dark-950/40 border border-dark-800 rounded-xl space-y-3">
@@ -173,6 +189,60 @@ export function WhatsAppLinkCard() {
           </button>
         </form>
       )}
+    </div>
+  )
+}
+
+/** Admins: which rooms WhatsApp asks (and will remind) you about. Nothing selected = on demand only. */
+function AskMeAbout({ scope, onChange }: { scope: EntryScope; onChange: (scope: EntryScope) => void }) {
+  const { roomTree } = useRoom()
+  const toggleRoom = (id: string) =>
+    onChange({
+      ...scope,
+      room_ids: scope.room_ids.includes(id) ? scope.room_ids.filter((r) => r !== id) : [...scope.room_ids, id],
+    })
+  const chip = (active: boolean) =>
+    `inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-medium transition-colors cursor-pointer ${
+      active
+        ? 'bg-success-500/10 border-success-500/30 text-success-400'
+        : 'border-dark-700 text-dark-300 hover:text-foreground hover:border-dark-600'
+    }`
+  const nothing = scope.room_ids.length === 0 && !scope.org_wide
+
+  return (
+    <div className="w-full pt-3 mt-1 border-t border-dark-800">
+      <p className="text-xs font-semibold text-foreground">Ask me about</p>
+      <p className="text-[11px] text-dark-400 mt-0.5 mb-2.5">
+        Rooms you enter data for (sub-rooms included). You&apos;ll be reminded about these.
+      </p>
+      <div className="flex flex-wrap gap-1.5">
+        {roomTree.map((room) => (
+          <button
+            key={room.id}
+            type="button"
+            aria-pressed={scope.room_ids.includes(room.id)}
+            onClick={() => toggleRoom(room.id)}
+            className={chip(scope.room_ids.includes(room.id))}
+          >
+            <TagFolderIcon color={room.color} className="w-3.5 h-3.5" />
+            {room.name}
+          </button>
+        ))}
+        <button
+          type="button"
+          aria-pressed={scope.org_wide}
+          onClick={() => onChange({ ...scope, org_wide: !scope.org_wide })}
+          className={chip(scope.org_wide)}
+        >
+          <GlobeAltIcon className="w-3.5 h-3.5" />
+          Organization-wide fields
+        </button>
+      </div>
+      <p className="text-[11px] text-dark-500 mt-2">
+        {nothing
+          ? "Nothing selected: you won't be reminded, but you can still reply start on WhatsApp to fill in everything."
+          : 'No-schedule fields are never asked — log them anytime with log or e.g. employee count 42.'}
+      </p>
     </div>
   )
 }

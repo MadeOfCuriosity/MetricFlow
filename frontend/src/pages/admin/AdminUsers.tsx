@@ -16,6 +16,8 @@ import { useAuth } from '../../context/AuthContext'
 import { useRoom } from '../../context/RoomContext'
 import { useToast } from '../../context/ToastContext'
 import { usersService, UserWithRooms, InviteUserData } from '../../services/users'
+import { whatsappApi } from '../../services/whatsapp'
+import { WhatsAppIcon } from '../../components/whatsapp/WhatsAppIcon'
 import { UserRole } from '../../services/auth'
 import { getApiError } from '../../lib/apiError'
 import { SearchInput } from '../../components/ui/SearchInput'
@@ -40,6 +42,16 @@ export function AdminUsers() {
   const [roleFilter, setRoleFilter] = useState<'all' | 'admin' | 'room_admin'>('all')
 
   // Invite form state
+  // Rooms (in the edit dialog) this user fills in over WhatsApp
+  const [whatsappRoomIds, setWhatsappRoomIds] = useState<string[]>([])
+  const [whatsappEnabled, setWhatsappEnabled] = useState(false)
+  useEffect(() => {
+    whatsappApi
+      .getStatus()
+      .then((s) => setWhatsappEnabled(s.configured && s.org_enabled))
+      .catch(() => setWhatsappEnabled(false))
+  }, [])
+
   const [inviteForm, setInviteForm] = useState<InviteUserData>({
     email: '',
     name: '',
@@ -111,8 +123,10 @@ export function AdminUsers() {
     setFormError(null)
     setIsSubmitting(true)
     try {
+      const roomIds = inviteForm.room_ids || []
       const updated = await usersService.updateUserRooms(selectedUser.id, {
-        room_ids: inviteForm.room_ids || [],
+        room_ids: roomIds,
+        ...(whatsappEnabled ? { whatsapp_room_ids: whatsappRoomIds.filter((id) => roomIds.includes(id)) } : {}),
       })
       setUsers((prev) => prev.map((u) => (u.id === updated.id ? updated : u)))
       success('Rooms updated', `Room assignments for ${updated.name} have been updated`)
@@ -149,6 +163,7 @@ export function AdminUsers() {
       role_label: user.role_label,
       room_ids: user.assigned_rooms.map((r) => r.id),
     })
+    setWhatsappRoomIds(user.assigned_rooms.filter((r) => r.whatsapp_entry).map((r) => r.id))
     setFormError(null)
     setIsEditModalOpen(true)
   }
@@ -614,10 +629,36 @@ export function AdminUsers() {
                       className="w-4 h-4 rounded border-dark-700 text-brand focus:ring-brand bg-dark-900"
                     />
                     <FolderIcon className="w-3.5 h-3.5 text-dark-400" />
-                    <span className="text-foreground text-xs font-medium">{room.name}</span>
+                    <span className="text-foreground text-xs font-medium flex-1">{room.name}</span>
+                    {whatsappEnabled && selectedUser?.role === 'room_admin' && inviteForm.room_ids?.includes(room.id) && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault()
+                          setWhatsappRoomIds((prev) =>
+                            prev.includes(room.id) ? prev.filter((id) => id !== room.id) : [...prev, room.id]
+                          )
+                        }}
+                        aria-pressed={whatsappRoomIds.includes(room.id)}
+                        title="Enters this room's data over WhatsApp"
+                        className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-medium border transition-colors cursor-pointer ${
+                          whatsappRoomIds.includes(room.id)
+                            ? 'bg-success-500/10 border-success-500/30 text-success-400'
+                            : 'border-dark-700 text-dark-400 hover:text-foreground'
+                        }`}
+                      >
+                        <WhatsAppIcon className="w-3 h-3" />
+                        {whatsappRoomIds.includes(room.id) ? 'Data entry on' : 'Data entry'}
+                      </button>
+                    )}
                   </label>
                 ))}
               </div>
+              {whatsappEnabled && selectedUser?.role === 'room_admin' && whatsappRoomIds.length > 0 && !selectedUser.whatsapp_linked && (
+                <p className="mt-2 text-[11px] text-dark-400">
+                  {selectedUser.name.split(' ')[0]} hasn't linked WhatsApp yet — they can connect it in Settings → Account → WhatsApp.
+                </p>
+              )}
             </div>
             <div className="flex justify-end gap-2.5 pt-4 border-t border-dark-800">
               <button

@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import Column, String, DateTime, ForeignKey, UniqueConstraint, Index
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import relationship
 
 from app.core.database import Base
@@ -24,6 +24,9 @@ class User(Base):
     phone_e164 = Column(String(20), nullable=True, index=True)
     phone_verified_at = Column(DateTime, nullable=True)
     whatsapp_opt_in_at = Column(DateTime, nullable=True)  # cleared when the user replies STOP
+    # Admins only: which rooms they're asked/reminded about on WhatsApp, e.g. {"room_ids": [...], "org_wide": true}.
+    # Empty/None = never reminded (entry on demand only). Room admins use user_room_assignments.whatsapp_entry.
+    whatsapp_scope = Column(JSONB, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     # Relationships

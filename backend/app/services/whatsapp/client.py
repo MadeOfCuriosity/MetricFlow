@@ -114,6 +114,39 @@ class WhatsAppClient:
         return self._send(to, {"type": "template", "template": template},
                           message_type="template", template=name, body=log_body, **ctx)
 
+    def send_buttons(self, to: str, text: str, buttons: list[tuple[str, str]], **ctx) -> WhatsAppMessage:
+        """Text with up to 3 quick-reply buttons [(id, title<=20 chars)]. Session (24h) messages only."""
+        payload = {
+            "type": "interactive",
+            "interactive": {
+                "type": "button",
+                "body": {"text": text[:1024]},
+                "action": {"buttons": [
+                    {"type": "reply", "reply": {"id": bid[:256], "title": title[:20]}} for bid, title in buttons[:3]
+                ]},
+            },
+        }
+        return self._send(to, payload, message_type="interactive", body=text, **ctx)
+
+    def send_list(self, to: str, text: str, button: str, rows: list[tuple[str, str, str]],
+                  section: str = "Options", **ctx) -> WhatsAppMessage:
+        """Tap-to-open list of up to 10 rows [(id, title<=24, description<=72)]. Session messages only."""
+        payload = {
+            "type": "interactive",
+            "interactive": {
+                "type": "list",
+                "body": {"text": text[:1024]},
+                "action": {
+                    "button": button[:20],
+                    "sections": [{"title": section[:24], "rows": [
+                        {"id": rid[:200], "title": title[:24], **({"description": desc[:72]} if desc else {})}
+                        for rid, title, desc in rows[:10]
+                    ]}],
+                },
+            },
+        }
+        return self._send(to, payload, message_type="interactive", body=text, **ctx)
+
     def mark_read(self, wamid: str) -> None:
         try:
             self._post({"status": "read", "message_id": wamid})

@@ -342,6 +342,7 @@ class EntryService:
         user_id: UUID,
         entry_date: date,
         field_entries: list[FieldEntryInput],
+        source: str = "web",
     ) -> tuple[list[DataFieldEntry], int, list[dict]]:
         """
         Create per-field data entries and auto-recalculate affected KPIs.
@@ -388,6 +389,7 @@ class EntryService:
                 if existing:
                     existing.value = entry_input.value
                     existing.entered_by = user_id
+                    existing.source = source
                     db.flush()
                     created_entries.append(existing)
                 else:
@@ -397,6 +399,7 @@ class EntryService:
                         date=field_date,
                         value=entry_input.value,
                         entered_by=user_id,
+                        source=source,
                     )
                     db.add(entry)
                     db.flush()
@@ -657,6 +660,7 @@ class EntryService:
                 "period_start": field_periods[field.id][0],
                 "period_end": field_periods[field.id][1],
                 "entered_by_name": enterer_names.get(entry.entered_by) if entry else None,
+                "entered_via": (entry.source or "web") if entry else None,
             }
 
             rooms_for_field = field_rooms_map.get(field.id, [])

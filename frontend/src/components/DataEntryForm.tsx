@@ -20,6 +20,7 @@ import { getApiError } from '../lib/apiError'
 import { useDismiss } from '../hooks/useDismiss'
 import { useToast } from '../context/ToastContext'
 import { Spinner } from './ui/Spinner'
+import { WhatsAppIcon } from './whatsapp/WhatsAppIcon'
 import { TreeGuides, rowActionsClass } from './ui/Tree'
 
 interface FieldValues {
@@ -205,6 +206,7 @@ export function EntryFieldRow({
   unit,
   error,
   enteredBy,
+  enteredVia,
 }: {
   inputId: string
   name: string
@@ -216,6 +218,7 @@ export function EntryFieldRow({
   unit?: string | null
   error?: string
   enteredBy?: string | null
+  enteredVia?: string | null
 }) {
   return (
     <div>
@@ -241,10 +244,11 @@ export function EntryFieldRow({
         {enteredBy && (
           <span
             className="hidden md:inline-flex items-center gap-1.5 text-[11px] text-dark-500 mr-4 flex-shrink-0"
-            title={`Entered by ${enteredBy}`}
+            title={`Entered by ${enteredBy}${enteredVia === 'whatsapp' ? ' via WhatsApp' : ''}`}
           >
             <Avatar name={enteredBy} size="sm" />
             {enteredBy.split(' ')[0]}
+            {enteredVia === 'whatsapp' && <WhatsAppIcon className="w-3 h-3 text-success-400" />}
           </span>
         )}
 
@@ -536,6 +540,7 @@ export function DataEntryForm({
                       unit={field.unit}
                       error={errors[field.data_field_id]}
                       enteredBy={field.entered_by_name}
+                      enteredVia={field.entered_via}
                     />
                   )
                 })}
@@ -573,6 +578,7 @@ export function DataEntryForm({
                   unit={field.unit}
                   error={errors[field.data_field_id]}
                   enteredBy={field.entered_by_name}
+                  enteredVia={field.entered_via}
                 />
               ))}
           </div>

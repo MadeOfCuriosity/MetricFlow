@@ -38,7 +38,7 @@ class UserService:
         for assignment in assignments:
             room = db.query(Room).filter(Room.id == assignment.room_id).first()
             if room:
-                rooms.append({"id": room.id, "name": room.name})
+                rooms.append({"id": room.id, "name": room.name, "whatsapp_entry": bool(assignment.whatsapp_entry)})
 
         return {
             "id": user.id,
@@ -48,6 +48,7 @@ class UserService:
             "role_label": user.role_label,
             "created_at": user.created_at,
             "assigned_rooms": rooms,
+            "whatsapp_linked": bool(user.phone_verified_at),
         }
 
     @staticmethod
@@ -70,9 +71,12 @@ class UserService:
         room_ids: List[UUID],
         assigned_by: UUID,
         org_id: UUID,
+        whatsapp_room_ids: Optional[List[UUID]] = None,
     ) -> List[UserRoomAssignment]:
         """
         Assign rooms to a user. Replaces existing assignments.
+        `whatsapp_room_ids`: rooms this user fills in over WhatsApp (subset of room_ids).
+        None keeps each room's current WhatsApp setting.
         """
         # Verify user exists and belongs to org
         user = db.query(User).filter(
@@ -81,6 +85,13 @@ class UserService:
         ).first()
         if not user:
             raise ValueError("User not found")
+
+        previous_whatsapp = {
+            a.room_id for a in db.query(UserRoomAssignment).filter(
+                UserRoomAssignment.user_id == user_id, UserRoomAssignment.whatsapp_entry.is_(True)
+            )
+        }
+        whatsapp_rooms = set(whatsapp_room_ids) if whatsapp_room_ids is not None else previous_whatsapp
 
         # Remove existing assignments
         db.query(UserRoomAssignment).filter(
@@ -102,6 +113,7 @@ class UserService:
                 user_id=user_id,
                 room_id=room_id,
                 assigned_by=assigned_by,
+                whatsapp_entry=room_id in whatsapp_rooms,
             )
             db.add(assignment)
             assignments.append(assignment)

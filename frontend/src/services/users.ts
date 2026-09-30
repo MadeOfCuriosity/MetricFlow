@@ -4,6 +4,8 @@ import { UserRole } from './auth'
 export interface RoomBasic {
   id: string
   name: string
+  /** This user fills in the room's data over WhatsApp */
+  whatsapp_entry?: boolean
 }
 
 export interface UserWithRooms {
@@ -14,6 +16,8 @@ export interface UserWithRooms {
   role_label: string
   created_at: string
   assigned_rooms: RoomBasic[]
+  /** Has a verified WhatsApp number */
+  whatsapp_linked?: boolean
 }
 
 export interface UserListResponse {
@@ -37,6 +41,8 @@ export interface InviteUserResponse {
 
 export interface UpdateUserRoomsData {
   room_ids: string[]
+  /** Rooms this user fills in over WhatsApp (omit to keep current settings) */
+  whatsapp_room_ids?: string[]
 }
 
 export interface UpdateUserRoleData {

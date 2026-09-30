@@ -26,11 +26,12 @@ from app.models.notification import (
     NotificationDismissal,
 )
 from app.models.sales_lead import SalesLead
-from app.models.whatsapp import WhatsAppMessage, PhoneVerification
+from app.models.whatsapp import WhatsAppMessage, PhoneVerification, WhatsAppSession
 
 __all__ = [
     "WhatsAppMessage",
     "PhoneVerification",
+    "WhatsAppSession",
     "Organization",
     "User",
     "KPIDefinition",

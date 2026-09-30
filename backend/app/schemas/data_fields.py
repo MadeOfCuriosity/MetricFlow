@@ -115,6 +115,7 @@ class FieldFormItem(BaseModel):
     period_start: Optional[date] = None
     period_end: Optional[date] = None
     entered_by_name: Optional[str] = None
+    entered_via: Optional[str] = None  # web | whatsapp | import | integration
 
 
 class AssigneeBrief(BaseModel):

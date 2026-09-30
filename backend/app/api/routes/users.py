@@ -40,6 +40,7 @@ def get_all_users(
             role_label=user_data["role_label"],
             created_at=user_data["created_at"],
             assigned_rooms=[RoomBasicResponse(**r) for r in user_data["assigned_rooms"]],
+        whatsapp_linked=user_data.get("whatsapp_linked", False),
         ))
 
     return UserListResponse(users=users, total=len(users))
@@ -79,6 +80,7 @@ def get_user(
         role_label=user_data["role_label"],
         created_at=user_data["created_at"],
         assigned_rooms=[RoomBasicResponse(**r) for r in user_data["assigned_rooms"]],
+        whatsapp_linked=user_data.get("whatsapp_linked", False),
     )
 
 
@@ -102,7 +104,7 @@ def update_user_rooms(
         )
 
     try:
-        UserService.assign_rooms_to_user(db, user_id, data.room_ids, admin_user.id, org.id)
+        UserService.assign_rooms_to_user(db, user_id, data.room_ids, admin_user.id, org.id, data.whatsapp_room_ids)
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -118,6 +120,7 @@ def update_user_rooms(
         role_label=user_data["role_label"],
         created_at=user_data["created_at"],
         assigned_rooms=[RoomBasicResponse(**r) for r in user_data["assigned_rooms"]],
+        whatsapp_linked=user_data.get("whatsapp_linked", False),
     )
 
 
@@ -157,6 +160,7 @@ def update_user_role(
         role_label=user_data["role_label"],
         created_at=user_data["created_at"],
         assigned_rooms=[RoomBasicResponse(**r) for r in user_data["assigned_rooms"]],
+        whatsapp_linked=user_data.get("whatsapp_linked", False),
     )
 
 

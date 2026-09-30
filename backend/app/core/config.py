@@ -44,6 +44,9 @@ class Settings(BaseSettings):
     WHATSAPP_API_VERSION: str = "v21.0"
     WHATSAPP_OTP_TEMPLATE: str = "visualize_otp"
     WHATSAPP_TEMPLATE_LANGUAGE: str = "en"
+    # Approved template names (Utility) used to start conversations
+    WHATSAPP_REMINDER_TEMPLATE: str = "entry_reminder"  # {{1}} name, {{2}} count, {{3}} rooms · button "Start"
+    WHATSAPP_NUDGE_TEMPLATE: str = "entry_nudge"  # {{1}} missing, {{2}} total, {{3}} rooms · button "Start"
     # The shared number users message, digits only with country code (e.g. 918848827741).
     # Optional: fetched from the Cloud API when unset.
     WHATSAPP_DISPLAY_NUMBER: Optional[str] = None

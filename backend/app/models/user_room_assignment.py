@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Column, String, DateTime, ForeignKey, UniqueConstraint, Index
+from sqlalchemy import Boolean, Column, String, DateTime, ForeignKey, UniqueConstraint, Index
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
@@ -20,6 +20,8 @@ class UserRoomAssignment(Base):
     room_id = Column(UUID(as_uuid=True), ForeignKey("rooms.id", ondelete="CASCADE"), nullable=False)
     assigned_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     assigned_by = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    # This user fills in this room's data over WhatsApp (needs a linked phone)
+    whatsapp_entry = Column(Boolean, nullable=False, default=False, server_default="false")
 
     # Relationships
     user = relationship("User", foreign_keys=[user_id], back_populates="room_assignments")
