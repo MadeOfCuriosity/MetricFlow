@@ -256,6 +256,54 @@ Update the backend's `FRONTEND_URL` environment variable to the Amplify URL (com
 
 ---
 
+## Step 6.5: Scheduled Jobs, WhatsApp and Zoho Books
+
+### Scheduled jobs (integration syncs, WhatsApp reminders)
+
+App Runner throttles CPU when an instance isn't serving a request, so in-process background threads can't be relied on. With `CPU_ONLY_DURING_REQUESTS=true` (set on the service):
+
+- the in-process APScheduler stays off;
+- the Lambda `visualize-tick` calls `POST /api/internal/tick` with the `X-Cron-Secret` header, and EventBridge Scheduler (`visualize-tick-every-5-min`) runs it every 5 minutes. The endpoint runs due syncs and reminders, each under a Postgres advisory lock (`app/core/job_lock.py`);
+- WhatsApp webhooks are processed within the request instead of after the response.
+
+The Lambda reads the secret `metricflow/cron-secret`, and the backend gets it as `CRON_SECRET`. Without `CRON_SECRET`, the endpoint returns 404. Lambda logs are in CloudWatch under `/aws/lambda/visualize-tick`.
+
+On hosts with always-on CPU (ECS, EC2, Railway, Render), leave `CPU_ONLY_DURING_REQUESTS` unset and the in-process scheduler runs everything.
+
+### WhatsApp (Meta Cloud API)
+
+| Name | Where | Notes |
+|---|---|---|
+| `WHATSAPP_PHONE_NUMBER_ID` | env var | WhatsApp Manager → API setup |
+| `WHATSAPP_BUSINESS_ACCOUNT_ID` | env var | |
+| `WHATSAPP_DISPLAY_NUMBER` | env var | e.g. `+918848827741`, shown in the UI |
+| `WHATSAPP_ACCESS_TOKEN` | secret `metricflow/whatsapp-access-token` | System-user token, never expires |
+| `WHATSAPP_APP_SECRET` | secret `metricflow/whatsapp-app-secret` | Verifies `X-Hub-Signature-256` |
+| `WHATSAPP_VERIFY_TOKEN` | secret `metricflow/whatsapp-verify-token` | Echoed during webhook verification |
+
+Webhook: Meta app → WhatsApp → Configuration. Set the callback to `https://<backend>/api/whatsapp/webhook` with the same verify token, and subscribe to `messages`. Or, with an app access token:
+
+```bash
+curl -X POST "https://graph.facebook.com/v21.0/<app-id>/subscriptions" \
+  -d object=whatsapp_business_account -d fields=messages \
+  -d callback_url=https://<backend>/api/whatsapp/webhook \
+  --data-urlencode verify_token=<verify token> \
+  --data-urlencode "access_token=<app-id>|<app secret>"
+```
+
+Business-initiated messages need approved templates (Utility, `en`, quick-reply button "Start"):
+
+- `entry_reminder`: `{{1}}` first name, `{{2}}` entries due, `{{3}}` rooms
+- `entry_nudge`: `{{1}}` missing, `{{2}}` total, `{{3}}` rooms
+
+For local development, use a separate Meta test app and number pointed at an ngrok URL, never the production number.
+
+### Zoho Books
+
+`ZOHO_OAUTH_CLIENT_ID` and `ZOHO_OAUTH_CLIENT_SECRET` are secrets (`metricflow/zoho-oauth-client-*`). `ZOHO_DC` (e.g. `in`) and `ZOHO_BOOKS_OAUTH_REDIRECT_URI` are env vars. The redirect URI (`https://<backend>/api/integrations/oauth/zoho_books/callback`) must also be added to the client in the Zoho API Console.
+
+---
+
 ## Step 7: Monitoring and Logging
 
 ### 7.1 Enable CloudWatch Logs
