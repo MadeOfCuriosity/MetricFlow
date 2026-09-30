@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { format } from 'date-fns'
+import { format, parseISO } from 'date-fns'
 import { CheckCircleIcon, ExclamationTriangleIcon, CalendarDaysIcon, SparklesIcon } from '@heroicons/react/24/outline'
 import { DataEntryForm } from '../components'
 import { PendingEntriesList, type PendingBatch } from '../components/PendingEntriesList'
@@ -53,7 +53,8 @@ export function Entries() {
     setLoadError(null)
     try {
       const [todayData, pendingData] = await Promise.all([
-        dataFieldsApi.getTodayFieldForm(format(new Date(), 'yyyy-MM-dd')),
+        // No date: the server uses the organization's time zone for "today"
+        dataFieldsApi.getTodayFieldForm(),
         dataFieldsApi.getPending(PENDING_LOOKBACK_DAYS),
       ])
       setToday(todayData)
@@ -103,7 +104,9 @@ export function Entries() {
 
   const handleTodaySubmit = (entries: FieldEntryInput[]) =>
     runSave(async () => {
-      const result = await dataFieldsApi.submitFieldEntries({ date: format(new Date(), 'yyyy-MM-dd'), entries })
+      // Save to the org's "today" as returned by the server
+      const date = today?.date ?? format(new Date(), 'yyyy-MM-dd')
+      const result = await dataFieldsApi.submitFieldEntries({ date, entries })
       return { saved: result.entries_created, kpis: result.kpis_recalculated }
     })
 
@@ -140,7 +143,7 @@ export function Entries() {
           <h1 className="text-2xl font-bold text-foreground tracking-tight">Data Entry</h1>
           <p className="text-dark-300 mt-1 text-sm">
             {view === 'today'
-              ? `Everything due today — ${format(new Date(), 'EEEE, MMM d')}.`
+              ? `Everything due today — ${format(today ? parseISO(today.date) : new Date(), 'EEEE, MMM d')}.`
               : `Entries missed in the last ${PENDING_LOOKBACK_DAYS} days. Each value is saved to its own date.`}
           </p>
         </div>

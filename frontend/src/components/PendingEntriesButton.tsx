@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { format } from 'date-fns'
 import { dataFieldsApi } from '../services/dataFields'
 import { MaskIcon } from './ui/MaskIcon'
 
@@ -15,10 +14,9 @@ export function PendingEntriesButton() {
 
     const fetchPending = async () => {
       try {
-        const dateStr = format(new Date(), 'yyyy-MM-dd')
         // Due today (scheduled fields only — "no schedule" is never due) + missed in the last 30 days
         const [today, missed] = await Promise.all([
-          dataFieldsApi.getTodayFieldForm(dateStr),
+          dataFieldsApi.getTodayFieldForm(),
           dataFieldsApi.getPending(30),
         ])
         const dueToday = new Set(

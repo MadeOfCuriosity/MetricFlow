@@ -42,6 +42,7 @@ from app.schemas.data_fields import (
 )
 from app.services.entry_service import EntryService
 from app.services.universal_csv_importer import UniversalCSVImporter
+from app.core.timezones import org_today
 
 
 
@@ -152,7 +153,7 @@ def get_today_form(
     Lists all KPIs with their required input fields and shows which ones already have data.
     """
     _, org = user_org
-    today = date.today()
+    today = org_today(org.timezone)
 
     form_items, completed_count, total_count = EntryService.get_today_form(
         db=db,
@@ -324,7 +325,7 @@ def get_today_field_form(
         )
 
     user, org = user_org
-    target_date = date_param or date.today()
+    target_date = date_param or org_today(org.timezone)
 
     room_groups, completed_count, total_count = EntryService.get_today_field_form(
         db=db,
@@ -363,7 +364,8 @@ def get_pending_field_entries(
     """Missed entries of scheduled fields over the last `days`, newest first (save with date = period_start)."""
     user, org = user_org
     since, items = EntryService.get_pending_entries(
-        db=db, org_id=org.id, user_role=user.role, user_id=user.id, lookback_days=days
+        db=db, org_id=org.id, user_role=user.role, user_id=user.id, lookback_days=days,
+        today=org_today(org.timezone),
     )
     return PendingEntriesResponse(
         since=since, items=[PendingFieldItem(**i) for i in items], total=len(items)
@@ -401,6 +403,7 @@ def get_sheet_view(
         year=year,
         month=month_num,
         room_id=room_id,
+        today=org_today(org.timezone),
     )
 
     return SheetViewResponse(
@@ -547,7 +550,7 @@ def download_csv_template(
                 detail="Month must be in YYYY-MM format",
             )
     else:
-        today = date.today()
+        today = org_today(org.timezone)
         year, mon = today.year, today.month
 
     # Build date headers for the month

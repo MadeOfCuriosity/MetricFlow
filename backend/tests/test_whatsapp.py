@@ -19,7 +19,7 @@ def wa(monkeypatch):
     monkeypatch.setattr(settings, "WHATSAPP_ACCESS_TOKEN", "token")
     monkeypatch.setattr(settings, "WHATSAPP_APP_SECRET", APP_SECRET)
     monkeypatch.setattr(settings, "WHATSAPP_VERIFY_TOKEN", "verify-me")
-    monkeypatch.setattr(settings, "WHATSAPP_DISPLAY_NUMBER", "918848827741")
+    monkeypatch.setattr(settings, "WHATSAPP_DISPLAY_NUMBER", "15551393080")
     sent = []
 
     class Resp:
@@ -82,7 +82,7 @@ def test_link_phone_via_inbound_verify(client, db_session, test_org_data, wa):
     assert start.status_code == 200, start.text
     body = start.json()
     assert body["phone_e164"] == "+918848827741"
-    assert body["wa_link"] == f"https://wa.me/918848827741?text=VERIFY%20{body['code']}"
+    assert body["wa_link"] == f"https://wa.me/15551393080?text=VERIFY%20{body['code']}"
 
     # Wrong code from the right number doesn't link
     _post_webhook(client, _inbound("918848827741", "VERIFY 000000", "wamid.a"))
@@ -152,3 +152,11 @@ def test_delivery_status_only_moves_forward(client, db_session, test_org_data, w
 def test_bad_timezone_rejected(client, test_org_data, wa):
     headers = _auth(client, test_org_data)
     assert client.put("/api/whatsapp/org", json={"timezone": "Mars/Base"}, headers=headers).status_code == 400
+
+
+def test_cannot_link_the_business_number_itself(client, test_org_data, wa):
+    headers = _auth(client, test_org_data)
+    client.put("/api/whatsapp/org", json={"enabled": True}, headers=headers)
+    resp = client.post("/api/whatsapp/link", json={"phone": "+1 555 139 3080"}, headers=headers)
+    assert resp.status_code == 400
+    assert "Visualize WhatsApp number" in resp.json()["detail"]

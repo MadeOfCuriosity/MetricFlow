@@ -45,6 +45,10 @@ def start_link(db: Session, user: User, raw_phone: str) -> PendingLink:
     if not phone:
         raise LinkError("Enter a valid mobile number with country code, e.g. +91 98765 43210")
 
+    business = business_display_number()
+    if business and phone.lstrip("+") == business:
+        raise LinkError("That's the Visualize WhatsApp number itself. Enter your personal mobile number.")
+
     taken = db.query(User).filter(
         User.phone_e164 == phone, User.phone_verified_at.isnot(None), User.id != user.id
     ).first()

@@ -793,6 +793,7 @@ class EntryService:
         year: int,
         month: int,
         room_id: Optional[UUID] = None,
+        today: Optional[date] = None,
     ) -> dict:
         """
         Get spreadsheet-style data for a month, for every field.
@@ -805,7 +806,7 @@ class EntryService:
         days_in_month = calendar.monthrange(year, month)[1]
         month_start = date(year, month, 1)
         month_end = date(year, month, days_in_month)
-        today = date.today()
+        today = today or date.today()
         effective_end = min(month_end, today)
 
         dates = []
