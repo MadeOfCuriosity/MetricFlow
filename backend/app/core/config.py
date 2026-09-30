@@ -15,6 +15,12 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
+    # Hosts like AWS App Runner throttle CPU outside requests, so background threads can't be
+    # trusted there. When True: the in-process scheduler doesn't run (an external cron calls
+    # POST /api/internal/tick with CRON_SECRET instead) and webhooks are handled within the request.
+    CPU_ONLY_DURING_REQUESTS: bool = False
+    CRON_SECRET: Optional[str] = None
+
     # CORS
     FRONTEND_URL: str = "http://localhost:5173"
 

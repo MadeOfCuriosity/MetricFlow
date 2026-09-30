@@ -33,7 +33,7 @@ from app.api.routes.subscriptions import router as subscriptions_router
 from app.api.routes.superadmin import router as superadmin_router
 from app.api.routes.notifications import router as notifications_router
 from app.api.routes.whatsapp import router as whatsapp_router
-from app.api.routes.whatsapp import router as whatsapp_router
+from app.api.routes.internal import router as internal_router
 from app.api.routes.sales import router as sales_router
 
 # Configure logging
@@ -180,7 +180,7 @@ app.include_router(subscriptions_router, prefix="/api")
 app.include_router(superadmin_router, prefix="/api")
 app.include_router(notifications_router, prefix="/api")
 app.include_router(whatsapp_router, prefix="/api")
-app.include_router(whatsapp_router, prefix="/api")
+app.include_router(internal_router, prefix="/api")
 app.include_router(sales_router, prefix="/api")
 
 

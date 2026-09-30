@@ -253,3 +253,10 @@ def test_status(client, org, wa):
     text = Chat.text(reply)
     assert "*0 of 5* done" in text and "Still to fill" in text
     assert "Start" in Chat.buttons(reply)
+
+
+def test_replies_within_the_request_when_cpu_is_request_only(client, org, wa, monkeypatch):
+    from app.core.config import settings
+
+    monkeypatch.setattr(settings, "CPU_ONLY_DURING_REQUESTS", True)
+    assert "Tap *Menu*" in Chat.text(Chat(client, wa, ADMIN_PHONE).say("Hi"))

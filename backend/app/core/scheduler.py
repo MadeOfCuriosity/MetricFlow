@@ -73,8 +73,44 @@ def _tick() -> None:
         db.close()
 
 
+def run_jobs_once() -> dict:
+    """
+    One pass of every scheduled job, for an external cron (see settings.CPU_ONLY_DURING_REQUESTS).
+    Each job takes its own short-lived lock, so overlapping calls skip instead of doubling up.
+    """
+    from app.core.database import SessionLocal
+    from app.core.job_lock import run_exclusive
+    from app.services.sync_service import SyncService
+    from app.services.whatsapp.reminders import send_due_reminders
+
+    result = {"syncs": None, "reminders": "ok"}
+    with run_exclusive("integration_syncs") as acquired:
+        if acquired:
+            db = SessionLocal()
+            try:
+                result["syncs"] = SyncService.run_due_syncs(db)
+            except Exception as e:
+                logger.error(f"Integration sync tick failed: {e}", exc_info=True)
+                result["syncs"] = "failed"
+            finally:
+                db.close()
+        else:
+            result["syncs"] = "busy"
+    try:
+        send_due_reminders()
+    except Exception:
+        logger.exception("WhatsApp reminders tick failed")
+        result["reminders"] = "failed"
+    return result
+
+
 def start_scheduler():
     """Start the scheduler; every minute it runs whatever integration syncs are due."""
+    from app.core.config import settings
+
+    if settings.CPU_ONLY_DURING_REQUESTS:
+        logger.info("Scheduler off: jobs run when the external cron calls /api/internal/tick")
+        return
     scheduler.add_job(
         _tick,
         "interval",

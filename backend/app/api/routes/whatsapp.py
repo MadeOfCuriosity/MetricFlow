@@ -10,6 +10,7 @@ from uuid import UUID
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request, status
+from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
@@ -68,7 +69,11 @@ async def receive_webhook(request: Request, background_tasks: BackgroundTasks):
         payload = json.loads(body or b"{}")
     except json.JSONDecodeError:
         raise HTTPException(status_code=400, detail="Invalid JSON")
-    background_tasks.add_task(_process_webhook, request.app, payload)
+    if settings.CPU_ONLY_DURING_REQUESTS:
+        # No CPU after the response on this host: reply within the request (a second or two)
+        await run_in_threadpool(_process_webhook, request.app, payload)
+    else:
+        background_tasks.add_task(_process_webhook, request.app, payload)
     return {"status": "ok"}
 
 
