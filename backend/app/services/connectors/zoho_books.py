@@ -1,6 +1,7 @@
 import logging
+import threading
 import time
-from collections import defaultdict
+from collections import OrderedDict, defaultdict
 from datetime import date, datetime, timedelta
 from typing import Optional
 
@@ -48,8 +49,83 @@ GL_EXPENSE_MODULE = "gl_expense"
 MAX_GL_EXPENSE_JOURNALS_PER_SYNC = 1000
 
 
+# Per-period page cap for list endpoints (200 records per page)
+MAX_LIST_PAGES = 50
+
+# Not real transactions (yet, or any more): left out of every total
+EXCLUDED_STATUSES = {"draft", "void", "pending_approval"}
+
+# Amount fields converted to the org's base currency before summing. Zoho
+# gives some records a bcy_<field>; the rest are document currency × exchange_rate.
+MONEY_FIELDS = {
+    "total", "sub_total", "tax_total", "balance", "balance_due", "amount", "total_without_tax",
+    "unused_amount", "bank_charges", "shipping_charge", "adjustment", "write_off_amount",
+    "discount_total", "tds_total", "unprocessed_payment_amount", "tax_amount_withheld",
+    "refunded_amount", "payment_made",
+}
+
+# Invoice/journal details are shared by every GL source in the org, so one
+# source's fetches serve the rest. Keyed by last_modified_time so edits refetch;
+# records without one are re-read after the TTL.
+_DETAIL_CACHE: "OrderedDict[tuple, tuple[Optional[str], float, dict]]" = OrderedDict()
+_DETAIL_CACHE_LOCK = threading.Lock()
+DETAIL_CACHE_MAX = 20000
+DETAIL_CACHE_TTL_SECONDS = 6 * 3600
+
+
+def _is_number(val) -> bool:
+    return isinstance(val, (int, float)) and not isinstance(val, bool)
+
+
+def _rate(record: dict) -> float:
+    rate = record.get("exchange_rate")
+    return float(rate) if _is_number(rate) and rate > 0 else 1.0
+
+
+def is_counted(record: dict) -> bool:
+    return str(record.get("status") or "").lower() not in EXCLUDED_STATUSES
+
+
+def to_base_currency(record: dict) -> dict:
+    """Copy of a record with its amount fields in the org's base currency."""
+    out = dict(record)
+    rate = _rate(record)
+    for key in MONEY_FIELDS:
+        val = record.get(key)
+        if not _is_number(val):
+            continue
+        bcy = record.get(f"bcy_{key}")
+        out[key] = bcy if _is_number(bcy) else val * rate
+    return out
+
+
+# Numeric settings on Zoho records that aren't business values
+NON_METRIC_FIELDS = {"exchange_rate", "price_precision", "no_of_copies", "show_no_of_copies"}
+
+# Chart of Accounts types that count as income / expense for the GL modules
+INCOME_ACCOUNT_TYPES = {"income", "other_income"}
+EXPENSE_ACCOUNT_TYPES = {"expense", "cost_of_goods_sold", "other_expense"}
+
+
 class ZohoBooksConnector(BaseConnector):
     """Connector for Zoho Books API v3."""
+
+    def __init__(self, integration, db=None, config_override: Optional[dict] = None):
+        super().__init__(integration, db)
+        # Lets setup screens read fields/previews for a module this integration
+        # isn't configured for yet, reusing its OAuth tokens.
+        self.config_override = config_override
+        # Reasons the last fetch_data range may be incomplete (page/detail caps)
+        self.warnings: list[str] = []
+
+    # Every day in a fetched range is complete (a day with no records means
+    # zero), so the sync may fill empty days and re-check a trailing window.
+    reports_complete_days = True
+
+    def _config(self) -> dict:
+        if self.config_override is not None:
+            return self.config_override
+        return self.integration.config or {}
 
     @staticmethod
     def get_authorize_url(state: str) -> str:
@@ -85,8 +161,7 @@ class ZohoBooksConnector(BaseConnector):
 
     def _get_org_id(self) -> str:
         """Get the Zoho Books organization ID from config."""
-        config = self.integration.config or {}
-        return config.get("zoho_org_id", "")
+        return self._config().get("zoho_org_id", "")
 
     def _get_headers(self) -> dict:
         """Get authorization headers with the current access token."""
@@ -148,9 +223,85 @@ class ZohoBooksConnector(BaseConnector):
             logger.error(f"Zoho Books token refresh failed: {e}")
             return False
 
+    # --- Setup lookups (organisations, branches, chart of accounts) ---
+
+    def ensure_fresh_token(self) -> bool:
+        """Refresh the access token if it's missing or about to expire."""
+        expires_at = self.integration.token_expires_at
+        if expires_at and expires_at > datetime.utcnow() + timedelta(seconds=60):
+            return True
+        return self.refresh_auth()
+
+    def _get(self, path: str, params: Optional[dict] = None) -> dict:
+        """GET a Zoho Books endpoint; raises on HTTP or API-level errors."""
+        with httpx.Client(timeout=15) as client:
+            resp = client.get(
+                f"{ZOHO_BOOKS_API_BASE}/{path}",
+                headers=self._get_headers(),
+                params=params or {},
+            )
+        resp.raise_for_status()
+        data = resp.json()
+        if data.get("code") != 0:
+            raise RuntimeError(f"Zoho Books API error on {path}: {data.get('message')}")
+        return data
+
+    def list_organizations(self) -> list[dict]:
+        data = self._get("organizations")
+        return [
+            {
+                "id": str(o.get("organization_id", "")),
+                "name": o.get("name", ""),
+                "currency_code": o.get("currency_code"),
+                "is_default": bool(o.get("is_default_org")),
+            }
+            for o in data.get("organizations", [])
+        ]
+
+    def list_branches(self, org_id: str) -> list[dict]:
+        """Branches for an org. Orgs without branches enabled return []."""
+        try:
+            data = self._get("branches", {"organization_id": org_id})
+        except (RuntimeError, httpx.HTTPStatusError) as e:
+            logger.info(f"Zoho Books branches unavailable for org {org_id}: {e}")
+            return []
+        return [
+            {
+                "id": str(b.get("branch_id", "")),
+                "name": b.get("branch_name", ""),
+                "is_primary": bool(b.get("is_primary_branch")),
+            }
+            for b in data.get("branches", [])
+        ]
+
+    def list_accounts(self, org_id: str, kind: str) -> list[dict]:
+        """Active Chart of Accounts entries of the given kind ("income" | "expense")."""
+        wanted = INCOME_ACCOUNT_TYPES if kind == "income" else EXPENSE_ACCOUNT_TYPES
+        accounts = []
+        page = 1
+        while page <= 10:
+            data = self._get("chartofaccounts", {
+                "organization_id": org_id,
+                "filter_by": "AccountType.Active",
+                "page": page,
+                "per_page": 200,
+            })
+            for a in data.get("chartofaccounts", []):
+                if a.get("account_type") in wanted:
+                    accounts.append({
+                        "id": str(a.get("account_id", "")),
+                        "name": a.get("account_name", ""),
+                        "code": a.get("account_code") or None,
+                        "account_type": a.get("account_type"),
+                    })
+            if not data.get("page_context", {}).get("has_more_page"):
+                break
+            page += 1
+        return sorted(accounts, key=lambda a: a["name"].lower())
+
     def get_available_fields(self) -> list[ExternalField]:
         """Return available fields for the configured Zoho Books module."""
-        config = self.integration.config or {}
+        config = self._config()
         module = config.get("module", "invoices")
 
         if module == GL_REVENUE_MODULE:
@@ -189,13 +340,14 @@ class ZohoBooksConnector(BaseConnector):
             sample = records[0]
             fields = []
             for key, val in sample.items():
-                if key.startswith("_") or isinstance(val, (dict, list)):
+                if key.startswith("_") or isinstance(val, (dict, list)) or key in NON_METRIC_FIELDS:
                     continue
                 field_type = "string"
-                if isinstance(val, (int, float)):
-                    field_type = "number"
-                elif isinstance(val, bool):
+                # bool before number: True/False are ints in Python
+                if isinstance(val, bool):
                     field_type = "boolean"
+                elif isinstance(val, (int, float)):
+                    field_type = "number"
                 elif key in ("date", "due_date", "created_time", "last_modified_time"):
                     field_type = "date"
 
@@ -210,266 +362,215 @@ class ZohoBooksConnector(BaseConnector):
             logger.error(f"Failed to fetch Zoho Books fields: {e}")
             return self._get_default_fields(module)
 
-    def _get_detail_with_retry(
+    # --- HTTP with rate-limit handling ---
+
+    def _get_json(self, client: httpx.Client, path: str, params: dict, max_attempts: int = 4) -> Optional[dict]:
+        """
+        GET a Zoho Books endpoint, retrying rate limits (429) and server errors
+        with backoff. Returns None for 204 (no content) and 404 (record gone).
+        Raises on any other failure — a failed fetch must never look like
+        "no data", or the sync would write zeros over real values.
+        """
+        last_error = ""
+        for attempt in range(1, max_attempts + 1):
+            try:
+                resp = client.get(f"{ZOHO_BOOKS_API_BASE}/{path}", headers=self._get_headers(), params=params)
+            except httpx.HTTPError as e:
+                last_error = str(e)
+            else:
+                if resp.status_code in (204, 404):
+                    return None
+                if resp.status_code == 200:
+                    data = resp.json()
+                    if data.get("code") != 0:
+                        raise RuntimeError(f"Zoho Books API error on {path}: {data.get('message')}")
+                    return data
+                last_error = f"HTTP {resp.status_code}: {resp.text[:200]}"
+                if resp.status_code != 429 and resp.status_code < 500:
+                    break  # 4xx other than rate limit won't fix itself
+            if attempt < max_attempts:
+                retry_after = 0
+                try:
+                    retry_after = int(resp.headers.get("Retry-After", 0))  # type: ignore[possibly-undefined]
+                except Exception:
+                    pass
+                time.sleep(max(retry_after, 2 ** attempt))
+        raise RuntimeError(f"Zoho Books request to {path} failed after retries: {last_error}")
+
+    def _list_all(self, client: httpx.Client, endpoint: str, params: dict) -> list[dict]:
+        """All pages of a list endpoint. Flags the sync as incomplete if it hits the page cap."""
+        records: list[dict] = []
+        page = 1
+        while True:
+            data = self._get_json(client, endpoint, {**params, "page": page, "per_page": 200})
+            if data is None:
+                break
+            records.extend(data.get(endpoint, data.get("data", [])))
+            if not data.get("page_context", {}).get("has_more_page", False):
+                break
+            if page >= MAX_LIST_PAGES:
+                self.warnings.append(
+                    f"Stopped after {MAX_LIST_PAGES * 200} {endpoint} in one period; later days may be missing."
+                )
+                break
+            page += 1
+        return records
+
+    def _get_detail(
         self,
         client: httpx.Client,
         endpoint: str,
         record_id: str,
         org_id: str,
         response_key: str,
-        max_attempts: int = 4,
-    ) -> Optional[dict]:
+        modified: Optional[str],
+    ) -> tuple[Optional[dict], bool]:
         """
-        Fetch one record's detail (invoice or journal), retrying on
-        rate-limit/transient errors.
-
-        Returns the record dict, or None only for a confirmed 404 (record
-        genuinely gone — safe to skip). Any other non-200 (429 rate limit,
-        5xx, network error) is retried with backoff; if still failing after
-        max_attempts, raises so the sync fails loudly instead of silently
-        under-counting revenue/expense as if the missing records contributed
-        zero.
+        One invoice/journal's detail, from the shared cache when it hasn't
+        changed. Returns (detail or None if deleted, fetched_from_zoho).
         """
-        last_error = None
-        for attempt in range(1, max_attempts + 1):
-            try:
-                resp = client.get(
-                    f"{ZOHO_BOOKS_API_BASE}/{endpoint}/{record_id}",
-                    headers=self._get_headers(),
-                    params={"organization_id": org_id},
-                )
-            except httpx.HTTPError as e:
-                last_error = str(e)
-                time.sleep(2 ** attempt)
-                continue
+        key = (endpoint, org_id, record_id)
+        now = time.time()
+        with _DETAIL_CACHE_LOCK:
+            hit = _DETAIL_CACHE.get(key)
+            if hit:
+                cached_modified, cached_at, detail = hit
+                fresh = cached_modified == modified if modified else now - cached_at < DETAIL_CACHE_TTL_SECONDS
+                if fresh:
+                    _DETAIL_CACHE.move_to_end(key)
+                    return detail, False
 
-            if resp.status_code == 200:
-                return resp.json().get(response_key, {})
-            if resp.status_code == 404:
-                return None
+        data = self._get_json(client, f"{endpoint}/{record_id}", {"organization_id": org_id})
+        detail = data.get(response_key, {}) if data else None
+        with _DETAIL_CACHE_LOCK:
+            if detail is not None:
+                _DETAIL_CACHE[key] = (modified, now, detail)
+                _DETAIL_CACHE.move_to_end(key)
+                while len(_DETAIL_CACHE) > DETAIL_CACHE_MAX:
+                    _DETAIL_CACHE.popitem(last=False)
+            else:
+                _DETAIL_CACHE.pop(key, None)
+        return detail, True
 
-            last_error = f"HTTP {resp.status_code}: {resp.text[:200]}"
-            if attempt < max_attempts:
-                time.sleep(2 ** attempt)
-
-        raise RuntimeError(
-            f"Failed to fetch Zoho Books {response_key} {record_id} after {max_attempts} "
-            f"attempts (likely rate-limited): {last_error}"
-        )
-
-    def _fetch_gl_revenue(
+    def _list_stubs(
         self,
-        start_date: Optional[date],
-        end_date: Optional[date],
-    ) -> list[dict]:
-        """
-        Attribute invoice line items to the configured GL account (Chart of
-        Accounts entry, e.g. "SMM Sales"), aggregated by day.
+        client: httpx.Client,
+        endpoint: str,
+        id_key: str,
+        date_key: str,
+        org_id: str,
+        start_date: date,
+        end_date: date,
+        cap: int,
+    ) -> list[tuple[str, date, Optional[str]]]:
+        """(id, date, last_modified_time) for counted records in range, capped."""
+        records = self._list_all(client, endpoint, {
+            "organization_id": org_id,
+            "date_start": start_date.strftime(ZOHO_DATE_FORMAT),
+            "date_end": end_date.strftime(ZOHO_DATE_FORMAT),
+            "sort_column": date_key,
+            "sort_order": "A",
+        })
+        stubs = []
+        for rec in records:
+            if not is_counted(rec):
+                continue
+            try:
+                rec_date = datetime.strptime(str(rec.get(date_key, ""))[:10], ZOHO_DATE_FORMAT).date()
+            except ValueError:
+                continue
+            stubs.append((rec[id_key], rec_date, rec.get("last_modified_time")))
+        if len(stubs) > cap:
+            self.warnings.append(
+                f"{len(stubs)} {endpoint} in one period; only the first {cap} were read, so later days may be missing."
+            )
+            stubs = stubs[:cap]
+        return stubs
 
-        Zoho's invoice list endpoint only gives invoice-level totals, not
-        which GL account each line item posted to — that's only on the full
-        invoice detail. So this lists invoices in range, then fetches each
-        one's detail to sum the line items matching gl_account_id.
+    def _fetch_gl_revenue(self, start_date: date, end_date: date) -> list[dict]:
         """
-        config = self.integration.config or {}
+        Invoice lines posted to the configured income account, per day, in
+        the org's base currency. Zoho's invoice list has no per-line account,
+        so each invoice's detail is read (shared across GL sources via cache).
+        """
+        config = self._config()
         org_id = self._get_org_id()
         gl_account_id = config.get("gl_account_id")
         if not gl_account_id:
-            logger.error("Zoho Books gl_revenue sync missing required 'gl_account_id' config")
-            return []
+            raise RuntimeError("This source has no GL account set. Edit it and pick an account.")
 
-        if not start_date:
-            start_date = date.today() - timedelta(days=30)
-        if not end_date:
-            end_date = date.today()
-
-        # Step 1: list invoice IDs + dates in range (cheap, paginated). Any
-        # failure here raises (via raise_for_status / the retry loop's own
-        # errors) rather than silently returning [] — a listing failure must
-        # not be mistaken for "no invoices in range."
-        invoice_stubs: list[tuple[str, date]] = []
-        page = 1
+        totals: dict[date, dict[str, float]] = defaultdict(lambda: {"item_total": 0.0, "quantity": 0.0, "count": 0})
         with httpx.Client(timeout=30) as client:
-            while True:
-                resp = client.get(
-                    f"{ZOHO_BOOKS_API_BASE}/invoices",
-                    headers=self._get_headers(),
-                    params={
-                        "organization_id": org_id,
-                        "date_start": start_date.strftime(ZOHO_DATE_FORMAT),
-                        "date_end": end_date.strftime(ZOHO_DATE_FORMAT),
-                        "page": page,
-                        "per_page": 200,
-                        "sort_column": "date",
-                        "sort_order": "A",
-                    },
-                )
-                if resp.status_code == 204:
-                    break
-                resp.raise_for_status()
-                data = resp.json()
-                if data.get("code") != 0:
-                    raise RuntimeError(f"Zoho Books API error listing invoices: {data.get('message')}")
-
-                for inv in data.get("invoices", []):
-                    raw_date = inv.get("date", "")
-                    try:
-                        inv_date = datetime.strptime(raw_date[:10], ZOHO_DATE_FORMAT).date()
-                    except (ValueError, TypeError):
-                        continue
-                    invoice_stubs.append((inv["invoice_id"], inv_date))
-
-                page_context = data.get("page_context", {})
-                if not page_context.get("has_more_page", False):
-                    break
-                page += 1
-                if page > 50:
-                    break
-
-        if len(invoice_stubs) > MAX_GL_REVENUE_INVOICES_PER_SYNC:
-            logger.warning(
-                f"Zoho Books gl_revenue sync: {len(invoice_stubs)} invoices in range, "
-                f"capping detail fetch at {MAX_GL_REVENUE_INVOICES_PER_SYNC} (narrow the "
-                f"date range or sync more often to cover the rest)."
+            stubs = self._list_stubs(
+                client, "invoices", "invoice_id", "date", org_id, start_date, end_date, MAX_GL_REVENUE_INVOICES_PER_SYNC,
             )
-            invoice_stubs = invoice_stubs[:MAX_GL_REVENUE_INVOICES_PER_SYNC]
-
-        # Step 2: fetch each invoice's detail, sum line items matching the GL account
-        date_totals: dict[date, dict[str, float]] = defaultdict(
-            lambda: {"item_total": 0.0, "quantity": 0.0, "count": 0}
-        )
-        with httpx.Client(timeout=30) as client:
-            for i, (invoice_id, inv_date) in enumerate(invoice_stubs):
-                if i > 0:
-                    time.sleep(0.3)  # spread calls out — proactively avoid rate limits
-                detail = self._get_detail_with_retry(client, "invoices", invoice_id, org_id, "invoice")
+            for invoice_id, inv_date, modified in stubs:
+                detail, fetched = self._get_detail(client, "invoices", invoice_id, org_id, "invoice", modified)
+                if fetched:
+                    time.sleep(0.3)  # spread calls out to stay under Zoho's rate limit
                 if detail is None:
-                    # Only a confirmed 404 (invoice genuinely gone) reaches here —
-                    # anything else (rate limit, 5xx, network error) raises instead
-                    # of silently under-counting revenue as if it were zero.
-                    continue
-
+                    continue  # deleted since listing
+                rate = _rate(detail)
                 for line in detail.get("line_items", []):
                     if line.get("account_id") != gl_account_id:
                         continue
-                    bucket = date_totals[inv_date]
-                    bucket["item_total"] += float(line.get("item_total") or 0)
+                    bucket = totals[inv_date]
+                    bucket["item_total"] += float(line.get("item_total") or 0) * rate
                     bucket["quantity"] += float(line.get("quantity") or 0)
                     bucket["count"] += 1
 
         rows = []
-        for record_date, totals in sorted(date_totals.items()):
+        for record_date, t in sorted(totals.items()):
             rows.append({
                 "date": record_date,
-                "item_total__sum": totals["item_total"],
-                "item_total__count": totals["count"],
-                "item_total__avg": totals["item_total"] / totals["count"] if totals["count"] else 0,
-                "quantity__sum": totals["quantity"],
-                "__record_count": totals["count"],
+                "item_total__sum": t["item_total"],
+                "item_total__count": t["count"],
+                "item_total__avg": t["item_total"] / t["count"] if t["count"] else 0,
+                "quantity__sum": t["quantity"],
+                "__record_count": t["count"],
             })
         return rows
 
-    def _fetch_gl_expense(
-        self,
-        start_date: Optional[date],
-        end_date: Optional[date],
-    ) -> list[dict]:
+    def _fetch_gl_expense(self, start_date: date, end_date: date) -> list[dict]:
         """
-        Attribute Journal Entry line items to the configured GL account (e.g.
-        a per-department Salary GL), aggregated by day.
-
-        Mirrors _fetch_gl_revenue but sources from /journals instead of
-        /invoices — payroll and manual journals debit an expense account and
-        credit a payable/bank account, so only the debit side is summed
-        (the credit side is the offsetting entry, not the cost itself).
+        Journal debits to the configured expense account (e.g. a department's
+        salary GL), per day, in base currency. Credits are the offsetting
+        entry, not the cost, so only debits are summed.
         """
-        config = self.integration.config or {}
+        config = self._config()
         org_id = self._get_org_id()
         gl_account_id = config.get("gl_account_id")
         if not gl_account_id:
-            logger.error("Zoho Books gl_expense sync missing required 'gl_account_id' config")
-            return []
+            raise RuntimeError("This source has no GL account set. Edit it and pick an account.")
 
-        if not start_date:
-            start_date = date.today() - timedelta(days=30)
-        if not end_date:
-            end_date = date.today()
-
-        # Step 1: list journal IDs + dates in range (cheap, paginated)
-        journal_stubs: list[tuple[str, date]] = []
-        page = 1
+        totals: dict[date, dict[str, float]] = defaultdict(lambda: {"amount": 0.0, "count": 0})
         with httpx.Client(timeout=30) as client:
-            while True:
-                resp = client.get(
-                    f"{ZOHO_BOOKS_API_BASE}/journals",
-                    headers=self._get_headers(),
-                    params={
-                        "organization_id": org_id,
-                        "date_start": start_date.strftime(ZOHO_DATE_FORMAT),
-                        "date_end": end_date.strftime(ZOHO_DATE_FORMAT),
-                        "page": page,
-                        "per_page": 200,
-                        "sort_column": "journal_date",
-                        "sort_order": "A",
-                    },
-                )
-                if resp.status_code == 204:
-                    break
-                resp.raise_for_status()
-                data = resp.json()
-                if data.get("code") != 0:
-                    raise RuntimeError(f"Zoho Books API error listing journals: {data.get('message')}")
-
-                for j in data.get("journals", []):
-                    raw_date = j.get("journal_date", "")
-                    try:
-                        j_date = datetime.strptime(raw_date[:10], ZOHO_DATE_FORMAT).date()
-                    except (ValueError, TypeError):
-                        continue
-                    journal_stubs.append((j["journal_id"], j_date))
-
-                page_context = data.get("page_context", {})
-                if not page_context.get("has_more_page", False):
-                    break
-                page += 1
-                if page > 50:
-                    break
-
-        if len(journal_stubs) > MAX_GL_EXPENSE_JOURNALS_PER_SYNC:
-            logger.warning(
-                f"Zoho Books gl_expense sync: {len(journal_stubs)} journals in range, "
-                f"capping detail fetch at {MAX_GL_EXPENSE_JOURNALS_PER_SYNC} (narrow the "
-                f"date range or sync more often to cover the rest)."
+            stubs = self._list_stubs(
+                client, "journals", "journal_id", "journal_date", org_id, start_date, end_date, MAX_GL_EXPENSE_JOURNALS_PER_SYNC,
             )
-            journal_stubs = journal_stubs[:MAX_GL_EXPENSE_JOURNALS_PER_SYNC]
-
-        # Step 2: fetch each journal's detail, sum debit-side line items matching the GL account
-        date_totals: dict[date, dict[str, float]] = defaultdict(lambda: {"amount": 0.0, "count": 0})
-        with httpx.Client(timeout=30) as client:
-            for i, (journal_id, j_date) in enumerate(journal_stubs):
-                if i > 0:
-                    time.sleep(0.3)  # spread calls out — proactively avoid rate limits
-                detail = self._get_detail_with_retry(client, "journals", journal_id, org_id, "journal")
+            for journal_id, j_date, modified in stubs:
+                detail, fetched = self._get_detail(client, "journals", journal_id, org_id, "journal", modified)
+                if fetched:
+                    time.sleep(0.3)
                 if detail is None:
                     continue
-
+                rate = _rate(detail)
                 for line in detail.get("line_items", []):
-                    if line.get("account_id") != gl_account_id:
+                    if line.get("account_id") != gl_account_id or line.get("debit_or_credit") != "debit":
                         continue
-                    if line.get("debit_or_credit") != "debit":
-                        continue
-                    bucket = date_totals[j_date]
-                    bucket["amount"] += float(line.get("amount") or 0)
-                    bucket["count"] += 1
+                    bcy = line.get("bcy_amount")
+                    amount = float(bcy) if _is_number(bcy) else float(line.get("amount") or 0) * rate
+                    totals[j_date]["amount"] += amount
+                    totals[j_date]["count"] += 1
 
         rows = []
-        for record_date, totals in sorted(date_totals.items()):
+        for record_date, t in sorted(totals.items()):
             rows.append({
                 "date": record_date,
-                "amount__sum": totals["amount"],
-                "amount__count": totals["count"],
-                "amount__avg": totals["amount"] / totals["count"] if totals["count"] else 0,
-                "__record_count": totals["count"],
+                "amount__sum": t["amount"],
+                "amount__count": t["count"],
+                "amount__avg": t["amount"] / t["count"] if t["count"] else 0,
+                "__record_count": t["count"],
             })
         return rows
 
@@ -498,100 +599,63 @@ class ZohoBooksConnector(BaseConnector):
         end_date: Optional[date] = None,
     ) -> list[dict]:
         """
-        Fetch records from the configured Zoho Books module, aggregate by date.
-        Returns list of dicts with "date" key and aggregated values.
+        Records from the configured module in [start_date, end_date], per day.
+
+        Drafts, voids and records awaiting approval are left out, amounts are
+        converted to the org's base currency, and any fetch failure raises.
+        Days with no records are absent; `self.warnings` lists anything that
+        means the range may be incomplete.
         """
-        config = self.integration.config or {}
-        module = config.get("module", "invoices")
-
-        if module == GL_REVENUE_MODULE:
-            return self._fetch_gl_revenue(start_date, end_date)
-
-        if module == GL_EXPENSE_MODULE:
-            return self._fetch_gl_expense(start_date, end_date)
-
-        module_info = BOOKS_MODULES.get(module, BOOKS_MODULES["invoices"])
-        org_id = self._get_org_id()
-        date_field = config.get("date_field", module_info["date_field"])
-        branch_id = config.get("branch_id")
-
+        self.warnings = []
         if not start_date:
             start_date = date.today() - timedelta(days=30)
         if not end_date:
             end_date = date.today()
 
-        all_records = []
-        page = 1
+        config = self._config()
+        module = config.get("module", "invoices")
+        if module == GL_REVENUE_MODULE:
+            return self._fetch_gl_revenue(start_date, end_date)
+        if module == GL_EXPENSE_MODULE:
+            return self._fetch_gl_expense(start_date, end_date)
 
-        try:
-            with httpx.Client(timeout=30) as client:
-                while True:
-                    params = {
-                        "organization_id": org_id,
-                        "date_start": start_date.strftime(ZOHO_DATE_FORMAT),
-                        "date_end": end_date.strftime(ZOHO_DATE_FORMAT),
-                        "page": page,
-                        "per_page": 200,
-                        "sort_column": date_field,
-                        "sort_order": "A",
-                    }
-                    if branch_id:
-                        params["branch_id"] = branch_id
+        module_info = BOOKS_MODULES.get(module, BOOKS_MODULES["invoices"])
+        date_field = config.get("date_field", module_info["date_field"])
+        params = {
+            "organization_id": self._get_org_id(),
+            "date_start": start_date.strftime(ZOHO_DATE_FORMAT),
+            "date_end": end_date.strftime(ZOHO_DATE_FORMAT),
+            "sort_column": date_field,
+            "sort_order": "A",
+        }
+        if config.get("branch_id"):
+            params["branch_id"] = config["branch_id"]
 
-                    resp = client.get(
-                        f"{ZOHO_BOOKS_API_BASE}/{module_info['endpoint']}",
-                        headers=self._get_headers(),
-                        params=params,
-                    )
+        with httpx.Client(timeout=30) as client:
+            all_records = self._list_all(client, module_info["endpoint"], params)
 
-                    if resp.status_code == 204:
-                        break
-                    resp.raise_for_status()
-                    data = resp.json()
-
-                    if data.get("code") != 0:
-                        logger.error(f"Zoho Books API error: {data.get('message')}")
-                        break
-
-                    records = data.get(module_info["endpoint"], data.get("data", []))
-                    all_records.extend(records)
-
-                    page_context = data.get("page_context", {})
-                    if not page_context.get("has_more_page", False):
-                        break
-                    page += 1
-
-                    if page > 50:
-                        break
-
-        except Exception as e:
-            logger.error(f"Failed to fetch Zoho Books records: {e}")
-            return []
-
-        # Group records by date
+        # Group counted records by date, in base currency
         date_groups: dict[date, list[dict]] = defaultdict(list)
         for record in all_records:
-            raw_date = record.get(date_field, "")
-            if not raw_date:
+            if not is_counted(record):
                 continue
+            raw_date = record.get(date_field, "")
+            if not isinstance(raw_date, str) or not raw_date:
+                continue
+            try:
+                record_date = datetime.strptime(raw_date[:10], ZOHO_DATE_FORMAT).date()
+            except ValueError:
+                continue
+            date_groups[record_date].append(to_base_currency(record))
 
-            record_date = None
-            if isinstance(raw_date, str):
-                try:
-                    record_date = datetime.strptime(raw_date[:10], ZOHO_DATE_FORMAT).date()
-                except ValueError:
-                    continue
-
-            if record_date:
-                date_groups[record_date].append(record)
-
-        # Aggregate by date
         rows = []
         for record_date, records in sorted(date_groups.items()):
             entry = {"date": record_date, "_records": records, "_count": len(records)}
 
             numeric_sums: dict[str, float] = defaultdict(float)
             numeric_counts: dict[str, int] = defaultdict(int)
+            numeric_mins: dict[str, float] = {}
+            numeric_maxs: dict[str, float] = {}
 
             for rec in records:
                 for key, val in rec.items():
@@ -600,15 +664,15 @@ class ZohoBooksConnector(BaseConnector):
                     if isinstance(val, (int, float)):
                         numeric_sums[key] += val
                         numeric_counts[key] += 1
+                        numeric_mins[key] = min(numeric_mins.get(key, val), val)
+                        numeric_maxs[key] = max(numeric_maxs.get(key, val), val)
 
             for field_name in numeric_sums:
                 entry[f"{field_name}__sum"] = numeric_sums[field_name]
                 entry[f"{field_name}__count"] = numeric_counts[field_name]
-                entry[f"{field_name}__avg"] = (
-                    numeric_sums[field_name] / numeric_counts[field_name]
-                    if numeric_counts[field_name] > 0
-                    else 0
-                )
+                entry[f"{field_name}__avg"] = numeric_sums[field_name] / numeric_counts[field_name]
+                entry[f"{field_name}__min"] = numeric_mins[field_name]
+                entry[f"{field_name}__max"] = numeric_maxs[field_name]
 
             entry["__record_count"] = len(records)
             rows.append(entry)

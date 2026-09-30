@@ -133,3 +133,62 @@ export interface ConfigField {
   options?: { value: string; label: string }[]
   required: boolean
 }
+
+// --- Zoho Books guided setup ---
+export type ZohoBooksModule =
+  | 'invoices'
+  | 'bills'
+  | 'expenses'
+  | 'payments_received'
+  | 'payments_made'
+  | 'credit_notes'
+  | 'sales_orders'
+  | 'purchase_orders'
+  | 'gl_revenue'
+  | 'gl_expense'
+
+export interface ZohoBooksOrganization {
+  id: string
+  name: string
+  currency_code: string | null
+  is_default: boolean
+}
+
+export interface ZohoBooksBranch {
+  id: string
+  name: string
+  is_primary: boolean
+}
+
+export interface ZohoBooksAccount {
+  id: string
+  name: string
+  code: string | null
+  account_type: string | null
+}
+
+/** One day of totals: { date: 'YYYY-MM-DD', total__sum: 1200, __record_count: 3, ... } */
+export type ZohoBooksPreviewRow = { date: string } & Record<string, number | string>
+
+export interface ZohoBooksSourceMappingInput {
+  external_field_name: string
+  external_field_label?: string
+  aggregation: Exclude<AggregationType, 'direct'>
+  /** Exactly one of these */
+  data_field_id?: string
+  new_field_name?: string
+}
+
+export interface CreateZohoBooksSourcesData {
+  org_id: string
+  branch_id?: string
+  sync_schedule: SyncSchedule
+  /** Days of history to bring in; the first 30 sync right away, the rest in the background */
+  history_days: number
+  sources: {
+    module: ZohoBooksModule
+    gl_account_id?: string
+    display_name: string
+    mappings: ZohoBooksSourceMappingInput[]
+  }[]
+}

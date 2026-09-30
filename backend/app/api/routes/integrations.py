@@ -1,5 +1,6 @@
 import logging
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
+from typing import Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query
@@ -22,9 +23,18 @@ from app.schemas.integrations import (
     SyncLogListResponse,
     SyncLogResponse,
     OAuthAuthorizeResponse,
+    ZOHO_BOOKS_MODULE_PATTERN,
+    ZohoBooksOrganizationListResponse,
+    ZohoBooksBranchListResponse,
+    ZohoBooksAccountListResponse,
+    ZohoBooksPreviewResponse,
+    CreateZohoBooksSourcesRequest,
+    ResyncHistoryRequest,
 )
+from app.core.encryption import decrypt_value
+from app.services.zoho_books_setup_service import ZohoBooksSetupService
 from app.services.integration_service import IntegrationService
-from app.services.sync_service import SyncService
+from app.services.sync_service import SyncService, INITIAL_SYNC_DAYS
 from app.services.connectors import get_connector
 from app.services.connectors.google_sheets import GoogleSheetsConnector
 from app.services.connectors.google_ads import GoogleAdsConnector
@@ -76,8 +86,8 @@ def create_integration(
 
     # Set up scheduled sync if not manual
     if integration.sync_schedule != "manual" and integration.status == "connected":
-        from app.core.scheduler import scheduler
-        SyncService.add_sync_job(scheduler, integration)
+        SyncService.schedule_next(integration)
+        db.commit()
 
     return IntegrationService.to_response(integration)
 
@@ -121,13 +131,11 @@ def update_integration(
     old_schedule = integration.sync_schedule
     integration = IntegrationService.update(db, integration, data)
 
-    # Update scheduler if schedule changed
+    # Reschedule if the schedule changed (manual clears the next run)
     if data.sync_schedule and data.sync_schedule != old_schedule:
-        from app.core.scheduler import scheduler
-        if data.sync_schedule == "manual":
-            SyncService.remove_sync_job(scheduler, integration.id)
-        elif integration.status == "connected":
-            SyncService.add_sync_job(scheduler, integration)
+        SyncService.schedule_next(integration)
+        db.commit()
+        db.refresh(integration)
 
     return IntegrationService.to_response(integration)
 
@@ -143,10 +151,6 @@ def delete_integration(
     integration = IntegrationService.get_by_id(db, integration_id, org.id)
     if not integration:
         raise HTTPException(status_code=404, detail="Integration not found")
-
-    # Remove scheduled job
-    from app.core.scheduler import scheduler
-    SyncService.remove_sync_job(scheduler, integration.id)
 
     IntegrationService.delete(db, integration)
 
@@ -177,6 +181,26 @@ def trigger_sync(
         trigger_type="manual",
     )
     return SyncLogResponse.model_validate(sync_log)
+
+
+@router.post("/{integration_id}/resync", status_code=status.HTTP_202_ACCEPTED)
+def resync_history(
+    integration_id: UUID,
+    data: ResyncHistoryRequest,
+    admin_org: tuple[User, Organization] = Depends(require_admin_org),
+    db: Session = Depends(get_db),
+):
+    """Re-sync the last N days in the background, replacing synced values."""
+    user, org = admin_org
+    integration = IntegrationService.get_by_id(db, integration_id, org.id)
+    if not integration:
+        raise HTTPException(status_code=404, detail="Integration not found")
+    if integration.status not in ("connected", "error") or not integration.field_mappings:
+        raise HTTPException(status_code=400, detail="Finish setting up this integration before re-syncing.")
+
+    SyncService.request_history_sync(integration, data.days)
+    db.commit()
+    return {"status": "scheduled", "days": data.days}
 
 
 @router.get("/{integration_id}/logs", response_model=SyncLogListResponse)
@@ -250,6 +274,148 @@ def set_field_mappings(
     return FieldMappingListResponse(
         mappings=[IntegrationService.mapping_to_response(m) for m in mappings],
         total=len(mappings),
+    )
+
+
+# --- Zoho Books guided setup ---
+# These run against a connected Zoho Books integration's sign-in, so the setup
+# screen can offer dropdowns instead of asking for org/branch/GL IDs.
+
+def _zoho_setup_connector(
+    db: Session, integration_id: UUID, org: Organization, config: Optional[dict] = None,
+) -> ZohoBooksConnector:
+    auth = ZohoBooksSetupService.get_auth_integration(db, integration_id, org.id)
+    connector = ZohoBooksConnector(auth, db, config_override=config)
+    if not connector.ensure_fresh_token():
+        raise HTTPException(status_code=400, detail="Your Zoho sign-in has expired. Sign in again.")
+    return connector
+
+
+def _zoho_call(fn, what: str):
+    try:
+        return fn()
+    except HTTPException:
+        raise
+    except Exception:
+        logger.exception(f"Zoho Books setup lookup failed: {what}")
+        raise HTTPException(status_code=502, detail=f"Couldn't load {what} from Zoho Books. Try again.")
+
+
+@router.get("/{integration_id}/zoho-books/organizations", response_model=ZohoBooksOrganizationListResponse)
+def zoho_books_organizations(
+    integration_id: UUID,
+    admin_org: tuple[User, Organization] = Depends(require_admin_org),
+    db: Session = Depends(get_db),
+):
+    user, org = admin_org
+    connector = _zoho_setup_connector(db, integration_id, org)
+    return {"organizations": _zoho_call(connector.list_organizations, "organisations")}
+
+
+@router.get("/{integration_id}/zoho-books/branches", response_model=ZohoBooksBranchListResponse)
+def zoho_books_branches(
+    integration_id: UUID,
+    org_id: str = Query(..., min_length=1),
+    admin_org: tuple[User, Organization] = Depends(require_admin_org),
+    db: Session = Depends(get_db),
+):
+    user, org = admin_org
+    connector = _zoho_setup_connector(db, integration_id, org)
+    return {"branches": _zoho_call(lambda: connector.list_branches(org_id), "branches")}
+
+
+@router.get("/{integration_id}/zoho-books/accounts", response_model=ZohoBooksAccountListResponse)
+def zoho_books_accounts(
+    integration_id: UUID,
+    org_id: str = Query(..., min_length=1),
+    kind: str = Query(..., pattern="^(income|expense)$"),
+    admin_org: tuple[User, Organization] = Depends(require_admin_org),
+    db: Session = Depends(get_db),
+):
+    user, org = admin_org
+    connector = _zoho_setup_connector(db, integration_id, org)
+    return {"accounts": _zoho_call(lambda: connector.list_accounts(org_id, kind), "accounts")}
+
+
+@router.get("/{integration_id}/zoho-books/fields", response_model=ExternalFieldListResponse)
+def zoho_books_fields(
+    integration_id: UUID,
+    org_id: str = Query(..., min_length=1),
+    module: str = Query(..., pattern=ZOHO_BOOKS_MODULE_PATTERN),
+    admin_org: tuple[User, Organization] = Depends(require_admin_org),
+    db: Session = Depends(get_db),
+):
+    """Values available on a module, before any integration exists for it."""
+    user, org = admin_org
+    connector = _zoho_setup_connector(db, integration_id, org, {"module": module, "zoho_org_id": org_id})
+    fields = _zoho_call(connector.get_available_fields, "fields")
+    return ExternalFieldListResponse(
+        fields=[ExternalFieldResponse(name=f.name, label=f.label, field_type=f.field_type) for f in fields],
+        total=len(fields),
+    )
+
+
+@router.get("/{integration_id}/zoho-books/preview", response_model=ZohoBooksPreviewResponse)
+def zoho_books_preview(
+    integration_id: UUID,
+    org_id: str = Query(..., min_length=1),
+    module: str = Query(..., pattern=ZOHO_BOOKS_MODULE_PATTERN),
+    branch_id: Optional[str] = Query(None),
+    days: int = Query(7, ge=1, le=31),
+    admin_org: tuple[User, Organization] = Depends(require_admin_org),
+    db: Session = Depends(get_db),
+):
+    """Daily totals for the last few days, so values can be checked before saving."""
+    if module in ("gl_revenue", "gl_expense"):
+        # These fetch every invoice/journal's detail — too slow for a preview
+        raise HTTPException(status_code=400, detail="Preview isn't available for GL account sources.")
+    user, org = admin_org
+    config = {"module": module, "zoho_org_id": org_id}
+    if branch_id:
+        config["branch_id"] = branch_id
+    connector = _zoho_setup_connector(db, integration_id, org, config)
+    end = date.today()
+    raw = _zoho_call(lambda: connector.fetch_data(end - timedelta(days=days - 1), end), "a preview")
+    rows = []
+    for row in raw:
+        out = {"date": row["date"].isoformat()}
+        for key, val in row.items():
+            if key.startswith("_") and not key.startswith("__"):
+                continue  # raw records / internal counters
+            if isinstance(val, (int, float)) and not isinstance(val, bool):
+                out[key] = val
+        rows.append(out)
+    return {"rows": rows}
+
+
+@router.post(
+    "/{integration_id}/zoho-books/sources",
+    response_model=IntegrationListResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def zoho_books_create_sources(
+    integration_id: UUID,
+    data: CreateZohoBooksSourcesRequest,
+    admin_org: tuple[User, Organization] = Depends(require_admin_org),
+    db: Session = Depends(get_db),
+):
+    """Create several Zoho Books integrations that share this integration's sign-in."""
+    user, org = admin_org
+    auth = ZohoBooksSetupService.get_auth_integration(db, integration_id, org.id)
+    created = ZohoBooksSetupService.create_sources(db, org.id, user.id, auth, data)
+
+    for integration in created:
+        SyncService.schedule_next(integration)
+        if data.history_days > INITIAL_SYNC_DAYS:
+            # The setup screen syncs the first 30 days; the rest runs in the background
+            SyncService.request_history_sync(integration, data.history_days)
+    db.commit()
+    for integration in created:
+        db.refresh(integration)
+
+    return IntegrationListResponse(
+        integrations=[IntegrationService.to_response(i) for i in created],
+        total=len(created),
     )
 
 
@@ -355,6 +521,13 @@ def oauth_callback(
         else:
             raise HTTPException(status_code=400, detail="Unknown provider")
 
+        old_refresh_token = None
+        if integration.refresh_token_encrypted:
+            try:
+                old_refresh_token = decrypt_value(integration.refresh_token_encrypted)
+            except Exception:
+                old_refresh_token = None
+
         access_token = tokens.get("access_token", "")
         refresh_token = tokens.get("refresh_token")
         expires_in = tokens.get("expires_in", 3600)
@@ -364,8 +537,12 @@ def oauth_callback(
             db, integration, access_token, refresh_token, expires_at
         )
 
+        # Other Zoho Books sources on the same sign-in pick up the new tokens
+        if provider == "zoho_books":
+            ZohoBooksSetupService.share_new_tokens(db, integration, old_refresh_token)
+
         # Redirect back to frontend
-        redirect_url = f"{settings.FRONTEND_URL}/integrations?connected={provider}&id={integration.id}"
+        redirect_url = f"{settings.FRONTEND_URL}/settings/integrations?connected={provider}&id={integration.id}"
         return RedirectResponse(url=redirect_url)
 
     except Exception as e:
@@ -375,5 +552,5 @@ def oauth_callback(
             db, integration,
             "OAuth authorization failed. Please try connecting again.",
         )
-        redirect_url = f"{settings.FRONTEND_URL}/integrations?error=oauth_failed&provider={provider}"
+        redirect_url = f"{settings.FRONTEND_URL}/settings/integrations?error=oauth_failed&provider={provider}&id={integration.id}"
         return RedirectResponse(url=redirect_url)

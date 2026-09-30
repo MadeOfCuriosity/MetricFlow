@@ -218,7 +218,7 @@ export function SettingsUsage() {
               style={{ width: `${integrationsLimit === 9999 ? 30 : integrationsPercent}%` }}
             />
           </div>
-          <p className="text-[11px] text-dark-400">Google Sheets, Zoho Suite, LeadSquared sync</p>
+          <p className="text-[11px] text-dark-400">Zoho Books sync</p>
         </div>
 
         {/* Departmental Rooms */}

@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react'
-import { Dialog } from '@headlessui/react'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import {
   ArrowPathIcon,
   PlusIcon,
@@ -8,51 +8,31 @@ import {
   CheckCircleIcon,
   ExclamationCircleIcon,
   XCircleIcon,
-  XMarkIcon,
   PencilIcon,
   ArrowPathRoundedSquareIcon,
   ExclamationTriangleIcon,
+  WrenchScrewdriverIcon,
 } from '@heroicons/react/24/outline'
 import { useToast } from '../../context/ToastContext'
-import { IntegrationSetupModal } from '../../components/IntegrationSetupModal'
+import { ZohoBooksSetupModal } from '../../components/zoho/ZohoBooksSetupModal'
+import { isSetupIncomplete } from '../../components/zoho/catalog'
 import { SyncHistoryModal } from '../../components/SyncHistoryModal'
 import { DeleteConfirmModal } from '../../components/DeleteConfirmModal'
 import { integrationsApi } from '../../services/integrations'
-import type { Integration, IntegrationProvider } from '../../types/integration'
+import type { Integration } from '../../types/integration'
 import { formatDistanceToNow } from 'date-fns'
 import { getApiError } from '../../lib/apiError'
 import { StatChip } from '../../components/ui/StatChip'
-import { Modal } from '../../components/ui/Modal'
 import { WhatsAppOrgCard } from '../../components/whatsapp/WhatsAppOrgCard'
 
 const PROVIDERS: Record<
   string,
   { name: string; color: string; description: string }
 > = {
-  google_sheets: {
-    name: 'Google Sheets',
-    color: '#0F9D58',
-    description: 'Import metric data from Google Spreadsheets in real time',
-  },
-  zoho_crm: {
-    name: 'Zoho CRM',
-    color: '#E42527',
-    description: 'Sync customer leads, pipeline deals, and accounts',
-  },
   zoho_books: {
     name: 'Zoho Books',
     color: '#4BC882',
     description: 'Sync financial invoices, expenses, and revenue',
-  },
-  zoho_sheet: {
-    name: 'Zoho Sheet',
-    color: '#17B26A',
-    description: 'Import worksheets and rows from Zoho cloud sheets',
-  },
-  leadsquared: {
-    name: 'LeadSquared',
-    color: '#FF6B35',
-    description: 'Pull sales lead stages and activity milestones',
   },
 }
 
@@ -78,12 +58,26 @@ const STATUS_CONFIG: Record<
     label: 'Disconnected',
     badge: 'bg-dark-800 text-dark-400 border-dark-700',
   },
+  incomplete: {
+    icon: WrenchScrewdriverIcon,
+    className: 'text-warning-400',
+    label: 'Setup incomplete',
+    badge: 'bg-warning-500/10 text-warning-400 border-warning-500/20',
+  },
   pending_auth: {
     icon: ClockIcon,
     className: 'text-warning-400',
     label: 'Pending Auth',
     badge: 'bg-warning-500/10 text-warning-400 border-warning-500/20',
   },
+}
+
+const SCHEDULE_LABELS: Record<string, string> = {
+  manual: 'Manual',
+  '1h': 'Every hour',
+  '6h': 'Every 6 hours',
+  '12h': 'Every 12 hours',
+  '24h': 'Daily',
 }
 
 export function AdminIntegrations() {
@@ -93,10 +87,12 @@ export function AdminIntegrations() {
   const [syncingIds, setSyncingIds] = useState<Set<string>>(new Set())
 
   // Modals
-  const [isPickerOpen, setIsPickerOpen] = useState(false)
-  const [setupProvider, setSetupProvider] = useState<IntegrationProvider | null>(null)
   const [editIntegration, setEditIntegration] = useState<Integration | null>(null)
+  const [resumeAuthId, setResumeAuthId] = useState<string | null>(null)
   const [isSetupOpen, setIsSetupOpen] = useState(false)
+  const [reconnectingId, setReconnectingId] = useState<string | null>(null)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const handledReturn = useRef(false)
   const [historyIntegration, setHistoryIntegration] = useState<Integration | null>(null)
   const [deleteIntegration, setDeleteIntegration] = useState<Integration | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
@@ -115,6 +111,30 @@ export function AdminIntegrations() {
   useEffect(() => {
     fetchIntegrations()
   }, [fetchIntegrations])
+
+  // Back from the Zoho sign-in: continue setup, or confirm a reconnect
+  useEffect(() => {
+    if (isLoading || handledReturn.current) return
+    const connectedId = searchParams.get('connected') ? searchParams.get('id') : null
+    const failed = searchParams.get('error') === 'oauth_failed'
+    if (!connectedId && !failed) return
+    handledReturn.current = true
+    setSearchParams({}, { replace: true })
+
+    if (failed) {
+      showError('Zoho sign-in didn\'t finish', 'Nothing was changed. Try connecting again.')
+      return
+    }
+    const returned = integrations.find(i => i.id === connectedId)
+    if (!returned) return
+    if (isSetupIncomplete(returned)) {
+      setEditIntegration(null)
+      setResumeAuthId(returned.id)
+      setIsSetupOpen(true)
+    } else {
+      success('Reconnected', `${returned.display_name} can sync again.`)
+    }
+  }, [isLoading, integrations, searchParams, setSearchParams, success, showError])
 
   const handleSync = async (integration: Integration) => {
     setSyncingIds((prev) => new Set(prev).add(integration.id))
@@ -158,22 +178,27 @@ export function AdminIntegrations() {
     }
   }
 
-  const handleSetupComplete = () => {
-    setIsSetupOpen(false)
-    setSetupProvider(null)
-    setEditIntegration(null)
-    success('Integration Configured', 'Your integration is ready.')
-    fetchIntegrations()
+  const handleReconnect = async (integration: Integration) => {
+    setReconnectingId(integration.id)
+    try {
+      const { authorize_url } = await integrationsApi.getOAuthUrl(integration.provider, integration.id)
+      window.location.href = authorize_url
+    } catch (err: unknown) {
+      showError('Reconnect failed', getApiError(err, 'Could not start the Zoho sign-in'))
+      setReconnectingId(null)
+    }
+  }
+
+  const openSetup = (opts: { edit?: Integration; resumeId?: string } = {}) => {
+    setEditIntegration(opts.edit ?? null)
+    setResumeAuthId(opts.resumeId ?? null)
+    setIsSetupOpen(true)
   }
 
   const connectedCount = integrations.filter((i) => i.status === 'connected').length
   const errorCount = integrations.filter((i) => i.status === 'error').length
 
-  const handleChooseProvider = (providerId: string) => {
-    setIsPickerOpen(false)
-    setSetupProvider(providerId as IntegrationProvider)
-    setIsSetupOpen(true)
-  }
+  const handleAddIntegration = () => openSetup()
 
   return (
     <div className="space-y-6">
@@ -196,7 +221,7 @@ export function AdminIntegrations() {
 
         <button
           type="button"
-          onClick={() => setIsPickerOpen(true)}
+          onClick={handleAddIntegration}
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary-500 text-white font-semibold hover:opacity-90 transition-opacity text-sm shadow-sm cursor-pointer self-start sm:self-auto"
         >
           <PlusIcon className="w-4 h-4 stroke-[2.5]" />
@@ -214,14 +239,14 @@ export function AdminIntegrations() {
               <ArrowPathRoundedSquareIcon className="w-7 h-7 text-dark-400 stroke-[1.5]" />
             </div>
             <p className="text-sm font-semibold text-foreground">No integrations configured yet</p>
-            <p className="text-xs text-dark-400 mt-1 mb-5">Connect Google Sheets, Zoho CRM, or LeadSquared to automate data sync.</p>
+            <p className="text-xs text-dark-400 mt-1 mb-5">Connect Zoho Books to sync invoices, expenses, and revenue automatically.</p>
             <button
               type="button"
-              onClick={() => setIsPickerOpen(true)}
+              onClick={handleAddIntegration}
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary-500 text-white font-semibold text-xs hover:opacity-90 transition-opacity shadow-sm cursor-pointer"
             >
               <PlusIcon className="w-4 h-4 stroke-[2.5]" />
-              <span>Connect First Integration</span>
+              <span>Connect Zoho Books</span>
             </button>
           </div>
         ) : (
@@ -239,7 +264,10 @@ export function AdminIntegrations() {
               <tbody className="divide-y divide-dark-800 text-sm">
                 {integrations.map((integration) => {
                   const provider = PROVIDERS[integration.provider]
-                  const statusCfg = STATUS_CONFIG[integration.status] || STATUS_CONFIG.disconnected
+                  const incomplete = isSetupIncomplete(integration)
+                  const statusCfg = incomplete
+                    ? STATUS_CONFIG.incomplete
+                    : STATUS_CONFIG[integration.status] || STATUS_CONFIG.disconnected
 
                   return (
                     <tr
@@ -265,6 +293,14 @@ export function AdminIntegrations() {
                             <p className="text-xs text-dark-400">
                               {provider?.name || integration.provider}
                             </p>
+                            {!incomplete && integration.error_message && (
+                              <p
+                                className={`text-[11px] mt-0.5 max-w-xs truncate ${integration.status === 'error' ? 'text-danger-400' : 'text-warning-400'}`}
+                                title={integration.error_message}
+                              >
+                                {integration.status === 'error' ? integration.error_message : `Last sync incomplete: ${integration.error_message}`}
+                              </p>
+                            )}
                           </div>
                         </div>
                       </td>
@@ -278,9 +314,7 @@ export function AdminIntegrations() {
                       </td>
                       <td className="px-4 py-3.5 hidden md:table-cell">
                         <span className="text-xs text-dark-300 capitalize font-medium">
-                          {integration.sync_schedule === 'manual'
-                            ? 'Manual'
-                            : `Every ${integration.sync_schedule}`}
+                          {incomplete ? '—' : SCHEDULE_LABELS[integration.sync_schedule] ?? integration.sync_schedule}
                         </span>
                       </td>
                       <td className="px-4 py-3.5 hidden lg:table-cell">
@@ -295,41 +329,60 @@ export function AdminIntegrations() {
                       </td>
                       <td className="px-5 py-3.5 text-right">
                         <div className="flex items-center justify-end gap-1">
-                          {integration.status === 'connected' && (
+                          {incomplete ? (
                             <button
                               type="button"
-                              onClick={() => handleSync(integration)}
-                              disabled={syncingIds.has(integration.id)}
-                              className="p-1.5 text-dark-400 hover:text-foreground hover:bg-dark-800 rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
-                              title="Sync now"
+                              onClick={() => openSetup(integration.status === 'connected' ? { resumeId: integration.id } : {})}
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 mr-1 text-xs font-semibold text-foreground border border-dark-600 hover:border-dark-500 rounded-lg transition-colors cursor-pointer"
                             >
-                              <ArrowPathIcon
-                                className={`w-4 h-4 ${
-                                  syncingIds.has(integration.id) ? 'animate-spin' : ''
-                                }`}
-                              />
+                              <WrenchScrewdriverIcon className="w-3.5 h-3.5" />
+                              Finish setup
                             </button>
+                          ) : (
+                            <>
+                              {integration.status === 'error' && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleReconnect(integration)}
+                                  disabled={reconnectingId === integration.id}
+                                  className="px-2.5 py-1.5 mr-1 text-xs font-semibold text-danger-400 border border-danger-500/30 hover:bg-danger-500/10 rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
+                                >
+                                  {reconnectingId === integration.id ? 'Opening Zoho…' : 'Reconnect'}
+                                </button>
+                              )}
+                              {integration.status === 'connected' && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleSync(integration)}
+                                  disabled={syncingIds.has(integration.id)}
+                                  className="p-1.5 text-dark-400 hover:text-foreground hover:bg-dark-800 rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
+                                  title="Sync now"
+                                >
+                                  <ArrowPathIcon
+                                    className={`w-4 h-4 ${
+                                      syncingIds.has(integration.id) ? 'animate-spin' : ''
+                                    }`}
+                                  />
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => setHistoryIntegration(integration)}
+                                className="p-1.5 text-dark-400 hover:text-foreground hover:bg-dark-800 rounded-lg transition-colors cursor-pointer"
+                                title="View sync history"
+                              >
+                                <ClockIcon className="w-4 h-4" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => openSetup({ edit: integration })}
+                                className="p-1.5 text-dark-400 hover:text-foreground hover:bg-dark-800 rounded-lg transition-colors cursor-pointer"
+                                title="Edit values and schedule"
+                              >
+                                <PencilIcon className="w-4 h-4" />
+                              </button>
+                            </>
                           )}
-                          <button
-                            type="button"
-                            onClick={() => setHistoryIntegration(integration)}
-                            className="p-1.5 text-dark-400 hover:text-foreground hover:bg-dark-800 rounded-lg transition-colors cursor-pointer"
-                            title="View sync history"
-                          >
-                            <ClockIcon className="w-4 h-4" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setEditIntegration(integration)
-                              setSetupProvider(integration.provider)
-                              setIsSetupOpen(true)
-                            }}
-                            className="p-1.5 text-dark-400 hover:text-foreground hover:bg-dark-800 rounded-lg transition-colors cursor-pointer"
-                            title="Edit settings"
-                          >
-                            <PencilIcon className="w-4 h-4" />
-                          </button>
                           <button
                             type="button"
                             onClick={() => setDeleteIntegration(integration)}
@@ -349,64 +402,19 @@ export function AdminIntegrations() {
         )}
       </div>
 
-      {/* Provider Picker Modal */}
-      <Modal
-        isOpen={isPickerOpen}
-        onClose={() => setIsPickerOpen(false)}
-        className="w-full max-w-lg transform overflow-hidden rounded-2xl bg-dark-900 border border-dark-700 p-6 shadow-2xl transition-all"
-      >
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <Dialog.Title className="text-base font-bold text-foreground tracking-tight">
-              Choose Integration Provider
-            </Dialog.Title>
-            <p className="text-xs text-dark-400 mt-0.5">Select a data source to connect with your rooms</p>
-          </div>
-          <button
-            onClick={() => setIsPickerOpen(false)}
-            className="text-dark-400 hover:text-foreground transition-colors cursor-pointer"
-          >
-            <XMarkIcon className="h-5 w-5" />
-          </button>
-        </div>
-
-        <div className="space-y-2.5">
-          {Object.entries(PROVIDERS).map(([key, provider]) => (
-            <button
-              key={key}
-              onClick={() => handleChooseProvider(key)}
-              className="flex items-center gap-3.5 w-full p-3.5 bg-dark-950/40 hover:bg-dark-800/40 border border-dark-800 rounded-2xl transition-all text-left cursor-pointer group"
-            >
-              <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold flex-shrink-0 group-hover:scale-105 transition-transform"
-                style={{ backgroundColor: provider.color }}
-              >
-                {provider.name.charAt(0)}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold text-foreground group-hover:text-brand transition-colors">{provider.name}</p>
-                <p className="text-[11px] text-dark-400 mt-0.5">{provider.description}</p>
-              </div>
-              <span className="text-xs text-dark-400 group-hover:text-foreground transition-colors">Connect &rarr;</span>
-            </button>
-          ))}
-        </div>
-      </Modal>
-
       {/* Setup / Edit Modal */}
-      {isSetupOpen && setupProvider && (
-        <IntegrationSetupModal
-          isOpen={isSetupOpen}
-          provider={setupProvider}
-          editIntegration={editIntegration}
-          onClose={() => {
-            setIsSetupOpen(false)
-            setSetupProvider(null)
-            setEditIntegration(null)
-          }}
-          onComplete={handleSetupComplete}
-        />
-      )}
+      <ZohoBooksSetupModal
+        isOpen={isSetupOpen}
+        integrations={integrations}
+        resumeAuthId={resumeAuthId}
+        editIntegration={editIntegration}
+        onChanged={fetchIntegrations}
+        onClose={() => {
+          setIsSetupOpen(false)
+          setEditIntegration(null)
+          setResumeAuthId(null)
+        }}
+      />
 
       {/* History Modal */}
       {historyIntegration && (
