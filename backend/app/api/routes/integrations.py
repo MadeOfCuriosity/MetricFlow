@@ -49,6 +49,11 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/integrations", tags=["Integrations"])
 
 
+def _frontend_base() -> str:
+    """FRONTEND_URL can list several origins (custom domain, Amplify URL); send users to the first."""
+    return (settings.FRONTEND_URL or "").split(",")[0].strip().rstrip("/")
+
+
 # --- CRUD ---
 
 @router.get("", response_model=IntegrationListResponse)
@@ -542,7 +547,7 @@ def oauth_callback(
             ZohoBooksSetupService.share_new_tokens(db, integration, old_refresh_token)
 
         # Redirect back to frontend
-        redirect_url = f"{settings.FRONTEND_URL}/settings/integrations?connected={provider}&id={integration.id}"
+        redirect_url = f"{_frontend_base()}/settings/integrations?connected={provider}&id={integration.id}"
         return RedirectResponse(url=redirect_url)
 
     except Exception as e:
@@ -552,5 +557,5 @@ def oauth_callback(
             db, integration,
             "OAuth authorization failed. Please try connecting again.",
         )
-        redirect_url = f"{settings.FRONTEND_URL}/settings/integrations?error=oauth_failed&provider={provider}&id={integration.id}"
+        redirect_url = f"{_frontend_base()}/settings/integrations?error=oauth_failed&provider={provider}&id={integration.id}"
         return RedirectResponse(url=redirect_url)

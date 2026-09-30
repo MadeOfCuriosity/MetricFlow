@@ -278,3 +278,9 @@ def test_preview_returns_daily_numbers_only(monkeypatch, client, admin, db_sessi
         headers=headers,
     )
     assert gl.status_code == 400
+
+
+def test_oauth_return_uses_first_frontend_origin(monkeypatch):
+    from app.api.routes import integrations as routes
+    monkeypatch.setattr(settings, "FRONTEND_URL", "https://visualize.example.com, https://main.amplifyapp.com")
+    assert routes._frontend_base() == "https://visualize.example.com"
